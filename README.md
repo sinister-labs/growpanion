@@ -153,7 +153,7 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 
 - [Next.js](https://nextjs.org/) for the application framework
 - [Tailwind CSS](https://tailwindcss.com/) for styling
-- [shadcn/ui] (https://ui.shadcn.com) for a beautiful ui
+- [shadcn/ui](https://ui.shadcn.com) for a beautiful ui
 - [Dexie.js](https://dexie.org/) for IndexedDB wrapper
 - [Lucide](https://lucide.dev/) for beautiful icons
 - [Tuya IoT Platform](https://developer.tuya.com/) for sensor connectivity
