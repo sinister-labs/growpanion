@@ -7,58 +7,81 @@ import {
     generateId,
     populateDBWithDemoDataIfEmpty
 } from '@/lib/db';
+import { isGrowActive as isGrowActiveUtil } from '@/lib/growth-utils';
 
+/**
+ * Hook for managing grows (growing cycles)
+ * Provides functions for loading, adding, updating and deleting grows
+ * as well as managing the active grow
+ */
 export function useGrows() {
     const [grows, setGrows] = useState<Grow[]>([]);
     const [activeGrowId, setActiveGrowId] = useState<string | null>(null);
     const [isLoading, setIsLoading] = useState<boolean>(true);
     const [error, setError] = useState<Error | null>(null);
 
-    // Hilfsfunktion um zu prüfen, ob ein Grow aktiv (nicht abgeschlossen) ist
+    /**
+     * Checks if a grow is active (not completed)
+     * Using the utility function for consistency
+     */
     const isGrowActive = useCallback((grow: Grow) => {
-        return grow.currentPhase !== "Done";
+        return isGrowActiveUtil(grow);
     }, []);
 
-    // Laden aller Grows aus der Datenbank
+    /**
+     * Automatically selects an active grow
+     * Prefers active grows, then uses inactive as fallback
+     */
+    const selectActiveGrow = useCallback((loadedGrows: Grow[]) => {
+        const activeGrows = loadedGrows.filter(isGrowActive);
+        
+        if (activeGrows.length > 0) {
+            return activeGrows[0].id;
+        } else if (loadedGrows.length > 0) {
+            return loadedGrows[0].id;
+        }
+        
+        return null;
+    }, [isGrowActive]);
+
+    /**
+     * Loads all grows from the database and manages the active grow
+     */
     const loadGrows = useCallback(async () => {
         setIsLoading(true);
+        setError(null);
+
         try {
             await populateDBWithDemoDataIfEmpty();
             const loadedGrows = await getAllGrows();
             setGrows(loadedGrows);
 
-            // Wenn keine aktive Grow gesetzt ist, aber aktive Grows vorhanden sind, 
-            // setze die erste aktive Grow als aktiv
+            // Active grow management
             if (!activeGrowId) {
-                const activeGrows = loadedGrows.filter(isGrowActive);
-                if (activeGrows.length > 0) {
-                    setActiveGrowId(activeGrows[0].id);
-                } else if (loadedGrows.length > 0) {
-                    // Fallback, wenn es keine aktiven Grows gibt
-                    setActiveGrowId(loadedGrows[0].id);
-                }
+                // If no active grow is set, select one
+                setActiveGrowId(selectActiveGrow(loadedGrows));
             } else {
-                // Wenn der aktuell aktive Grow jetzt "Done" ist,
-                // wähle einen anderen aktiven Grow, falls vorhanden
+                // Check if the current active grow is still active
                 const currentActiveGrow = loadedGrows.find(g => g.id === activeGrowId);
                 if (currentActiveGrow && !isGrowActive(currentActiveGrow)) {
+                    // If not, select a new active grow
                     const activeGrows = loadedGrows.filter(isGrowActive);
                     if (activeGrows.length > 0) {
                         setActiveGrowId(activeGrows[0].id);
                     }
                 }
             }
-
-            setError(null);
         } catch (err) {
             console.error('Error loading grows:', err);
             setError(err instanceof Error ? err : new Error('Unknown error loading grows'));
         } finally {
             setIsLoading(false);
         }
-    }, [activeGrowId, isGrowActive]);
+    }, [activeGrowId, isGrowActive, selectActiveGrow]);
 
-    // Hinzufügen eines neuen Grows
+    /**
+     * Adds a new grow
+     */
     const addGrow = useCallback(async (growData: Omit<Grow, 'id'>) => {
         try {
             const newGrow: Grow = {
@@ -69,17 +92,19 @@ export function useGrows() {
             await saveGrow(newGrow);
             setGrows(prev => [...prev, newGrow]);
 
-            // Setze den neuen Grow als aktiv
+            // Set the new grow as active
             setActiveGrowId(newGrow.id);
 
             return newGrow;
         } catch (err) {
             console.error('Error adding grow:', err);
-            throw err;
+            throw err instanceof Error ? err : new Error('Failed to add grow');
         }
     }, []);
 
-    // Aktualisieren eines vorhandenen Grows
+    /**
+     * Updates an existing grow
+     */
     const updateGrow = useCallback(async (updatedGrow: Grow) => {
         try {
             await saveGrow(updatedGrow);
@@ -87,9 +112,9 @@ export function useGrows() {
                 prev.map(grow => grow.id === updatedGrow.id ? updatedGrow : grow)
             );
 
-            // Wenn ein Grow auf "Done" gesetzt wird und es der aktive Grow ist,
-            // wähle einen anderen aktiven Grow
-            if (updatedGrow.id === activeGrowId && updatedGrow.currentPhase === "Done") {
+            // If a grow is set to "Done" and it is the active grow,
+            // select another active grow
+            if (updatedGrow.id === activeGrowId && !isGrowActive(updatedGrow)) {
                 const otherActiveGrows = grows.filter(g => g.id !== updatedGrow.id && isGrowActive(g));
                 if (otherActiveGrows.length > 0) {
                     setActiveGrowId(otherActiveGrows[0].id);
@@ -99,52 +124,62 @@ export function useGrows() {
             return updatedGrow;
         } catch (err) {
             console.error('Error updating grow:', err);
-            throw err;
+            throw err instanceof Error ? err : new Error('Failed to update grow');
         }
     }, [activeGrowId, grows, isGrowActive]);
 
-    // Löschen eines Grows
+    /**
+     * Deletes a grow
+     */
     const removeGrow = useCallback(async (id: string) => {
         try {
             await deleteGrow(id);
             setGrows(prev => prev.filter(grow => grow.id !== id));
 
-            // Wenn der aktive Grow gelöscht wurde, setze einen anderen aktiven Grow als aktiv
+            // If the active grow is deleted, select a new one
             if (activeGrowId === id) {
-                const activeGrows = grows.filter(g => g.id !== id && isGrowActive(g));
+                // First filter out the deleted grow
+                const remainingGrows = grows.filter(grow => grow.id !== id);
+                
+                // Prefer active grows
+                const activeGrows = remainingGrows.filter(isGrowActive);
+                
                 if (activeGrows.length > 0) {
                     setActiveGrowId(activeGrows[0].id);
+                } else if (remainingGrows.length > 0) {
+                    setActiveGrowId(remainingGrows[0].id);
                 } else {
-                    const remainingGrows = grows.filter(grow => grow.id !== id);
-                    if (remainingGrows.length > 0) {
-                        setActiveGrowId(remainingGrows[0].id);
-                    } else {
-                        setActiveGrowId(null);
-                    }
+                    setActiveGrowId(null);
                 }
             }
         } catch (err) {
             console.error('Error deleting grow:', err);
-            throw err;
+            throw err instanceof Error ? err : new Error('Failed to delete grow');
         }
     }, [activeGrowId, grows, isGrowActive]);
 
-    // Aktiven Grow setzen
+    /**
+     * Sets the active grow
+     */
     const setActiveGrow = useCallback((id: string) => {
         setActiveGrowId(id);
     }, []);
 
-    // Aktiven Grow abrufen
+    /**
+     * Returns the active grow or null if none is set
+     */
     const getActiveGrow = useCallback(() => {
         return grows.find(grow => grow.id === activeGrowId) || null;
     }, [grows, activeGrowId]);
 
-    // Holt nur aktive Grows (nicht "Done")
+    /**
+     * Returns only active grows (without "Done" status)
+     */
     const getActiveGrows = useCallback(() => {
         return grows.filter(isGrowActive);
     }, [grows, isGrowActive]);
 
-    // Initialisieren der Daten beim ersten Laden
+    // Initialize data on first load
     useEffect(() => {
         loadGrows();
     }, [loadGrows]);

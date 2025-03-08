@@ -210,7 +210,7 @@ export const FertilizerMixesManager = ({ growId }: FertilizerMixesManagerProps) 
                     <Tabs defaultValue="details" className="mt-4">
                         <TabsList className="grid grid-cols-2 bg-gray-900">
                             <TabsTrigger value="details" className="data-[state=active]:bg-gray-700">Details</TabsTrigger>
-                            <TabsTrigger value="fertilizers" className="data-[state=active]:bg-gray-700">Düngemittel</TabsTrigger>
+                            <TabsTrigger value="fertilizers" className="data-[state=active]:bg-gray-700">Fertilizers</TabsTrigger>
                         </TabsList>
 
                         <TabsContent value="details" className="p-4 bg-gray-900 rounded-md mt-2">
@@ -225,7 +225,7 @@ export const FertilizerMixesManager = ({ growId }: FertilizerMixesManagerProps) 
                                     />
                                 </div>
                                 <div>
-                                    <Label htmlFor="mix-desc" className="text-white">Beschreibung (optional)</Label>
+                                    <Label htmlFor="mix-desc" className="text-white">Description (optional)</Label>
                                     <Textarea
                                         id="mix-desc"
                                         value={editingMix?.description || ''}
@@ -234,7 +234,7 @@ export const FertilizerMixesManager = ({ growId }: FertilizerMixesManagerProps) 
                                     />
                                 </div>
                                 <div>
-                                    <Label htmlFor="water-amount" className="text-white">Wasser pro Ansatz (ml)</Label>
+                                    <Label htmlFor="water-amount" className="text-white">Water per batch (ml)</Label>
                                     <Input
                                         id="water-amount"
                                         type="number"
@@ -250,13 +250,13 @@ export const FertilizerMixesManager = ({ growId }: FertilizerMixesManagerProps) 
                             <div className="space-y-4">
                                 <div className="flex flex-col sm:flex-row gap-2">
                                     <div className="flex-1">
-                                        <Label htmlFor="fert-name" className="text-white">Düngemittel</Label>
+                                        <Label htmlFor="fert-name" className="text-white">Fertilizer</Label>
                                         <Select
                                             value={tempFertilizer.name}
                                             onValueChange={val => setTempFertilizer(prev => ({ ...prev, name: val }))}
                                         >
                                             <SelectTrigger id="fert-name" className="bg-gray-800 border-gray-700 text-white">
-                                                <SelectValue placeholder="Düngemittel auswählen" />
+                                                <SelectValue placeholder="Select fertilizer" />
                                             </SelectTrigger>
                                             <SelectContent className="bg-gray-800 border-gray-700">
                                                 {fertilizerOptions.map(opt => (
@@ -312,7 +312,7 @@ export const FertilizerMixesManager = ({ growId }: FertilizerMixesManagerProps) 
                                     ) : (
                                         <div className="flex flex-col items-center justify-center h-full text-gray-500">
                                             <Droplet className="h-8 w-8 mb-2" />
-                                            <p>Noch keine Düngemittel hinzugefügt</p>
+                                            <p>No fertilizers added yet</p>
                                         </div>
                                     )}
                                 </ScrollArea>
@@ -326,7 +326,7 @@ export const FertilizerMixesManager = ({ growId }: FertilizerMixesManagerProps) 
                             className="border-gray-700 text-gray-400 hover:bg-gray-800"
                             onClick={() => setIsDialogOpen(false)}
                         >
-                            Abbrechen
+                            Cancel
                         </Button>
                         <Button
                             onClick={handleSaveMix}
@@ -334,7 +334,7 @@ export const FertilizerMixesManager = ({ growId }: FertilizerMixesManagerProps) 
                             disabled={!editingMix || !editingMix.name || !editingMix.waterAmount || !editingMix.fertilizers.length}
                         >
                             <Save className="mr-2 h-4 w-4" />
-                            Mischung speichern
+                            Save Mix
                         </Button>
                     </div>
                 </DialogContent>

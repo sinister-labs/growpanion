@@ -41,22 +41,22 @@ const HSTTab: React.FC<TrainingTabProps> = ({
         });
     };
 
-    // Dropdown-Optionen für HST-Methoden
+    // Dropdown options for HST methods
     const methodOptions: DropdownOption[] = HST_METHODS.map(method => ({
         id: method.name,
         label: method.name,
         description: getMethodDescription(method.id)
     }));
 
-    // Hilfsfunktion für die Beschreibungen
+    // Helper function for descriptions
     function getMethodDescription(methodId: string): string {
         switch (methodId) {
-            case "topping": return "Entfernung der Hauptspitze";
-            case "fiming": return "F*** I Missed - ähnlich wie Topping";
-            case "mainlining": return "Symmetrische Verzweigung";
-            case "manifolding": return "Mehrere Hauptstiele";
-            case "schwazzing": return "Starke Entlaubung";
-            case "super_cropping": return "Kontrolliertes Quetschen";
+            case "topping": return "Removal of the main stem tip";
+            case "fiming": return "Fuck I Missed - similar to Topping";
+            case "mainlining": return "Symmetrical branching";
+            case "manifolding": return "Multiple main stems";
+            case "schwazzing": return "Strong defoliation";
+            case "super_cropping": return "Controlled pruning";
             default: return "";
         }
     }

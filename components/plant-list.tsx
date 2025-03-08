@@ -8,38 +8,26 @@ import { Plant } from "@/components/plant-modal/types"
 import { usePlants } from "@/hooks/usePlants"
 import { Button } from "@/components/ui/button"
 import { Plus, Sprout } from "lucide-react"
-import { generateId } from "@/lib/db"
 import { Loader2 } from "lucide-react"
 import { useToast } from "@/hooks/use-toast"
+import { getLastActivity } from "@/lib/plant-utils"
 
-function getLastActivity(plant: Plant) {
-  const activities = [
-    ...(plant.waterings || []).map((w) => ({ type: "Watered", date: new Date(w.date), details: `${w.amount} ml` })),
-    ...(plant.hstRecords || []).map((t) => ({ type: "HST", date: new Date(t.date), details: t.method })),
-    ...(plant.lstRecords || []).map((t) => ({ type: "LST", date: new Date(t.date), details: t.method })),
-    ...(plant.substrateRecords || []).map((s) => ({
-      type: "Substrate",
-      date: new Date(s.date),
-      details: `${s.substrateType} (${s.potSize}L)`
-    })),
-  ]
-
-  if (activities.length === 0) return "No activities"
-
-  activities.sort((a, b) => b.date.getTime() - a.date.getTime())
-  const lastActivity = activities[0]
-  const daysAgo = Math.floor((new Date().getTime() - lastActivity.date.getTime()) / (1000 * 60 * 60 * 24))
-
-  return `${lastActivity.type} ${daysAgo} day${daysAgo !== 1 ? "s" : ""} ago${lastActivity.details ? ` (${lastActivity.details})` : ""}`
-}
-
+/**
+ * Component for displaying and managing plants within a grow
+ */
 interface PlantListProps {
   growId: string | null;
+  plants?: Plant[];
+  isLoading?: boolean;
 }
 
-export function PlantList({ growId }: PlantListProps) {
-  const { plants, isLoading, error, updatePlant, addPlant, removePlant } = usePlants(growId);
+export function PlantList({ growId, plants: providedPlants, isLoading: providedIsLoading }: PlantListProps) {
+  const { plants: fetchedPlants, isLoading: fetchIsLoading, error, updatePlant, addPlant, removePlant } = usePlants(growId);
   const { toast } = useToast();
+  
+  // Use provided plants and loading state if available, otherwise use fetched data
+  const plants = providedPlants || fetchedPlants;
+  const isLoading = providedIsLoading !== undefined ? providedIsLoading : fetchIsLoading;
 
   const handleAddNewPlant = () => {
     if (!growId) return;

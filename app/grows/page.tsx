@@ -58,7 +58,7 @@ export default function GrowsPage() {
     ]
   });
 
-  // Filtern der Grows nach Status
+  // Filter the grows by status
   const activeGrows = grows.filter(isGrowActive);
   const completedGrows = grows.filter(grow => !isGrowActive(grow));
 
@@ -157,19 +157,19 @@ export default function GrowsPage() {
                 <span className="text-gray-600">/</span>
                 <h1 className="text-3xl font-bold text-white">Grows</h1>
               </div>
-              <p className="text-gray-400">Verwalte deine Growing-Zyklen</p>
+              <p className="text-gray-400">Manage your growing cycles</p>
             </div>
 
             <Dialog open={isNewGrowDialogOpen} onOpenChange={setIsNewGrowDialogOpen}>
               <DialogTrigger asChild>
                 <Button className="bg-green-600 hover:bg-green-700">
                   <Plus className="mr-2 h-4 w-4" />
-                  Neuer Grow
+                  New Grow
                 </Button>
               </DialogTrigger>
               <DialogContent className="bg-gray-800 border-gray-700 text-white">
                 <DialogHeader>
-                  <DialogTitle className="text-green-400">Neuen Grow erstellen</DialogTitle>
+                  <DialogTitle className="text-green-400">Create new Grow</DialogTitle>
                 </DialogHeader>
                 <div className="space-y-4 py-4">
                   <div className="grid w-full gap-2">
@@ -179,12 +179,12 @@ export default function GrowsPage() {
                       name="name"
                       value={newGrow.name || ""}
                       onChange={handleGrowChange}
-                      placeholder="z.B. Sommer Grow 2023"
+                      placeholder="e.g. Summer Grow 2023"
                       className="bg-gray-700 border-gray-600"
                     />
                   </div>
                   <div className="grid w-full gap-2">
-                    <Label htmlFor="startDate">Startdatum</Label>
+                    <Label htmlFor="startDate">Start date</Label>
                     <div className="relative">
                       <Input
                         id="startDate"
@@ -198,7 +198,7 @@ export default function GrowsPage() {
                     </div>
                   </div>
                   <div className="grid w-full gap-2">
-                    <Label htmlFor="phase">Aktuelle Phase</Label>
+                    <Label htmlFor="phase">Current phase</Label>
                     <CustomDropdown
                       options={phaseOptions}
                       value={newGrow.currentPhase || "Seedling"}
@@ -212,7 +212,7 @@ export default function GrowsPage() {
                       onClick={handleCreateGrow}
                       className="w-full bg-green-600 hover:bg-green-700"
                     >
-                      Grow erstellen
+                      Create Grow
                     </Button>
                   </div>
                 </div>
@@ -223,14 +223,14 @@ export default function GrowsPage() {
           {grows.length === 0 ? (
             <div className="bg-gray-800/30 border border-gray-700 rounded-lg p-8 text-center">
               <p className="text-lg text-gray-400 mb-4">
-                Du hast noch keine Grows angelegt.
+                You have no grows yet.
               </p>
               <Button
                 onClick={() => setIsNewGrowDialogOpen(true)}
                 className="bg-green-600 hover:bg-green-700"
               >
                 <Plus className="mr-2 h-4 w-4" />
-                Ersten Grow erstellen
+                Create your first Grow
               </Button>
             </div>
           ) : (
@@ -255,14 +255,14 @@ export default function GrowsPage() {
                   {activeGrows.length === 0 ? (
                     <div className="bg-gray-800/30 border border-gray-700 rounded-lg p-8 text-center">
                       <p className="text-lg text-gray-400 mb-4">
-                        Du hast keine aktiven Grows.
+                        You have no active grows.
                       </p>
                       <Button
                         onClick={() => setIsNewGrowDialogOpen(true)}
                         className="bg-green-600 hover:bg-green-700"
                       >
                         <Plus className="mr-2 h-4 w-4" />
-                        Neuen Grow erstellen
+                        Create new Grow
                       </Button>
                     </div>
                   ) : (
@@ -277,7 +277,7 @@ export default function GrowsPage() {
                               <CardTitle className="text-base sm:text-lg font-medium text-green-400 flex justify-between">
                                 {grow.name}
                                 {grow.id === activeGrowId && (
-                                  <Badge className="bg-green-600 text-xs">Aktiv</Badge>
+                                  <Badge className="bg-green-600 text-xs">Active</Badge>
                                 )}
                               </CardTitle>
                               <CardDescription className="text-gray-400">
@@ -328,10 +328,10 @@ export default function GrowsPage() {
                   {completedGrows.length === 0 ? (
                     <div className="bg-gray-800/30 border border-gray-700 rounded-lg p-8 text-center">
                       <p className="text-lg text-gray-400 mb-4">
-                        Du hast keine abgeschlossenen Grows.
+                        You have no completed grows.
                       </p>
                       <p className="text-sm text-gray-500 mb-4">
-                        Grows werden als abgeschlossen markiert, wenn sie die Phase "Done" erreichen.
+                        Grows are marked as completed when they reach the "Done" phase.
                       </p>
                     </div>
                   ) : (

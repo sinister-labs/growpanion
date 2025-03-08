@@ -8,6 +8,7 @@ import { Montserrat } from "next/font/google"
 import Header from "@/components/header"
 import { useGrows } from "@/hooks/useGrows"
 import { usePlants } from "@/hooks/usePlants"
+import { useSensorData } from "@/hooks/useSensorData"
 import { Loader2, ArrowRight, ChevronDown, Check, TreesIcon as Plant } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import Link from "next/link"
@@ -147,7 +148,7 @@ export default function Home() {
             </Link>
           </div>
 
-          <GrowEnvironment />
+          <GrowEnvironment grow={activeGrow || undefined} onPhaseChange={handlePhaseChange} />
 
           {activeGrow ? (
             <>

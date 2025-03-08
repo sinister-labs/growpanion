@@ -12,34 +12,12 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog"
-import { CalendarDays, Sprout, Leaf, Cannabis, Wind, Package, CheckCircle, TreesIcon as Plant } from "lucide-react"
+import { CalendarDays, TreesIcon as Plant } from "lucide-react"
 import { cn } from "@/lib/utils"
+import { calculateDuration, formatDate } from "@/lib/utils"
 import React, { ReactNode } from "react"
 import { CustomDropdown, DropdownOption } from "@/components/ui/custom-dropdown"
-
-// Correct order of growth phases
-const phases = ["Seedling", "Vegetative", "Flowering", "Flushing", "Drying", "Curing", "Done"]
-const phaseIcons: Record<string, React.ForwardRefExoticComponent<any>> = {
-  Seedling: Sprout,
-  Vegetative: Leaf,
-  Flowering: Cannabis,
-  Flushing: Wind,
-  Drying: Wind,
-  Curing: Package,
-  Done: CheckCircle,
-}
-
-function formatDate(dateString: string) {
-  return new Date(dateString).toLocaleDateString()
-}
-
-function calculateDuration(startDate: string) {
-  const start = new Date(startDate)
-  const now = new Date()
-  const diffTime = Math.abs(now.getTime() - start.getTime())
-  const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24))
-  return diffDays
-}
+import { GROWTH_PHASES, PHASE_ICONS, getDaysInPhase, getPhaseOptions } from "@/lib/growth-utils"
 
 export interface GrowInfoProps {
   grow: {
@@ -53,7 +31,7 @@ export interface GrowInfoProps {
     }>;
     plants?: Array<any>;
   };
-  onPhaseChange: (phase: string) => void;
+  onPhaseChange?: (phase: string) => void;
 }
 
 interface InfoCardProps {
@@ -64,14 +42,13 @@ interface InfoCardProps {
 }
 
 export function GrowInfo({ grow, onPhaseChange }: GrowInfoProps) {
-  console.log(grow);
   const [selectedPhase, setSelectedPhase] = useState(grow.currentPhase)
   const [showConfirmDialog, setShowConfirmDialog] = useState(false)
 
   const currentPhaseStart = grow.phaseHistory.find((ph) => ph.phase === grow.currentPhase)?.startDate
   const currentDay = calculateDuration(grow.startDate)
   const currentWeek = Math.ceil(currentDay / 7)
-  const daysInCurrentPhase = currentPhaseStart ? calculateDuration(currentPhaseStart) : 0
+  const daysInCurrentPhase = getDaysInPhase(grow)
 
   const lastCompletedPhase = grow.phaseHistory
     .filter((ph) => ph.phase !== grow.currentPhase)
@@ -85,19 +62,15 @@ export function GrowInfo({ grow, onPhaseChange }: GrowInfoProps) {
   }
 
   const confirmPhaseChange = () => {
-    onPhaseChange(selectedPhase)
+    if (onPhaseChange) {
+      onPhaseChange(selectedPhase)
+    }
     setShowConfirmDialog(false)
   }
 
-  const CurrentPhaseIcon = phaseIcons[grow.currentPhase] || Sprout
+  const CurrentPhaseIcon = PHASE_ICONS[grow.currentPhase] || PHASE_ICONS.Seedling
 
-  const phaseOptions: DropdownOption[] = phases.map(phase => ({
-    id: phase,
-    label: phase,
-    icon: React.createElement(phaseIcons[phase] || Sprout, {
-      className: "w-4 h-4 text-green-400 mr-2"
-    })
-  }))
+  const phaseOptions = getPhaseOptions()
 
   return (
     <Card className="bg-gradient-to-br from-gray-900 to-gray-800 border-gray-700 shadow-lg">
@@ -110,7 +83,7 @@ export function GrowInfo({ grow, onPhaseChange }: GrowInfoProps) {
               options={phaseOptions}
               value={grow.currentPhase}
               onChange={handlePhaseSelect}
-              placeholder="Phase wählen"
+              placeholder="Select phase"
               width="w-[150px]"
               className="min-w-0"
               buttonClassName="border-none bg-transparent hover:bg-transparent"
@@ -158,15 +131,15 @@ export function GrowInfo({ grow, onPhaseChange }: GrowInfoProps) {
       <AlertDialog open={showConfirmDialog} onOpenChange={setShowConfirmDialog}>
         <AlertDialogContent className="bg-gray-800 text-white">
           <AlertDialogHeader>
-            <AlertDialogTitle>Phasenwechsel bestätigen</AlertDialogTitle>
+            <AlertDialogTitle>Confirm Phase Change</AlertDialogTitle>
             <AlertDialogDescription className="text-gray-300">
-              Bist du sicher, dass du die Phase zu {selectedPhase} ändern möchtest? Diese Aktion kann nicht rückgängig gemacht werden.
+              Are you sure you want to change the phase to {selectedPhase}? This action cannot be undone.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel className="bg-gray-700 text-white hover:bg-gray-600">Abbrechen</AlertDialogCancel>
+            <AlertDialogCancel className="bg-gray-700 text-white hover:bg-gray-600">Cancel</AlertDialogCancel>
             <AlertDialogAction onClick={confirmPhaseChange} className="bg-green-500 text-white hover:bg-green-600">
-              Bestätigen
+              Confirm
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

@@ -2,6 +2,7 @@
 
 import Link from "next/link"
 import { usePathname } from "next/navigation"
+import { Settings } from "lucide-react"
 
 export default function Header() {
   const pathname = usePathname()
@@ -52,6 +53,14 @@ export default function Header() {
                 className={`hover:text-green-400 transition-colors ${pathname.startsWith("/grows") ? "text-green-400" : ""}`}
               >
                 Grows
+              </Link>
+            </li>
+            <li>
+              <Link
+                href="/settings"
+                className={`hover:text-green-400 transition-colors flex items-center ${pathname === "/settings" ? "text-green-400" : ""}`}
+              >
+                Settings
               </Link>
             </li>
           </ul>

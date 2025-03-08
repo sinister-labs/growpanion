@@ -36,7 +36,7 @@ export function CustomDropdown({
     options,
     value,
     onChange,
-    placeholder = "Auswählen...",
+    placeholder = "Select...",
     width = "w-[240px]",
     className = "",
     buttonClassName = "",

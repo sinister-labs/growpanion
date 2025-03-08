@@ -9,6 +9,8 @@ import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Calendar, List, PlusCircle, Loader2 } from "lucide-react";
 import { CustomDropdown, DropdownOption } from "@/components/ui/custom-dropdown";
+import { formatDate } from "@/lib/utils";
+import { GROWTH_PHASES } from "@/lib/growth-utils";
 
 export function GrowSelector() {
     const {
@@ -63,7 +65,7 @@ export function GrowSelector() {
                 ]
             });
         } catch (error) {
-            console.error("Fehler beim Erstellen des Grows:", error);
+            console.error("Error creating grow:", error);
         }
     };
 
@@ -78,34 +80,30 @@ export function GrowSelector() {
     if (error) {
         return (
             <div className="bg-red-900/30 text-red-300 p-4 rounded-md">
-                Fehler beim Laden der Grows: {error.message}
+                Error loading grows: {error.message}
             </div>
         );
     }
 
     const activeGrow = grows.find(grow => grow.id === activeGrowId);
 
-    // Phasen-Optionen für das Dropdown
-    const phaseOptions: DropdownOption[] = [
-        { id: "Seedling", label: "Keimling" },
-        { id: "Vegetative", label: "Vegetativ" },
-        { id: "Flowering", label: "Blüte" },
-        { id: "Flushing", label: "Spülen" },
-        { id: "Drying", label: "Trocknen" },
-        { id: "Curing", label: "Aushärten" }
-    ];
+    // Phase options for dropdown
+    const phaseOptions: DropdownOption[] = GROWTH_PHASES.filter(phase => phase !== "Done").map(phase => ({
+        id: phase,
+        label: phase
+    }));
 
-    // Grow-Optionen für das Dropdown
+    // Grow options for dropdown
     const growOptions: DropdownOption[] = grows.map(grow => ({
         id: grow.id,
         label: grow.name,
-        description: `Phase: ${grow.currentPhase} | Start: ${new Date(grow.startDate).toLocaleDateString()}`
+        description: `Phase: ${grow.currentPhase} | Start: ${formatDate(grow.startDate)}`
     }));
 
     return (
         <div className="bg-gray-800/50 rounded-lg border border-gray-700 p-4">
             <div className="flex justify-between items-center mb-4">
-                <h3 className="text-lg font-medium text-green-400">Meine Grows</h3>
+                <h3 className="text-lg font-medium text-green-400">My Grows</h3>
                 <Dialog open={isNewGrowDialogOpen} onOpenChange={setIsNewGrowDialogOpen}>
                     <DialogTrigger asChild>
                         <Button
@@ -114,12 +112,12 @@ export function GrowSelector() {
                             size="sm"
                         >
                             <PlusCircle className="mr-2 h-4 w-4" />
-                            Neuer Grow
+                            New Grow
                         </Button>
                     </DialogTrigger>
                     <DialogContent className="bg-gray-800 border-gray-700 text-white">
                         <DialogHeader>
-                            <DialogTitle className="text-green-400">Neuen Grow erstellen</DialogTitle>
+                            <DialogTitle className="text-green-400">Create New Grow</DialogTitle>
                         </DialogHeader>
                         <div className="space-y-4 py-4">
                             <div className="grid w-full gap-2">
@@ -129,12 +127,12 @@ export function GrowSelector() {
                                     name="name"
                                     value={newGrow.name || ""}
                                     onChange={handleGrowChange}
-                                    placeholder="z.B. Sommer Grow 2023"
+                                    placeholder="e.g. Summer Grow 2023"
                                     className="bg-gray-700 border-gray-600"
                                 />
                             </div>
                             <div className="grid w-full gap-2">
-                                <Label htmlFor="startDate">Startdatum</Label>
+                                <Label htmlFor="startDate">Start Date</Label>
                                 <div className="relative">
                                     <Input
                                         id="startDate"
@@ -148,7 +146,7 @@ export function GrowSelector() {
                                 </div>
                             </div>
                             <div className="grid w-full gap-2">
-                                <Label htmlFor="phase">Aktuelle Phase</Label>
+                                <Label htmlFor="phase">Current Phase</Label>
                                 <CustomDropdown
                                     options={phaseOptions}
                                     value={newGrow.currentPhase || "Seedling"}
@@ -162,7 +160,7 @@ export function GrowSelector() {
                                     onClick={handleCreateGrow}
                                     className="w-full bg-green-600 hover:bg-green-700"
                                 >
-                                    Grow erstellen
+                                    Create Grow
                                 </Button>
                             </div>
                         </div>
@@ -173,24 +171,24 @@ export function GrowSelector() {
             {grows.length === 0 ? (
                 <div className="bg-gray-900 p-6 rounded-lg text-center text-gray-400">
                     <List className="h-12 w-12 mx-auto mb-4 text-gray-600" />
-                    <p className="mb-4">Noch keine Grows vorhanden</p>
+                    <p className="mb-4">No grows available yet</p>
                     <Button
                         onClick={() => setIsNewGrowDialogOpen(true)}
                         className="bg-green-600 hover:bg-green-700"
                     >
                         <PlusCircle className="mr-2 h-4 w-4" />
-                        Grow erstellen
+                        Create Grow
                     </Button>
                 </div>
             ) : (
                 <div className="space-y-4">
                     <div className="grid grid-cols-1 gap-2">
-                        <Label htmlFor="activeGrow" className="text-white">Aktiver Grow</Label>
+                        <Label htmlFor="activeGrow" className="text-white">Active Grow</Label>
                         <CustomDropdown
                             options={growOptions}
                             value={activeGrowId || ""}
                             onChange={setActiveGrow}
-                            placeholder="Wähle einen Grow aus"
+                            placeholder="Select a grow"
                             width="w-full"
                             buttonClassName="bg-gray-700 border-gray-600"
                         />
@@ -201,7 +199,7 @@ export function GrowSelector() {
                             <div className="flex justify-between items-center mb-2">
                                 <h4 className="font-medium text-green-400">{activeGrow.name}</h4>
                                 <div className="text-xs text-gray-400">
-                                    Start: {new Date(activeGrow.startDate).toLocaleDateString()}
+                                    Start: {formatDate(activeGrow.startDate)}
                                 </div>
                             </div>
                             <div className="flex justify-between">

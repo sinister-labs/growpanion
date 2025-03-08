@@ -80,7 +80,7 @@ const WateringFeedingTab: React.FC<WateringFeedingTabProps> = ({
                         options={mixOptions}
                         value={newWatering.mixId || ''}
                         onChange={handleMixChange}
-                        placeholder="Mix auswählen"
+                        placeholder="Select mix"
                         width="w-full"
                         buttonClassName="bg-gray-800 border-gray-700 focus:ring-green-500 focus:border-green-500"
                     />
