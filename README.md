@@ -58,7 +58,7 @@ GrowPanion is a comprehensive solution for monitoring and managing cannabis cult
 
 1. Clone the repository
    ```bash
-   git clone https://github.com/yourusername/growpanion.git
+   git clone https://github.com/sinister-labs/growpanion
    cd growpanion
    ```
 
