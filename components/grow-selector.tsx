@@ -128,7 +128,6 @@ export function GrowSelector() {
                                     value={newGrow.name || ""}
                                     onChange={handleGrowChange}
                                     placeholder="e.g. Summer Grow 2023"
-                                    className="bg-gray-700 border-gray-600"
                                 />
                             </div>
                             <div className="grid w-full gap-2">
@@ -140,7 +139,6 @@ export function GrowSelector() {
                                         type="date"
                                         value={newGrow.startDate || ""}
                                         onChange={handleGrowChange}
-                                        className="bg-gray-700 border-gray-600"
                                     />
                                     <Calendar className="absolute right-3 top-2.5 h-4 w-4 text-gray-400 pointer-events-none" />
                                 </div>

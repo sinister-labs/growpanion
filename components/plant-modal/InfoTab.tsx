@@ -43,7 +43,6 @@ const InfoTab: React.FC<TabComponentProps> = ({ localPlant, setLocalPlant }) => 
                     name="name"
                     value={localPlant.name || ''}
                     onChange={handleInputChange}
-                    className="bg-gray-800 border-gray-700 text-white"
                 />
             </div>
             <div className="grid grid-cols-2 gap-4 mb-4">
@@ -56,7 +55,6 @@ const InfoTab: React.FC<TabComponentProps> = ({ localPlant, setLocalPlant }) => 
                         name="genetic"
                         value={localPlant.genetic || ''}
                         onChange={handleInputChange}
-                        className="bg-gray-800 border-gray-700 text-white"
                     />
                 </div>
                 <div>
@@ -68,7 +66,6 @@ const InfoTab: React.FC<TabComponentProps> = ({ localPlant, setLocalPlant }) => 
                         name="manufacturer"
                         value={localPlant.manufacturer || ''}
                         onChange={handleInputChange}
-                        className="bg-gray-800 border-gray-700 text-white"
                     />
                 </div>
                 <div>
@@ -101,16 +98,21 @@ const InfoTab: React.FC<TabComponentProps> = ({ localPlant, setLocalPlant }) => 
             </div>
             <div className="mb-4">
                 <Label className="text-white">
-                    Yield (grams)
+                    Yield
                 </Label>
-                <Input
-                    id="yield"
-                    name="yield"
-                    type="number"
-                    value={localPlant.yield || ''}
-                    onChange={handleInputChange}
-                    className="bg-gray-800 border-gray-700 text-white"
-                />
+                <div className="relative">
+                    <Input
+                        id="yield"
+                        name="yield"
+                        type="number"
+                        value={localPlant.yield || ''}
+                        onChange={handleInputChange}
+                        className="bg-gray-800 border-gray-700 text-white"
+                    />
+                    <span className="absolute inset-y-0 right-0 flex items-center pr-3 text-gray-400 pointer-events-none border-l-2 pl-2 border-gray-700 bg-gray-700 rounded-r-full">
+                        g
+                    </span>
+                </div>
             </div>
         </motion.div>
     );

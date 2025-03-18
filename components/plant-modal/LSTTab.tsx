@@ -74,7 +74,6 @@ const LSTTab: React.FC<TrainingTabProps> = ({
                             name="date"
                             value={newLST.date}
                             onChange={handleLSTChange}
-                            className="bg-gray-800 border-gray-700 text-white"
                         />
                     </div>
                     <div>
@@ -97,7 +96,6 @@ const LSTTab: React.FC<TrainingTabProps> = ({
                         name="notes"
                         value={newLST.notes || ''}
                         onChange={handleLSTChange}
-                        className="bg-gray-800 border-gray-700 text-white"
                         placeholder="Additional details about training"
                     />
                 </div>

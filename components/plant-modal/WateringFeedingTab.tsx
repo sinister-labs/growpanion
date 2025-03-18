@@ -7,17 +7,22 @@ import { Label } from '@/components/ui/label';
 import { Button } from '@/components/ui/button';
 import { WateringFeedingTabProps } from './types';
 import { NoRecordsIndicator } from './shared-components';
-import { Droplets, Trash2 } from 'lucide-react';
+import { Droplets, Trash2, ArrowRight } from 'lucide-react';
 import { CustomDropdown, DropdownOption } from '@/components/ui/custom-dropdown';
+import { DropdownMenuItem } from '@/components/ui/dropdown-menu';
+import { useRouter } from 'next/navigation';
 
-const WateringFeedingTab: React.FC<WateringFeedingTabProps> = ({
+const WateringFeedingTab: React.FC<WateringFeedingTabProps & { growId: string }> = ({
     localPlant,
     newWatering,
     setNewWatering,
     handleWateringAdd,
     handleWateringDelete,
-    availableMixes
+    availableMixes,
+    growId
 }) => {
+    const router = useRouter();
+
     const handleWateringChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         setNewWatering({
             ...newWatering,
@@ -54,7 +59,6 @@ const WateringFeedingTab: React.FC<WateringFeedingTabProps> = ({
                             name="date"
                             value={newWatering.date}
                             onChange={handleWateringChange}
-                            className="bg-gray-800 border-gray-700 text-white"
                         />
                     </div>
                     <div>
@@ -65,9 +69,9 @@ const WateringFeedingTab: React.FC<WateringFeedingTabProps> = ({
                                 name="amount"
                                 value={newWatering.amount}
                                 onChange={handleWateringChange}
-                                className="bg-gray-800 border-gray-700 text-white pr-8"
+                                className="pr-8"
                             />
-                            <span className="absolute inset-y-0 right-0 flex items-center pr-3 text-gray-400 pointer-events-none border-l-2 pl-2 border-gray-700 bg-gray-700">
+                            <span className="absolute inset-y-0 right-0 flex items-center pr-4 text-gray-400 pointer-events-none border-l-2 pl-2 border-gray-700 bg-gray-700 rounded-r-full">
                                 ml
                             </span>
                         </div>
@@ -80,9 +84,22 @@ const WateringFeedingTab: React.FC<WateringFeedingTabProps> = ({
                         options={mixOptions}
                         value={newWatering.mixId || ''}
                         onChange={handleMixChange}
-                        placeholder="Select mix"
+                        placeholder={mixOptions.length === 0 ? "No fertilizer mixes available" : "Select mix"}
                         width="w-full"
-                        buttonClassName="bg-gray-800 border-gray-700 focus:ring-green-500 focus:border-green-500"
+                        buttonClassName={`bg-gray-800 border-gray-700 focus:ring-green-500 focus:border-green-500 ${mixOptions.length === 0 ? 'opacity-70' : ''}`}
+                        renderFooter={() => (
+                            <DropdownMenuItem
+                                className="py-2 cursor-pointer text-gray-300 hover:text-white"
+                                onClick={() => {
+                                    if (growId) {
+                                        router.push(`/grows/${growId}?tab=mixes`);
+                                    }
+                                }}
+                            >
+                                {mixOptions.length === 0 ? "Create fertilizer mixes" : "Manage fertilizer mixes"}
+                                <ArrowRight className="h-3.5 w-3.5 ml-auto" />
+                            </DropdownMenuItem>
+                        )}
                     />
                 </div>
 
@@ -136,7 +153,7 @@ const WateringFeedingTab: React.FC<WateringFeedingTabProps> = ({
                                                         {mix.fertilizers.map((fert, i) => (
                                                             <div key={i} className="flex justify-between items-center py-1">
                                                                 <span>{fert.name} <span className="text-xs">({fert.amount} ml / {mix.waterAmount} ml)</span></span>
-                                                                <span className="text-green-400">{parseFloat(fert.amount) / parseFloat(mix.waterAmount) * parseFloat(watering.amount)} ml</span>
+                                                                <span className="text-green-400">{(parseFloat(fert.amount) / parseFloat(mix.waterAmount) * parseFloat(watering.amount)).toFixed(1)} ml</span>
                                                             </div>
                                                         ))}
                                                     </>

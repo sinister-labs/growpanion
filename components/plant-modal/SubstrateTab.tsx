@@ -39,7 +39,6 @@ const SubstrateTab: React.FC<SubstrateTabProps> = ({
                             type="date"
                             value={newSubstrate.date}
                             onChange={handleSubstrateChange}
-                            className="bg-gray-800 border-gray-700 text-white"
                         />
                     </div>
                     <div>
@@ -50,7 +49,6 @@ const SubstrateTab: React.FC<SubstrateTabProps> = ({
                             type="text"
                             value={newSubstrate.substrateType}
                             onChange={handleSubstrateChange}
-                            className="bg-gray-800 border-gray-700 text-white"
                         />
                     </div>
                 </div>
@@ -65,9 +63,9 @@ const SubstrateTab: React.FC<SubstrateTabProps> = ({
                                 type="  "
                                 value={newSubstrate.potSize}
                                 onChange={handleSubstrateChange}
-                                className="bg-gray-800 border-gray-700 text-white pr-8"
+                                className="pr-8"
                             />
-                            <span className="absolute inset-y-0 right-0 flex items-center pr-3 text-gray-400 pointer-events-none border-l-2 pl-2 border-gray-700 bg-gray-700">
+                            <span className="absolute inset-y-0 right-0 flex items-center pr-4 text-gray-400 pointer-events-none border-l-2 pl-2 border-gray-700 bg-gray-700 rounded-r-full">
                                 L
                             </span>
                         </div>
@@ -81,7 +79,6 @@ const SubstrateTab: React.FC<SubstrateTabProps> = ({
                             placeholder="Additional information"
                             value={newSubstrate.notes || ''}
                             onChange={handleSubstrateChange}
-                            className="bg-gray-800 border-gray-700 text-white"
                         />
                     </div>
                 </div>

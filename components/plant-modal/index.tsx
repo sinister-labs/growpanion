@@ -377,8 +377,9 @@ export function PlantModal({ plant, updatePlant, deletePlant, growId }: PlantMod
                             <div className="p-2 mt-auto">
                                 <Button
                                     onClick={handleDeleteClick}
-                                    variant="destructive"
-                                    className="w-full text-white bg-red-600 hover:bg-red-700 border border-red-800"
+                                    variant="ghost"
+                                    size="sm"
+                                    className="text-red-400 hover:text-red-300 hover:bg-red-950/30 w-full rounded-full"
                                 >
                                     <Trash2 className="h-4 w-4 mr-2" />
                                     Delete Plant
@@ -419,6 +420,7 @@ export function PlantModal({ plant, updatePlant, deletePlant, growId }: PlantMod
                                                         handleWateringAdd={handleWateringAdd}
                                                         handleWateringDelete={handleWateringDelete}
                                                         availableMixes={availableMixes}
+                                                        growId={growId}
                                                     />
                                                 )}
                                                 {activeTab === "hst" && (

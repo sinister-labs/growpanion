@@ -74,7 +74,6 @@ const HSTTab: React.FC<TrainingTabProps> = ({
                             name="date"
                             value={newHST.date}
                             onChange={handleHSTChange}
-                            className="bg-gray-800 border-gray-700 text-white"
                         />
                     </div>
                     <div>
@@ -97,7 +96,6 @@ const HSTTab: React.FC<TrainingTabProps> = ({
                         name="notes"
                         value={newHST.notes || ''}
                         onChange={handleHSTChange}
-                        className="bg-gray-800 border-gray-700 text-white"
                         placeholder="Additional details about training"
                     />
                 </div>
