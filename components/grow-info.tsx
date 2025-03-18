@@ -150,7 +150,7 @@ export function GrowInfo({ grow, onPhaseChange }: GrowInfoProps) {
 
 function InfoCard({ icon, title, value, subtitle }: InfoCardProps) {
   return (
-    <div className="bg-gray-800 rounded-lg p-3 sm:p-4 flex items-center">
+    <div className="bg-gray-800 rounded-xl border border-gray-700 p-3 sm:p-4 flex items-center">
       <div className="mr-3 sm:mr-4">{icon}</div>
       <div>
         <div className="text-xs sm:text-sm font-medium text-gray-400">{title}</div>

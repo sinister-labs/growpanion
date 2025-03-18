@@ -245,12 +245,12 @@ export function PlantModal({ plant, updatePlant, deletePlant, growId }: PlantMod
                     </AlertDialogDescription>
                 </AlertDialogHeader>
                 <AlertDialogFooter>
-                    <AlertDialogCancel className="bg-gray-700 text-white hover:bg-gray-600">
+                    <AlertDialogCancel className="bg-gray-700 text-white hover:bg-gray-600 border-none rounded-full">
                         Cancel
                     </AlertDialogCancel>
                     <AlertDialogAction
                         onClick={confirmDelete}
-                        className="bg-red-600 text-white hover:bg-red-700"
+                        className="bg-red-600 text-white hover:bg-red-700 border-none rounded-full"
                     >
                         Delete Plant
                     </AlertDialogAction>

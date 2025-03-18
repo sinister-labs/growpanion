@@ -55,7 +55,7 @@ export function CustomDropdown({
                 <DropdownMenuTrigger asChild disabled={disabled}>
                     <button
                         className={cn(
-                            "flex items-center gap-2 px-3 py-2 bg-gray-800/80 backdrop-blur-sm border border-gray-700 rounded-lg transition-all duration-200 hover:bg-gray-700/80 hover:border-gray-600 text-white w-full",
+                            "flex items-center gap-2 px-4 py-2 bg-gray-800/80 backdrop-blur-sm rounded-full border border-gray-700 transition-all duration-200 hover:bg-gray-700/80 hover:border-gray-600 text-white w-full",
                             {
                                 "opacity-50 cursor-not-allowed": disabled,
                             },
@@ -75,7 +75,7 @@ export function CustomDropdown({
                 <DropdownMenuContent
                     className={cn(
                         width,
-                        "bg-gray-800/95 backdrop-blur-md border-gray-700 text-white",
+                        "bg-gray-800/95 backdrop-blur-md rounded-xl border-gray-700 text-white",
                         contentClassName
                     )}
                     align="start"
@@ -84,7 +84,7 @@ export function CustomDropdown({
                         <DropdownMenuItem
                             key={option.id}
                             className={cn(
-                                "py-2.5 cursor-pointer border-l-2 flex justify-between items-center",
+                                "py-2.5 cursor-pointer  rounded-xl flex justify-between items-center",
                                 {
                                     "border-l-green-500 bg-green-900/20": option.id === value,
                                     "border-l-transparent hover:border-l-gray-300": option.id !== value,

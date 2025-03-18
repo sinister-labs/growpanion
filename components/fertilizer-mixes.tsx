@@ -125,7 +125,7 @@ export const FertilizerMixesManager = ({ growId }: FertilizerMixesManagerProps) 
                 <h2 className="text-2xl font-semibold text-white">Fertilizer Mixes</h2>
                 <Button
                     onClick={() => handleEditMix(null)}
-                    className="bg-green-600 hover:bg-green-700"
+                    className="bg-green-500 hover:bg-green-700"
                 >
                     <Plus className="mr-2 h-4 w-4" /> New Mix
                 </Button>
@@ -140,7 +140,7 @@ export const FertilizerMixesManager = ({ growId }: FertilizerMixesManagerProps) 
                     <p className="text-red-400">{error.message}</p>
                 </div>
             ) : mixes.length === 0 ? (
-                <div className="bg-gray-800 p-8 rounded-lg border border-gray-700 text-center">
+                <div className=" p-8 rounded-2xl border-2 border-gray-700 text-center">
                     <Beaker className="w-12 h-12 mx-auto mb-4 text-gray-500" />
                     <h3 className="text-xl font-semibold mb-2 text-white">No Fertilizer Mixes</h3>
                     <p className="text-gray-400 mb-4">Create your first fertilizer mix to use it later when watering your plants.</p>

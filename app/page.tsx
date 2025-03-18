@@ -106,7 +106,7 @@ export default function Home() {
         <div className="space-y-8 mt-6">
           <div className="flex justify-between items-center">
             <div className="flex flex-col">
-              <h1 className="text-3xl font-bold text-white">Dashboard</h1>
+              <h1 className="font-semibold text-white">Dashboard</h1>
               {activeGrows.length > 0 ? (
                 <div className="mt-2">
                   <CustomDropdown
@@ -163,7 +163,7 @@ export default function Home() {
               <PlantList growId={activeGrowId} />
             </>
           ) : (
-            <div className="bg-gray-800 p-8 rounded-lg border border-gray-700 text-center">
+            <div className="bg-gray-800 p-8 rounded-2xl border border-gray-700 text-center">
               <Plant className="w-12 h-12 mx-auto mb-4 text-gray-500" />
               <h3 className="text-xl font-semibold mb-2 text-white">No plants yet</h3>
               <p className="text-gray-400 mb-4">

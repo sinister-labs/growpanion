@@ -132,18 +132,19 @@ export function PlantList({ growId, plants: providedPlants, isLoading: providedI
       </div>
 
       {plants.length === 0 ? (
-        <div className="text-white bg-gray-800 p-8 rounded-lg text-center">
-          <Sprout className="h-12 w-12 mx-auto mb-4 text-gray-600" />
-          <p className="mb-4">No plants in this grow yet.</p>
-          <Button
-            onClick={handleAddNewPlant}
-            className="bg-green-600 hover:bg-green-700"
-          >
-            <Plus className="mr-2 h-4 w-4" /> Add First Plant
-          </Button>
-        </div>
+          <div className="text-white border-2 border-gray-700 p-8 rounded-2xl text-center">
+            <Sprout className="h-12 w-12 mx-auto mb-4 text-gray-600"/>
+            <h3 className="text-xl font-semibold mb-2 text-white">No Plants added</h3>
+            <p className="text-gray-400 mb-4">You have no plants in this grow yet.</p>
+            <Button
+                onClick={handleAddNewPlant}
+                className="bg-green-600 hover:bg-green-700"
+            >
+              <Plus className="mr-2 h-4 w-4"/> Add First Plant
+            </Button>
+          </div>
       ) : (
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
           {plants.map((plant) => (
             <Dialog key={plant.id}>
               <DialogTrigger asChild>
