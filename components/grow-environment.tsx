@@ -181,7 +181,7 @@ export default function GrowEnvironment({ grow, onPhaseChange }: GrowEnvironment
               <EnvironmentIcon icon={item.icon} className="w-8 h-8 text-green-400" />
             </CardHeader>
             <CardContent>
-              <div className="text-3xl font-bold text-white relative">
+              <div className="font-semibold text-white relative">
                 <span className="opacity-50">{item.value}</span>
                 <Loader2 className="h-5 w-5 animate-spin text-green-500 absolute top-2 right-1" />
               </div>
@@ -216,7 +216,7 @@ export default function GrowEnvironment({ grow, onPhaseChange }: GrowEnvironment
                 <EnvironmentIcon icon={item.icon} className={`w-8 h-8 ${item.title.includes('VPD') && item.statusClass ? item.statusClass : 'text-green-400'}`} />
               </CardHeader>
               <CardContent>
-                <div className="text-3xl font-bold text-white">{item.value}</div>
+                <div className="font-semibold text-white">{item.value}</div>
                 {item.title.includes('VPD') && item.statusText && (
                   <div className={`text-sm mt-1 ${item.statusClass}`}>
                     {item.statusText}

@@ -132,9 +132,9 @@ export default function GrowDetailPage({ params }: { params: { id: string } }) {
                   Grows
                 </Link>
                 <span className="text-gray-600">/</span>
-                <h1 className="text-3xl font-bold text-white">{grow.name}</h1>
+                <h1 className="font-semibold text-white">{grow.name}</h1>
               </div>
-              <div className="flex items-center gap-2 mt-1">
+              <div className="flex items-center gap-2 mt-6">
                 <span className="bg-green-600/30 text-green-400 rounded px-2 py-1 text-xs">
                   {grow.currentPhase}
                 </span>
@@ -145,7 +145,7 @@ export default function GrowDetailPage({ params }: { params: { id: string } }) {
             </div>
 
             <Link href="/grows">
-              <Button variant="outline" className="border-gray-700 text-gray-400 hover:text-white">
+              <Button variant="outline" className="border-gray-700 text-gray-400 hover:text-white rounded-full">
                 <ArrowLeft className="mr-2 h-4 w-4" />
                 Back to overview
               </Button>
@@ -160,12 +160,12 @@ export default function GrowDetailPage({ params }: { params: { id: string } }) {
             onPhaseChange={handlePhaseChange}
           />
 
-          <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-            <TabsList className="grid grid-cols-2 bg-gray-800">
-              <TabsTrigger value="plants" className="data-[state=active]:bg-green-900 data-[state=active]:text-white">
+          <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full ">
+            <TabsList className="grid grid-cols-2 bg-gray-800 rounded-full">
+              <TabsTrigger value="plants" className="data-[state=active]:bg-green-500 shadow-3xl shadow-green-500 data-[state=active]:text-gray-800 rounded-full">
                 Plants
               </TabsTrigger>
-              <TabsTrigger value="mixes" className="data-[state=active]:bg-green-900 data-[state=active]:text-white">
+              <TabsTrigger value="mixes" className="data-[state=active]:bg-green-500 shadow-3xl shadow-green-500 data-[state=active]:text-gray-800  rounded-full">
                 Fertilizer mixes
               </TabsTrigger>
             </TabsList>

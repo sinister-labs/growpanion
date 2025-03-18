@@ -155,7 +155,7 @@ export default function GrowsPage() {
                   <span>Dashboard</span>
                 </Link>
                 <span className="text-gray-600">/</span>
-                <h1 className="text-3xl font-bold text-white">Grows</h1>
+                <h1 className="font-bold text-white">Grows</h1>
               </div>
               <p className="text-gray-400">Manage your growing cycles</p>
             </div>
@@ -236,16 +236,16 @@ export default function GrowsPage() {
           ) : (
             <>
               <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-                <TabsList className="grid grid-cols-2 bg-gray-800">
+                <TabsList className="grid grid-cols-2 bg-gray-800 rounded-full">
                   <TabsTrigger
                     value="active"
-                    className="data-[state=active]:bg-green-900 data-[state=active]:text-white"
+                    className="data-[state=active]:bg-green-900 rounded-full data-[state=active]:text-white"
                   >
                     Active Grows ({activeGrows.length})
                   </TabsTrigger>
                   <TabsTrigger
                     value="completed"
-                    className="data-[state=active]:bg-gray-600 data-[state=active]:text-white"
+                    className="data-[state=active]:bg-gray-600 rounded-full data-[state=active]:text-white"
                   >
                     Completed ({completedGrows.length})
                   </TabsTrigger>

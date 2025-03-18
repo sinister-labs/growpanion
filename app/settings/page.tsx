@@ -411,8 +411,8 @@ export default function SettingsPage() {
   }
 
   return (
-    <main className={`flex min-h-screen flex-col items-center p-4 sm:p-8 bg-black bg-opacity-90`}>
-      <div className="flex flex-col p-4 sm:p-8 min-h-screen max-w-7xl relative z-10">
+    <main className={`flex min-h-screen flex-col items-center  p-4 sm:p-8  bg-black bg-opacity-90`}>
+      <div className="flex flex-col min-h-screen relative z-10 max-w-7xl">
         <Header />
         
         <div className="w-full mx-auto flex flex-col gap-6 mt-4">
