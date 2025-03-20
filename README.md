@@ -17,7 +17,7 @@
 GrowPanion is a comprehensive solution for monitoring and managing cannabis cultivation. Whether you're a home grower or commercial cultivator, GrowPanion provides powerful tools to track environmental conditions, manage growing cycles, and maintain detailed records of your plants for optimal yields and quality.
 
 <div align="center">
-  <img src="https://i.epvpimg.com/a68lcab.jpg" alt="GrowPanion Dashboard" width="80%"/>
+  <img src="http://i.epvpimg.com/b9sAgab.png" alt="GrowPanion Dashboard" width="80%"/>
 </div>
 
 ## ✨ Features
