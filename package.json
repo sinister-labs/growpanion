@@ -5,6 +5,8 @@
   "scripts": {
     "dev": "next dev",
     "build": "next build",
+    "build:web": "next build",
+    "build:tauri": "rimraf out && env-cmd -f .env.tauri next build",
     "start": "next start",
     "lint": "next lint",
     "clean": "rimraf .next out",
@@ -79,6 +81,7 @@
     "@types/nprogress": "^0.2.3",
     "@types/react": "^18",
     "@types/react-dom": "^18",
+    "env-cmd": "^10.1.0",
     "postcss": "^8",
     "rimraf": "^6.0.1",
     "tailwindcss": "^3.4.17",

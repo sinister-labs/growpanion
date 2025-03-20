@@ -1,8 +1,6 @@
-# GrowPanion
-
 <div align="center">
   
-  ![GrowPanion Logo](https://via.placeholder.com/150?text=🌿)
+  <img src="https://raw.githubusercontent.com/sinister-labs/growpanion/e43457c1f4cd8654b701d293a88501101d4a304a/public/logo-light.svg" alt="GrowPanion Logo" width="350"> 
   
   **Smart monitoring and management for cannabis cultivation**
 
@@ -10,6 +8,7 @@
   [![Next.js](https://img.shields.io/badge/Next.js-13.0+-000000?logo=next.js)](https://nextjs.org/)
   [![TypeScript](https://img.shields.io/badge/TypeScript-5.0+-3178C6?logo=typescript&logoColor=white)](https://www.typescriptlang.org/)
   [![Tailwind CSS](https://img.shields.io/badge/Tailwind_CSS-38B2AC?logo=tailwind-css&logoColor=white)](https://tailwindcss.com/)
+  [![Tauri](https://img.shields.io/badge/Tauri-2.0-FFC131?logo=tauri&logoColor=white)](https://tauri.app/)
   
 </div>
 
@@ -46,6 +45,11 @@ GrowPanion is a comprehensive solution for monitoring and managing cannabis cult
 - Monitor plant responses to different nutrient regimens
 - Flushing scheduling and tracking
 
+### 🖥️ Cross-Platform
+- Available as a web application
+- Desktop application via Tauri (Windows, macOS, Linux)
+- Consistent experience across all platforms
+
 ## 🚀 Getting Started
 
 ### Prerequisites
@@ -53,6 +57,7 @@ GrowPanion is a comprehensive solution for monitoring and managing cannabis cult
 - Node.js 16.x or higher
 - npm or yarn
 - A Tuya developer account (for sensor integration)
+- Rust toolchain (for Tauri development)
 
 ### Installation
 
@@ -69,11 +74,9 @@ GrowPanion is a comprehensive solution for monitoring and managing cannabis cult
    yarn install
    ```
 
-3. Create a `.env.local` file in the root directory with your Tuya API credentials:
-   ```
-   NEXT_PUBLIC_API_URL=http://localhost:3000
-   TUYA_CLIENT_ID=your_tuya_client_id
-   TUYA_CLIENT_SECRET=your_tuya_client_secret
+3. Create a `.env.local` file in the root directory based on the example file:
+   ```bash
+   cp .env.local.example .env.local
    ```
 
 4. Start the development server
@@ -85,6 +88,24 @@ GrowPanion is a comprehensive solution for monitoring and managing cannabis cult
 
 5. Open your browser and navigate to `http://localhost:3000`
 
+### Building for Different Platforms
+
+#### Web Application
+```bash
+npm run build:web
+# or
+yarn build:web
+```
+
+#### Desktop Application (Tauri)
+```bash
+npm run build:tauri
+npm run tauri build
+# or
+yarn build:tauri
+yarn tauri build
+```
+
 ## 🖥️ Tech Stack
 
 - **Frontend**: Next.js, React, TypeScript, Tailwind CSS
@@ -92,6 +113,7 @@ GrowPanion is a comprehensive solution for monitoring and managing cannabis cult
 - **Data Storage**: Dexie.js (IndexedDB) for local-only data storage
 - **API Integration**: Tuya Cloud API for sensor data
 - **UI Components**: Shadcn/ui
+- **Desktop App**: Tauri (Rust-based desktop application framework)
 
 ## 📊 Project Structure
 
@@ -109,10 +131,32 @@ growpanion/
 │   ├── growth-utils.ts   # Growth phase utilities
 │   ├── plant-utils.ts    # Plant management utilities
 │   ├── sensor-utils.ts   # Sensor data handling
+│   ├── grows.ts          # Grow management utilities
 ├── public/               # Static assets
-└── styles/               # Global styles
+├── styles/               # Global styles
+├── .env.local.example    # Example environment variables
+├── .env.tauri            # Tauri-specific environment variables
+└── next.config.mjs       # Next.js configuration with conditional export mode
 ```
 
+## 🔄 Deployment Modes
+
+GrowPanion supports two deployment modes:
+
+### Web Mode
+- Uses Next.js dynamic routing
+- Server-side rendering capabilities
+- Perfect for online access
+
+### Tauri Mode
+- Static export for desktop application
+- Uses pre-rendered pages
+- All data stored locally
+- No internet connection required after installation
+
+To switch between modes:
+- For web mode: Use `NEXT_PUBLIC_DEPLOYMENT_MODE=web` in your `.env.local`
+- For Tauri mode: The build script automatically uses `.env.tauri` which sets `NEXT_PUBLIC_DEPLOYMENT_MODE=tauri`
 
 ## 🤝 Contributing
 
@@ -148,6 +192,7 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 - [ ] Automated strain-specific grow schedule recommendations
 - [ ] Integration with more smart grow equipment (LED, climate controllers)
 - [ ] Harvest yield calculator and optimization tools
+- [ ] Mobile application support
 
 ## 💖 Acknowledgements
 
@@ -157,6 +202,7 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 - [Dexie.js](https://dexie.org/) for IndexedDB wrapper
 - [Lucide](https://lucide.dev/) for beautiful icons
 - [Tuya IoT Platform](https://developer.tuya.com/) for sensor connectivity
+- [Tauri](https://tauri.app/) for desktop application framework
 
 ---
 
