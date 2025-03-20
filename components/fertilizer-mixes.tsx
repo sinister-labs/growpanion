@@ -31,13 +31,11 @@ export const FertilizerMixesManager = ({ growId }: FertilizerMixesManagerProps) 
     const [isDialogOpen, setIsDialogOpen] = useState(false)
     const [editingMix, setEditingMix] = useState<FertilizerMixDB | null>(null)
 
-    // Temporary state for a new fertilizer
     const [tempFertilizer, setTempFertilizer] = useState<Fertilizer>({
         name: "",
         amount: ""
     });
 
-    // Fertilizer options
     const fertilizerOptions = [
         "General Purpose",
         "Bloom Booster",
@@ -49,7 +47,6 @@ export const FertilizerMixesManager = ({ growId }: FertilizerMixesManagerProps) 
         "Mykorrhiza"
     ]
 
-    // Start creating or editing a mix
     const handleEditMix = (mix: FertilizerMixDB | null) => {
         setEditingMix(mix || {
             id: `mix-${Date.now()}`,
@@ -62,7 +59,6 @@ export const FertilizerMixesManager = ({ growId }: FertilizerMixesManagerProps) 
         setIsDialogOpen(true)
     }
 
-    // Add fertilizer to the mix
     const handleAddFertilizer = () => {
         if (!tempFertilizer.name || !tempFertilizer.amount || !editingMix) return;
 
@@ -74,7 +70,6 @@ export const FertilizerMixesManager = ({ growId }: FertilizerMixesManagerProps) 
         setTempFertilizer({ name: "", amount: "" });
     };
 
-    // Remove fertilizer from the mix
     const handleRemoveFertilizer = (index: number) => {
         if (!editingMix) return;
 
@@ -84,7 +79,6 @@ export const FertilizerMixesManager = ({ growId }: FertilizerMixesManagerProps) 
         })
     }
 
-    // Save mix
     const handleSaveMix = () => {
         if (!editingMix || !editingMix.name || !editingMix.waterAmount || !editingMix.fertilizers.length || !growId) return;
 
@@ -93,7 +87,6 @@ export const FertilizerMixesManager = ({ growId }: FertilizerMixesManagerProps) 
             growId
         };
 
-        // Update existing mix or add new
         if (mixes.some(mix => mix.id === editingMix.id)) {
             updateMix(mixToSave);
         } else {
@@ -104,7 +97,6 @@ export const FertilizerMixesManager = ({ growId }: FertilizerMixesManagerProps) 
         setEditingMix(null)
     }
 
-    // Delete mix
     const handleDeleteMix = (id: string) => {
         removeMix(id)
     }

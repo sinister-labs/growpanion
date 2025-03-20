@@ -13,7 +13,6 @@ export function useFertilizerMixes(growId: string | null) {
     const [isLoading, setIsLoading] = useState<boolean>(true);
     const [error, setError] = useState<Error | null>(null);
 
-    // Laden aller Mischungen für einen bestimmten Grow
     const loadMixes = useCallback(async () => {
         if (!growId) {
             setMixes([]);
@@ -34,10 +33,9 @@ export function useFertilizerMixes(growId: string | null) {
         }
     }, [growId]);
 
-    // Hinzufügen einer neuen Mischung
     const addMix = useCallback(async (mixData: Omit<FertilizerMix, 'id'> & { description?: string }) => {
         if (!growId) {
-            throw new Error('Kein aktiver Grow ausgewählt');
+            throw new Error('No active grow selected');
         }
 
         try {
@@ -56,14 +54,12 @@ export function useFertilizerMixes(growId: string | null) {
         }
     }, [growId]);
 
-    // Aktualisieren einer vorhandenen Mischung
     const updateMix = useCallback(async (updatedMix: FertilizerMixDB) => {
         if (!growId) {
-            throw new Error('Kein aktiver Grow ausgewählt');
+            throw new Error('No active grow selected');
         }
 
         try {
-            // Stelle sicher, dass die Mischung dem aktuellen Grow zugeordnet ist
             const mixWithGrowId: FertilizerMixDB = {
                 ...updatedMix,
                 growId
@@ -80,7 +76,6 @@ export function useFertilizerMixes(growId: string | null) {
         }
     }, [growId]);
 
-    // Löschen einer Mischung
     const removeMix = useCallback(async (id: string) => {
         try {
             await deleteFertilizerMix(id);
@@ -91,7 +86,6 @@ export function useFertilizerMixes(growId: string | null) {
         }
     }, []);
 
-    // Neu laden der Mischungen, wenn sich der growId ändert
     useEffect(() => {
         loadMixes();
     }, [loadMixes, growId]);

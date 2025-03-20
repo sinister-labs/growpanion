@@ -1,16 +1,16 @@
 /**
  * Utility functions for sensor data formatting and display
  */
-import { 
-  ThermometerSun, 
-  Droplets, 
-  AlertCircle, 
-  RefreshCw, 
-  Lightbulb, 
-  Fan, 
-  Filter, 
-  Gauge, 
-  ToggleLeft 
+import {
+  ThermometerSun,
+  Droplets,
+  AlertCircle,
+  RefreshCw,
+  Lightbulb,
+  Fan,
+  Filter,
+  Gauge,
+  ToggleLeft
 } from 'lucide-react';
 import { TuyaSensor } from '@/lib/db';
 import React from 'react';
@@ -29,8 +29,7 @@ export type IconSize = 'sm' | 'lg';
  */
 export function getSensorIcon(type?: TuyaSensor['type'], size: IconSize = 'sm', valueName?: string) {
   const iconSize = size === 'sm' ? "h-5 w-5" : "h-6 w-6";
-  
-  // Determine icon based on sensor type
+
   if (type) {
     switch (type) {
       case 'Temperature':
@@ -49,8 +48,7 @@ export function getSensorIcon(type?: TuyaSensor['type'], size: IconSize = 'sm', 
         return React.createElement(Gauge, { className: `${iconSize} text-purple-400` });
     }
   }
-  
-  // Fallback to value name-based icon selection
+
   if (valueName) {
     if (valueName.includes('temp')) {
       return React.createElement(ThermometerSun, { className: `${iconSize} text-amber-400` });
@@ -62,10 +60,9 @@ export function getSensorIcon(type?: TuyaSensor['type'], size: IconSize = 'sm', 
       return React.createElement(Fan, { className: `${iconSize} text-sky-400` });
     } else if (valueName.includes('filter')) {
       return React.createElement(Filter, { className: `${iconSize} text-green-400` });
-    } 
+    }
   }
-  
-  // Default value if no specific icon found
+
   return React.createElement(Gauge, { className: `${iconSize} text-purple-400` });
 }
 
@@ -92,7 +89,6 @@ export function formatSensorValueName(valueName: string) {
  */
 export function formatSensorValue(value: string | number, unit?: string) {
   if (typeof value === 'number') {
-    // Format numbers to 1 decimal place if it's a float
     return value % 1 !== 0 ? `${value.toFixed(1)}${unit || ''}` : `${value}${unit || ''}`;
   }
   return `${value}${unit || ''}`;
@@ -105,11 +101,11 @@ export function formatSensorValue(value: string | number, unit?: string) {
  */
 export function getLastUpdatedText(lastUpdated?: Date): string {
   if (!lastUpdated) return '';
-  
+
   const now = new Date();
   const diffMs = now.getTime() - lastUpdated.getTime();
   const diffSec = Math.floor(diffMs / 1000);
-  
+
   if (diffSec < 60) return `${diffSec} seconds ago`;
   if (diffSec < 3600) return `${Math.floor(diffSec / 60)} minutes ago`;
   return `${Math.floor(diffSec / 3600)} hours ago`;

@@ -9,7 +9,7 @@ import { useSensorData } from "@/hooks/useSensorData"
 import { Grow } from "@/lib/db"
 import { Loader2 } from "lucide-react"
 import { calculateDuration } from "@/lib/utils"
-import { 
+import {
   calculateVPD,
   getOptimalVpdRange,
   getVpdStatus,
@@ -19,16 +19,14 @@ import {
   VpdStatus
 } from "@/lib/vpd-utils"
 
-// Extend the Grow definition to support phase and currentDay
 interface GrowEnvironmentProps {
-  grow?: Grow & { 
+  grow?: Grow & {
     currentPhase?: string;
     currentDay?: number;
   };
   onPhaseChange?: (phase: string) => void;
 }
 
-// Interface for the Environment data structure
 interface EnvironmentData {
   title: string;
   value: string;
@@ -43,10 +41,8 @@ interface EnvironmentData {
 
 export default function GrowEnvironment({ grow, onPhaseChange }: GrowEnvironmentProps) {
   const [selectedData, setSelectedData] = useState(null)
-  const { sensorData, isLoading: sensorsLoading, error: sensorsError } = useSensorData(60000) // Update every minute
+  const { sensorData, isLoading: sensorsLoading, error: sensorsError } = useSensorData(60000)
 
-  // Default environment data (will be replaced with sensor data if available). Thats only for DEV purposes.
-  // TODO: Remove this after DEV
   const defaultEnvironmentData: EnvironmentData[] = [
     { title: "Temperature", value: "25°C", icon: "temperature", unit: "°C" },
     { title: "Humidity", value: "60%", icon: "humidity", unit: "%" },
@@ -55,34 +51,28 @@ export default function GrowEnvironment({ grow, onPhaseChange }: GrowEnvironment
     { title: "Fan", value: "On", icon: "fan", unit: "" }
   ]
 
-  // Enhanced environment data with sensor values
   const [environmentData, setEnvironmentData] = useState<EnvironmentData[]>(defaultEnvironmentData)
 
-  // Update environment data when sensor data changes
   useEffect(() => {
     if (!sensorData) return;
 
-    // Create a new array based on available sensor data
-    // Instead of starting from environmentData, we build the array from scratch
     let updatedData: EnvironmentData[] = [];
     let temperatureValue: number | null = null;
     let humidityValue: number | null = null;
     let vpdValue: number | null = null;
-    
+
     const currentPhaseStart = grow?.phaseHistory.find((ph) => ph.phase === grow.currentPhase)?.startDate
     const currentDay = currentPhaseStart ? calculateDuration(currentPhaseStart) : 0
     const optimalVpdRange = getOptimalVpdRange(grow?.currentPhase, currentDay);
-    
-    // Process all actual sensors first
+
     sensorData.forEach(sensor => {
       if (!sensor.values || sensor.values.length === 0) return;
-      
+
       const sensorValue = sensor.values[0].value;
       const unit = sensor.values[0].unit || '';
-      
-      // Create a new environment data object based on sensor type
+
       let sensorData: EnvironmentData | null = null;
-      
+
       if (sensor.type === 'Temperature') {
         temperatureValue = typeof sensorValue === 'number' ? sensorValue : parseFloat(sensorValue.toString());
         sensorData = {
@@ -129,26 +119,25 @@ export default function GrowEnvironment({ grow, onPhaseChange }: GrowEnvironment
           unit: unit || ''
         };
       }
-      
+
       if (sensorData) {
         updatedData.push(sensorData);
       }
     });
-    
-    // If we have both temperature and humidity, calculate VPD
+
     if (temperatureValue !== null && humidityValue !== null) {
       vpdValue = calculateVPD(temperatureValue, humidityValue);
-      
+
       let vpdStatus: VpdStatus = 'unknown';
       let statusClass = '';
       let statusText = '';
-      
+
       if (optimalVpdRange) {
         vpdStatus = getVpdStatus(vpdValue, optimalVpdRange);
         statusClass = getVpdStatusClass(vpdStatus);
         statusText = getVpdStatusText(vpdStatus, optimalVpdRange);
       }
-      
+
       const vpdData: EnvironmentData = {
         title: "VPD",
         value: `${vpdValue} kPa`,
@@ -160,18 +149,16 @@ export default function GrowEnvironment({ grow, onPhaseChange }: GrowEnvironment
         optimalRange: optimalVpdRange ? `${optimalVpdRange.min}-${optimalVpdRange.max} kPa` : undefined,
         phaseDescription: optimalVpdRange ? optimalVpdRange.description : undefined
       };
-      
+
       updatedData.push(vpdData);
     }
-    
-    // Update state only if data is available
+
     if (updatedData.length > 0) {
       setEnvironmentData(updatedData);
     }
   }, [sensorData, grow]);
 
   if (sensorsLoading) {
-    // Still show the default environment data while loading
     return (
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
         {defaultEnvironmentData.map((item) => (

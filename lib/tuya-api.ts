@@ -1,4 +1,5 @@
 import crypto from 'crypto';
+import { apiRequest } from './apiClient';
 
 interface TuyaCredentials {
   clientId: string;
@@ -29,25 +30,11 @@ export class TuyaApiClient {
   private clientSecret: string;
   private accessToken: string | null = null;
   private accessTokenExpiry: number = 0;
+  private baseUrl: string = 'https://openapi.tuyaeu.com';
 
   constructor(credentials: TuyaCredentials) {
     this.clientId = credentials.clientId;
     this.clientSecret = credentials.clientSecret;
-  }
-
-  /**
-   * Helper method to determine the API base URL
-   * @returns API base URL as string
-   */
-  private getApiBaseUrl(): string {
-    // In the browser we use a relative path, on the server an absolute URL
-    if (typeof window !== 'undefined') {
-      // Browser environment
-      return '';
-    } else {
-      // Node.js environment - use absolute URL
-      return process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000';
-    }
   }
 
   /**
@@ -68,15 +55,15 @@ export class TuyaApiClient {
   async testConnection(): Promise<{ success: boolean; message: string }> {
     try {
       const authResponse = await this.authenticate();
-      
+
       if (authResponse.success && authResponse.result) {
-        return { 
-          success: true, 
-          message: "Connection successful!" 
+        return {
+          success: true,
+          message: "Connection successful!"
         };
       } else {
-        return { 
-          success: false, 
+        return {
+          success: false,
           message: authResponse.message || "Authentication failed."
         };
       }
@@ -86,31 +73,41 @@ export class TuyaApiClient {
   }
 
   /**
-   * Authenticates with the Tuya API and gets an access token via the local proxy
+   * Authenticates with the Tuya API and gets an access token
    * @returns Authentication response
    */
   private async authenticate(): Promise<TuyaAuthResponse> {
     try {
-      const baseUrl = this.getApiBaseUrl();
-      // Use of the local Next.js API proxy
-      const url = `${baseUrl}/api/tuya/token?client_id=${this.clientId}&client_secret=${this.clientSecret}`;
-      
-      const response = await fetch(url, {
+
+      const t = Date.now().toString();
+
+      const contentHash = crypto.createHash('sha256').update('').digest('hex');
+
+      const method = "GET";
+      const signUrl = "/v1.0/token?grant_type=1";
+
+      const stringToSign = [method, contentHash, "", signUrl].join("\n");
+      const signStr = this.clientId + t + stringToSign;
+
+      const sign = crypto.createHmac('sha256', this.clientSecret)
+        .update(signStr, 'utf8')
+        .digest('hex')
+        .toUpperCase();
+
+      const headers = {
+        "client_id": this.clientId,
+        "t": t,
+        "sign": sign,
+        "sign_method": "HMAC-SHA256",
+        "Content-Type": "application/json"
+      };
+
+      const data = await apiRequest<any>({
+        url: `${this.baseUrl}/v1.0/token?grant_type=1`,
         method: "GET",
-        headers: {
-          "Content-Type": "application/json"
-        }
+        headers: headers
       });
-      
-      if (!response.ok) {
-        return {
-          success: false,
-          message: `HTTP Error: ${response.status} ${response.statusText}`
-        };
-      }
-      
-      const data = await response.json();
-      
+
       if (data && data.success && data.result && data.result.access_token) {
         this.accessToken = data.result.access_token;
         this.accessTokenExpiry = Date.now() + (data.result.expire_time * 1000);
@@ -137,41 +134,54 @@ export class TuyaApiClient {
       if (!this.accessToken || Date.now() >= this.accessTokenExpiry) {
         const authResponse = await this.authenticate();
         if (!authResponse.success || !authResponse.result?.access_token) {
-          return { 
-            success: false, 
+          return {
+            success: false,
             message: "Authentication failed."
           };
         }
       }
 
-      const baseUrl = this.getApiBaseUrl();
-      // Use of the local Next.js API proxy with credentials as query parameters
-      const url = `${baseUrl}/api/tuya/sensor-data?deviceId=${tuyaId}&client_id=${this.clientId}&client_secret=${this.clientSecret}`;
-      
-      const response = await fetch(url, {
-        method: "GET",
-        headers: {
-          "Content-Type": "application/json",
-          "Authorization": `Bearer ${this.accessToken}`
-        }
-      });
-      
-      if (!response.ok) {
+      if (!this.accessToken) {
         return {
           success: false,
-          message: `HTTP Error: ${response.status} ${response.statusText}`
+          message: "No valid access token available."
         };
       }
-      
-      const data = await response.json();
-      
-      // Return the proper data structure
-      return { 
-        success: !!data.success, 
+
+      const t = Date.now().toString();
+
+      const contentHash = crypto.createHash('sha256').update('').digest('hex');
+
+      const method = "GET";
+      const signUrl = `/v2.0/cloud/thing/${tuyaId}/shadow/properties`;
+
+      const stringToSign = [method, contentHash, "", signUrl].join("\n");
+      const signStr = this.clientId + this.accessToken + t + stringToSign;
+
+      const sign = crypto.createHmac('sha256', this.clientSecret)
+        .update(signStr, 'utf8')
+        .digest('hex')
+        .toUpperCase();
+
+      const data = await apiRequest<any>({
+        url: `${this.baseUrl}${signUrl}`,
+        method: "GET",
+        headers: {
+          "client_id": this.clientId,
+          "access_token": this.accessToken,
+          "t": t,
+          "sign": sign,
+          "sign_method": "HMAC-SHA256",
+          "Content-Type": "application/json"
+        }
+      });
+
+      return {
+        success: !!data.success,
         result: data,
         message: data.msg || ''
       };
-      
+
     } catch (error) {
       return this.handleApiError(error, "Error retrieving sensor data");
     }

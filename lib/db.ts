@@ -1,8 +1,8 @@
 import Dexie, { Table } from 'dexie';
 import { Plant, FertilizerMix } from '@/components/plant-modal/types';
 import { v4 as uuidv4 } from 'uuid';
+import { apiRequest } from '@/lib/apiClient';
 
-// Grow-Schnittstelle für die Datenbank
 export interface Grow {
     id: string;
     name: string;
@@ -20,18 +20,15 @@ export interface Grow {
     };
 }
 
-// Erweiterte Plant-Schnittstelle für die Datenbank
 export interface PlantDB extends Plant {
     growId: string;
 }
 
-// Erweiterte FertilizerMix-Schnittstelle für die Datenbank
 export interface FertilizerMixDB extends FertilizerMix {
     growId: string;
     description?: string;
 }
 
-// Settings-Schnittstelle für die Datenbank
 export interface Settings {
     id: string;
     tuyaClientId?: string;
@@ -51,7 +48,6 @@ export interface TuyaSensor {
     }>;
 }
 
-// Definition der GrowPanion-Datenbank
 export class GrowPanionDB extends Dexie {
     grows!: Table<Grow, string>;
     plants!: Table<PlantDB, string>;
@@ -61,14 +57,12 @@ export class GrowPanionDB extends Dexie {
     constructor() {
         super('GrowPanionDB');
 
-        // Schema-Definition
         this.version(1).stores({
             grows: 'id, name, currentPhase',
             plants: 'id, name, genetic, type, propagationMethod, growId',
             fertilizerMixes: 'id, name, growId'
         });
 
-        // Füge settings zur Datenbank hinzu (Version 2)
         this.version(2).stores({
             grows: 'id, name, currentPhase',
             plants: 'id, name, genetic, type, propagationMethod, growId',
@@ -76,7 +70,6 @@ export class GrowPanionDB extends Dexie {
             settings: 'id'
         });
 
-        // Update für TuyaSensors (Version 3)
         this.version(3).stores({
             grows: 'id, name, currentPhase',
             plants: 'id, name, genetic, type, propagationMethod, growId',
@@ -86,10 +79,8 @@ export class GrowPanionDB extends Dexie {
     }
 }
 
-// Datenbank-Instanz
 export const db = new GrowPanionDB();
 
-// Hilfsfunktionen für Grows
 export async function getAllGrows(): Promise<Grow[]> {
     return await db.grows.toArray();
 }
@@ -111,7 +102,6 @@ export async function deleteGrow(id: string): Promise<void> {
     });
 }
 
-// Hilfsfunktionen für Plants
 export async function getAllPlants(): Promise<PlantDB[]> {
     return await db.plants.toArray();
 }
@@ -132,7 +122,6 @@ export async function deletePlant(id: string): Promise<void> {
     await db.plants.delete(id);
 }
 
-// Hilfsfunktionen für FertilizerMixes
 export async function getAllFertilizerMixes(): Promise<FertilizerMixDB[]> {
     return await db.fertilizerMixes.toArray();
 }
@@ -153,9 +142,7 @@ export async function deleteFertilizerMix(id: string): Promise<void> {
     await db.fertilizerMixes.delete(id);
 }
 
-// Hilfsfunktionen für Settings
 export async function getSettings(): Promise<Settings | undefined> {
-    // Es gibt immer nur einen Settings-Eintrag mit der ID 'global'
     return await db.settings.get('global');
 }
 
@@ -169,13 +156,10 @@ export async function saveSettings(settings: Partial<Settings>): Promise<string>
     return await db.settings.put(updatedSettings);
 }
 
-// Hilfsfunktion zur Generierung einer eindeutigen ID
 export function generateId(): string {
     return Date.now().toString(36) + Math.random().toString(36).substring(2);
 }
 
-// Demo-Daten, falls die Datenbank leer ist
 export async function populateDBWithDemoDataIfEmpty(): Promise<void> {
-    // Keine Demo-Daten mehr erstellen
     return;
 } 

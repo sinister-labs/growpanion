@@ -1,7 +1,12 @@
 let userConfig = undefined
 
+const isProd = process.env.NODE_ENV === 'production';
+const internalHost = process.env.TAURI_DEV_HOST || 'localhost';
+const internalPort = process.env.TAURI_DEV_PORT || '3000'
+
 /** @type {import('next').NextConfig} */
 const nextConfig = {
+  output: 'export',
   eslint: {
     ignoreDuringBuilds: true,
   },
@@ -11,11 +16,16 @@ const nextConfig = {
   images: {
     unoptimized: true,
   },
+  assetPrefix: isProd ? undefined : `http://${internalHost}:${internalPort}`,
+  devIndicators: {
+    buildActivity: false,
+  },
   experimental: {
     webpackBuildWorker: true,
     parallelServerBuildTraces: true,
     parallelServerCompiles: true,
   },
+  trailingSlash: true,
 }
 
 mergeConfig(nextConfig, userConfig)
