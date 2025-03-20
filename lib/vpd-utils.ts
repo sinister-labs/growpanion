@@ -19,25 +19,18 @@ export function calculateSVP(tempC: number): number {
  * @returns VPD in kPa
  */
 export function calculateVPD(airTempC: number, humidity: number): number {
-  // Leaf temperature is typically approx. 2°C lower than air temperature
   const leafTempC = airTempC - 2;
-  
-  // Saturation vapor pressure at leaf temperature
+
   const leafSVP = calculateSVP(leafTempC);
-  
-  // Current vapor pressure of air based on air temperature and humidity
+
   const airSVP = calculateSVP(airTempC);
   const actualVaporPressure = airSVP * (humidity / 100);
-  
-  // VPD is the difference between leaf saturation vapor pressure
-  // and actual vapor pressure of air
+
   const vpd = leafSVP - actualVaporPressure;
-  
-  // Rounded to 2 decimal places
+
   return Number(vpd.toFixed(2));
 }
 
-// VPD ranges for different growth phases
 export interface VpdRange {
   min: number;
   max: number;
@@ -45,7 +38,6 @@ export interface VpdRange {
   description: string;
 }
 
-// VPD ranges based on plant phase and current day
 export const vpdRanges: Record<string, VpdRange> = {
   'propagation': {
     min: 0.4,
@@ -87,34 +79,29 @@ export const vpdRanges: Record<string, VpdRange> = {
  */
 export function getOptimalVpdRange(phase?: string, currentDay?: number): VpdRange | null {
   if (!phase) return null;
-  
-  // Phase logic with day-based subdivision
+
   const lowerPhase = phase.toLowerCase();
-  
-  // Special handling for propagation (no day subdivision)
+
   if (lowerPhase === 'propagation' || lowerPhase === 'clone' || lowerPhase === 'seedling') {
     return vpdRanges['propagation'];
   }
-  
-  // For vegetation and flowering, we use the day to determine "early" or "late"
+
   if (lowerPhase === 'vegetative') {
-    // Day-based subdivision for vegetation
     if (currentDay && currentDay <= 14) {
       return vpdRanges['early_veg'];
     } else {
       return vpdRanges['late_veg'];
     }
   }
-  
+
   if (lowerPhase === 'flowering') {
-    // Day-based subdivision for flowering
     if (currentDay && currentDay <= 21) {
       return vpdRanges['early_flower'];
     } else {
       return vpdRanges['late_flower'];
     }
   }
-  
+
   return null;
 }
 
@@ -131,7 +118,7 @@ export type VpdStatus = 'optimal' | 'low' | 'high' | 'unknown';
  */
 export function getVpdStatus(vpdValue: number, optimalRange: VpdRange | null): VpdStatus {
   if (!optimalRange) return 'unknown';
-  
+
   if (vpdValue < optimalRange.min) return 'low';
   if (vpdValue > optimalRange.max) return 'high';
   return 'optimal';
@@ -159,15 +146,15 @@ export function getVpdStatusClass(status: VpdStatus): string {
  */
 export function getVpdStatusText(status: VpdStatus, optimalRange: VpdRange | null): string {
   if (!optimalRange) return 'No optimal range defined';
-  
+
   switch (status) {
-    case 'optimal': 
+    case 'optimal':
       return `Optimal (${optimalRange.min}-${optimalRange.max} kPa)`;
-    case 'low': 
+    case 'low':
       return `Too low, increase to >${optimalRange.min} kPa`;
-    case 'high': 
+    case 'high':
       return `Too high, reduce to <${optimalRange.max} kPa`;
-    default: 
+    default:
       return 'Status unknown';
   }
 } 

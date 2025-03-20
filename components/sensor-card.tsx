@@ -3,11 +3,11 @@ import { ThermometerSun, Droplets, AlertCircle, RefreshCw, Lightbulb, Fan, Filte
 import { ProcessedSensorData, SensorValue } from '@/hooks/useSensorData';
 import { cn } from '@/lib/utils';
 import { TuyaSensor } from '@/lib/db';
-import { 
-  getSensorIcon, 
-  formatSensorValueName, 
-  formatSensorValue, 
-  getLastUpdatedText 
+import {
+  getSensorIcon,
+  formatSensorValueName,
+  formatSensorValue,
+  getLastUpdatedText
 } from '@/lib/sensor-utils';
 
 interface SensorCardProps {
@@ -17,16 +17,15 @@ interface SensorCardProps {
 
 export function SensorCard({ sensor, className }: SensorCardProps) {
   /**
-   * Ermittelt das passende Icon für einen Sensortyp oder Eigenschaftsnamen
-   * @param type Sensortyp
-   * @param size Größe des Icons
-   * @param valueName Optional: Name der Sensoreigenschaft für Fallback
-   * @returns React-Element mit passendem Icon
+   * Gets the appropriate icon for a sensor type or property name
+   * @param type Sensor type
+   * @param size Size of the icon
+   * @param valueName Optional: Name of the sensor property for fallback
+   * @returns React element with the appropriate icon
    */
   const getSensorIcon = (type?: TuyaSensor['type'], size: 'sm' | 'lg' = 'sm', valueName?: string) => {
     const iconSize = size === 'sm' ? "h-5 w-5" : "h-6 w-6";
-    
-    // Bestimme Icon basierend auf Sensortyp
+
     if (type) {
       switch (type) {
         case 'Temperature':
@@ -45,8 +44,7 @@ export function SensorCard({ sensor, className }: SensorCardProps) {
           return <Gauge className={`${iconSize} text-purple-400`} />;
       }
     }
-    
-    // Fallback zu Wertenamen-basierter Icon-Auswahl
+
     if (valueName) {
       if (valueName.includes('temp')) {
         return <ThermometerSun className={`${iconSize} text-amber-400`} />;
@@ -58,17 +56,16 @@ export function SensorCard({ sensor, className }: SensorCardProps) {
         return <Fan className={`${iconSize} text-sky-400`} />;
       } else if (valueName.includes('filter')) {
         return <Filter className={`${iconSize} text-green-400`} />;
-      } 
+      }
     }
-    
-    // Standardwert, wenn kein spezifisches Icon gefunden wurde
+
     return <Gauge className={`${iconSize} text-purple-400`} />;
   };
 
   /**
-   * Formatiert den Namen einer Sensoreigenschaft für die Anzeige
-   * @param valueName Name der Sensoreigenschaft
-   * @returns Formatierter Name
+   * Formats the name of a sensor property for display
+   * @param valueName Name of the sensor property
+   * @returns Formatted name
    */
   const formatValueName = (valueName: string) => {
     return valueName
@@ -81,33 +78,32 @@ export function SensorCard({ sensor, className }: SensorCardProps) {
   };
 
   /**
-   * Formatiert einen Sensorwert für die Anzeige mit optionaler Einheit
-   * @param value Sensorwert (Zahl oder String)
-   * @param unit Optionale Einheit
-   * @returns Formatierter Wert mit Einheit
+   * Formats a sensor value for display with an optional unit
+   * @param value Sensor value (number or string)
+   * @param unit Optional unit
+   * @returns Formatted value with unit
    */
   const formatValue = (value: string | number, unit?: string) => {
     if (typeof value === 'number') {
-      // Formatiere Zahlen auf 1 Dezimalstelle, wenn es ein Float ist
       return value % 1 !== 0 ? `${value.toFixed(1)}${unit || ''}` : `${value}${unit || ''}`;
     }
     return `${value}${unit || ''}`;
   };
 
   /**
-   * Berechnet einen benutzerfreundlichen Text für den Zeitpunkt der letzten Aktualisierung
-   * @returns Formatierter Zeittext
+   * Calculates a user-friendly text for the last update time
+   * @returns Formatted time text
    */
   const getLastUpdatedText = () => {
     if (!sensor.lastUpdated) return '';
-    
+
     const now = new Date();
     const diffMs = now.getTime() - sensor.lastUpdated.getTime();
     const diffSec = Math.floor(diffMs / 1000);
-    
-    if (diffSec < 60) return `vor ${diffSec} Sekunden`;
-    if (diffSec < 3600) return `vor ${Math.floor(diffSec / 60)} Minuten`;
-    return `vor ${Math.floor(diffSec / 3600)} Stunden`;
+
+    if (diffSec < 60) return `vor ${diffSec} Seconds`;
+    if (diffSec < 3600) return `vor ${Math.floor(diffSec / 60)} Minutes`;
+    return `vor ${Math.floor(diffSec / 3600)} Hours`;
   };
 
   return (
@@ -153,7 +149,7 @@ export function SensorCard({ sensor, className }: SensorCardProps) {
 
       <div className="mt-3 pt-3 border-t border-gray-700">
         <p className="text-xs text-gray-500">
-          Updated: {getLastUpdatedText(sensor.lastUpdated)}
+          Updated: {getLastUpdatedText()}
         </p>
       </div>
     </Card>

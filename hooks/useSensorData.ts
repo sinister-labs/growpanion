@@ -27,10 +27,10 @@ export function useSensorData(refreshInterval = 60000) {
   const [error, setError] = useState<string | null>(null);
 
   /**
-   * Extrahiert Sensorwerte aus der API-Antwort basierend auf der Sensorkonfiguration
-   * @param sensorConfig Sensor-Konfiguration
-   * @param apiData API-Antwortdaten
-   * @returns Formatierte Sensorwerte
+   * Extracts sensor values from the API response based on sensor configuration
+   * @param sensorConfig Sensor configuration
+   * @param apiData API response data
+   * @returns Formatted sensor values
    */
   const extractSensorValues = (sensorConfig: TuyaSensor, apiData: any): SensorValue[] => {
     if (!apiData?.result?.properties) {
@@ -38,25 +38,22 @@ export function useSensorData(refreshInterval = 60000) {
     }
 
     const properties = apiData.result.properties;
-    
-    // Map über die Werte-Konfiguration und extrahiere passende Eigenschaften
+
     return sensorConfig.values
       .map(valueSetting => {
         const foundProperty = properties.find((prop: any) => prop.code === valueSetting.code);
-        
+
         if (!foundProperty) {
           return null;
         }
-        
-        // Formatierung des Wertes basierend auf Dezimalstellen
+
         let formattedValue = foundProperty.value;
-        
-        // Wenn Dezimalstellen konfiguriert und Wert numerisch
+
         if (typeof valueSetting.decimalPlaces === 'number' && !isNaN(Number(formattedValue))) {
           const divisor = Math.pow(10, valueSetting.decimalPlaces);
           formattedValue = Number(formattedValue) / divisor;
         }
-        
+
         return {
           name: valueSetting.code,
           value: formattedValue,
@@ -64,14 +61,13 @@ export function useSensorData(refreshInterval = 60000) {
           decimalPlaces: valueSetting.decimalPlaces
         };
       })
-      .filter(Boolean) as SensorValue[]; // Entferne null-Werte
+      .filter(Boolean) as SensorValue[];
   };
 
   /**
-   * Ruft Daten für alle konfigurierten Sensoren ab
+   * Fetches data for all configured sensors
    */
   const fetchAllSensorData = useCallback(async () => {
-    // Prüfe, ob Einstellungen geladen und Sensoren konfiguriert sind
     if (isLoadingSettings || !settings?.tuyaClientId || !settings?.tuyaClientSecret || !settings?.sensors?.length) {
       setIsLoading(false);
       return;
@@ -88,27 +84,26 @@ export function useSensorData(refreshInterval = 60000) {
     try {
       const updatedSensorData: ProcessedSensorData[] = [];
 
-      // Verarbeite jeden Sensor einzeln, um Ratelimits zu vermeiden
       for (const sensor of settings.sensors) {
         try {
           const response = await tuyaClient.getSensorData(sensor.tuyaId);
-          
+
           updatedSensorData.push({
             id: sensor.id,
             name: sensor.name,
             type: sensor.type,
-            values: response.success && response.result 
+            values: response.success && response.result
               ? extractSensorValues(sensor, response.result)
               : [],
             lastUpdated: new Date(),
             isLoading: false,
-            error: response.success ? null : (response.message || 'Fehler beim Abrufen der Sensordaten')
+            error: response.success ? null : (response.message || 'Error fetching sensor data')
           });
         } catch (sensorError) {
-          const errorMessage = sensorError instanceof Error 
-            ? sensorError.message 
-            : 'Unbekannter Fehler';
-            
+          const errorMessage = sensorError instanceof Error
+            ? sensorError.message
+            : 'Unknown error';
+
           updatedSensorData.push({
             id: sensor.id,
             name: sensor.name,
@@ -123,21 +118,18 @@ export function useSensorData(refreshInterval = 60000) {
 
       setSensorData(updatedSensorData);
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Unbekannter Fehler beim Abrufen der Sensordaten');
+      setError(err instanceof Error ? err.message : 'Unknown error fetching sensor data');
     }
-    
+
     setIsLoading(false);
   }, [settings, isLoadingSettings]);
 
-  // Initialer Abruf und Einrichtung des Aktualisierungsintervalls
   useEffect(() => {
     fetchAllSensorData();
 
-    // Polling-Intervall einrichten, wenn refreshInterval > 0
     if (refreshInterval > 0) {
       const intervalId = setInterval(fetchAllSensorData, refreshInterval);
-      
-      // Cleanup bei Unmount
+
       return () => clearInterval(intervalId);
     }
   }, [fetchAllSensorData, refreshInterval]);
@@ -148,4 +140,4 @@ export function useSensorData(refreshInterval = 60000) {
     error,
     refreshSensorData: fetchAllSensorData
   };
-} 
+}

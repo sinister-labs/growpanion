@@ -18,7 +18,6 @@ export function useSettings() {
     data?: any;
   }>({ isChecking: false });
 
-  // Laden der Einstellungen aus der Datenbank
   const loadSettings = useCallback(async () => {
     setIsLoading(true);
     try {
@@ -33,7 +32,6 @@ export function useSettings() {
     }
   }, []);
 
-  // Speichern der Einstellungen in der Datenbank
   const updateSettings = useCallback(async (newSettings: Partial<Settings>) => {
     try {
       await saveSettings(newSettings);
@@ -46,92 +44,88 @@ export function useSettings() {
     }
   }, []);
 
-  // Testen der Tuya-Verbindung
   const testTuyaConnection = useCallback(async (clientId?: string, clientSecret?: string) => {
     setConnectionStatus({ isChecking: true });
-    
+
     try {
-      // Verwende entweder die übergebenen Credentials oder die aus den Settings
       const useClientId = clientId || settings?.tuyaClientId;
       const useClientSecret = clientSecret || settings?.tuyaClientSecret;
-      
+
       if (!useClientId || !useClientSecret) {
-        setConnectionStatus({ 
-          isChecking: false, 
-          success: false, 
+        setConnectionStatus({
+          isChecking: false,
+          success: false,
           message: "Client ID und Client Secret müssen angegeben werden."
         });
         return false;
       }
-      
+
       const tuyaClient = new TuyaApiClient({
         clientId: useClientId,
         clientSecret: useClientSecret
       });
-      
+
       const result = await tuyaClient.testConnection();
-      setConnectionStatus({ 
-        isChecking: false, 
-        success: result.success, 
+      setConnectionStatus({
+        isChecking: false,
+        success: result.success,
         message: result.message
       });
-      
+
       return result.success;
     } catch (err) {
       console.error('Error testing Tuya connection:', err);
       const errorMessage = err instanceof Error ? err.message : 'Unbekannter Fehler';
-      setConnectionStatus({ 
-        isChecking: false, 
-        success: false, 
+      setConnectionStatus({
+        isChecking: false,
+        success: false,
         message: `Verbindungsfehler: ${errorMessage}`
       });
       return false;
     }
   }, [settings]);
 
-  // Testen eines Sensors und Abrufen der verfügbaren Daten
   const testSensor = useCallback(async (deviceId: string) => {
     setSensorTestStatus({ isChecking: true });
-    
+
     try {
-      // Überprüfen, ob die erforderlichen Anmeldedaten vorhanden sind
       if (!settings?.tuyaClientId || !settings?.tuyaClientSecret) {
-        setSensorTestStatus({ 
-          isChecking: false, 
-          success: false, 
+        setSensorTestStatus({
+          isChecking: false,
+          success: false,
           message: "Bitte zuerst Client ID und Client Secret speichern."
         });
         return null;
       }
-      
+
       if (!deviceId) {
-        setSensorTestStatus({ 
-          isChecking: false, 
-          success: false, 
+        setSensorTestStatus({
+          isChecking: false,
+          success: false,
           message: "Tuya ID des Sensors erforderlich."
         });
         return null;
       }
-      
+
       const tuyaClient = new TuyaApiClient({
         clientId: settings.tuyaClientId,
         clientSecret: settings.tuyaClientSecret
       });
-      
+
       const response = await tuyaClient.getSensorData(deviceId);
-      
+
       if (response.success && response.result) {
-        setSensorTestStatus({ 
-          isChecking: false, 
-          success: true, 
+        setSensorTestStatus({
+          isChecking: false,
+          success: true,
           message: "Sensor-Daten erfolgreich abgerufen!",
           data: response.result
         });
         return response.result;
       } else {
-        setSensorTestStatus({ 
-          isChecking: false, 
-          success: false, 
+        setSensorTestStatus({
+          isChecking: false,
+          success: false,
           message: response.message || "Fehler beim Abrufen der Sensor-Daten."
         });
         return null;
@@ -139,16 +133,15 @@ export function useSettings() {
     } catch (err) {
       console.error('Error testing sensor:', err);
       const errorMessage = err instanceof Error ? err.message : 'Unbekannter Fehler';
-      setSensorTestStatus({ 
-        isChecking: false, 
-        success: false, 
+      setSensorTestStatus({
+        isChecking: false,
+        success: false,
         message: `Fehler: ${errorMessage}`
       });
       return null;
     }
   }, [settings]);
 
-  // Laden der Einstellungen beim ersten Rendering
   useEffect(() => {
     loadSettings();
   }, [loadSettings]);

@@ -13,7 +13,6 @@ export function usePlants(growId: string | null) {
     const [isLoading, setIsLoading] = useState<boolean>(true);
     const [error, setError] = useState<Error | null>(null);
 
-    // Laden aller Pflanzen für einen bestimmten Grow
     const loadPlants = useCallback(async () => {
         if (!growId) {
             setPlants([]);
@@ -27,17 +26,16 @@ export function usePlants(growId: string | null) {
             setPlants(loadedPlants);
             setError(null);
         } catch (err) {
-            console.error('Fehler beim Laden der Pflanzen:', err);
-            setError(err instanceof Error ? err : new Error('Unbekannter Fehler beim Laden der Pflanzen'));
+            console.error('Error loading plants:', err);
+            setError(err instanceof Error ? err : new Error('Unknown error loading plants'));
         } finally {
             setIsLoading(false);
         }
     }, [growId]);
 
-    // Hinzufügen einer neuen Pflanze
     const addPlant = useCallback(async (plantData: Omit<Plant, 'id'>) => {
         if (!growId) {
-            throw new Error('Kein aktiver Grow ausgewählt');
+            throw new Error('No active grow selected');
         }
 
         try {
@@ -51,12 +49,11 @@ export function usePlants(growId: string | null) {
             setPlants(prev => [...prev, newPlant]);
             return newPlant;
         } catch (err) {
-            console.error('Fehler beim Hinzufügen der Pflanze:', err);
+            console.error('Error adding plant:', err);
             throw err;
         }
     }, [growId]);
 
-    // Update an existing plant
     const updatePlant = useCallback(async (updatedPlant: Plant) => {
         if (!growId) {
             throw new Error('No active grow selected');
@@ -79,18 +76,16 @@ export function usePlants(growId: string | null) {
         }
     }, [growId]);
 
-    // Delete a plant
     const removePlant = useCallback(async (id: string) => {
         try {
             await deletePlant(id);
             setPlants(prev => prev.filter(plant => plant.id !== id));
         } catch (err) {
-            console.error('Fehler beim Löschen der Pflanze:', err);
+            console.error('Error deleting plant:', err);
             throw err;
         }
     }, []);
 
-    // Neu laden der Pflanzen, wenn sich der growId ändert
     useEffect(() => {
         loadPlants();
     }, [loadPlants, growId]);

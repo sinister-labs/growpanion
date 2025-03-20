@@ -2,6 +2,8 @@
 @tailwind components;
 @tailwind utilities;
 
+@import 'nprogress/nprogress.css';
+
 body {
   background-color: #000000;
   background-image: radial-gradient(circle at 25% 25%, rgba(74, 222, 128, 0.05) 0%, transparent 50%),
@@ -106,7 +108,6 @@ body {
   }
 }
 
-/* Custom TODO list checkboxes – shoutout to this awesome tutorial: https://moderncss.dev/pure-css-custom-checkbox-style/ */
 ul[data-type="taskList"] li>label {
   margin-right: 0.2rem;
   user-select: none;
@@ -249,11 +250,15 @@ div[data-youtube-video]>iframe {
   }
 }
 
-/* CSS for bold coloring and highlighting issue*/
 span[style]>strong {
   color: inherit;
 }
 
 mark[style]>strong {
   color: inherit;
+}
+
+#nprogress .bar {
+  background: #10b981 !important;
+  height: 3px !important;
 }

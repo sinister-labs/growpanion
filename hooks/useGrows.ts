@@ -34,13 +34,13 @@ export function useGrows() {
      */
     const selectActiveGrow = useCallback((loadedGrows: Grow[]) => {
         const activeGrows = loadedGrows.filter(isGrowActive);
-        
+
         if (activeGrows.length > 0) {
             return activeGrows[0].id;
         } else if (loadedGrows.length > 0) {
             return loadedGrows[0].id;
         }
-        
+
         return null;
     }, [isGrowActive]);
 
@@ -56,15 +56,11 @@ export function useGrows() {
             const loadedGrows = await getAllGrows();
             setGrows(loadedGrows);
 
-            // Active grow management
             if (!activeGrowId) {
-                // If no active grow is set, select one
                 setActiveGrowId(selectActiveGrow(loadedGrows));
             } else {
-                // Check if the current active grow is still active
                 const currentActiveGrow = loadedGrows.find(g => g.id === activeGrowId);
                 if (currentActiveGrow && !isGrowActive(currentActiveGrow)) {
-                    // If not, select a new active grow
                     const activeGrows = loadedGrows.filter(isGrowActive);
                     if (activeGrows.length > 0) {
                         setActiveGrowId(activeGrows[0].id);
@@ -92,7 +88,6 @@ export function useGrows() {
             await saveGrow(newGrow);
             setGrows(prev => [...prev, newGrow]);
 
-            // Set the new grow as active
             setActiveGrowId(newGrow.id);
 
             return newGrow;
@@ -111,9 +106,6 @@ export function useGrows() {
             setGrows(prev =>
                 prev.map(grow => grow.id === updatedGrow.id ? updatedGrow : grow)
             );
-
-            // If a grow is set to "Done" and it is the active grow,
-            // select another active grow
             if (updatedGrow.id === activeGrowId && !isGrowActive(updatedGrow)) {
                 const otherActiveGrows = grows.filter(g => g.id !== updatedGrow.id && isGrowActive(g));
                 if (otherActiveGrows.length > 0) {
@@ -136,14 +128,11 @@ export function useGrows() {
             await deleteGrow(id);
             setGrows(prev => prev.filter(grow => grow.id !== id));
 
-            // If the active grow is deleted, select a new one
             if (activeGrowId === id) {
-                // First filter out the deleted grow
                 const remainingGrows = grows.filter(grow => grow.id !== id);
-                
-                // Prefer active grows
+
                 const activeGrows = remainingGrows.filter(isGrowActive);
-                
+
                 if (activeGrows.length > 0) {
                     setActiveGrowId(activeGrows[0].id);
                 } else if (remainingGrows.length > 0) {
@@ -179,7 +168,6 @@ export function useGrows() {
         return grows.filter(isGrowActive);
     }, [grows, isGrowActive]);
 
-    // Initialize data on first load
     useEffect(() => {
         loadGrows();
     }, [loadGrows]);

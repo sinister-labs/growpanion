@@ -87,13 +87,11 @@ export function GrowSelector() {
 
     const activeGrow = grows.find(grow => grow.id === activeGrowId);
 
-    // Phase options for dropdown
     const phaseOptions: DropdownOption[] = GROWTH_PHASES.filter(phase => phase !== "Done").map(phase => ({
         id: phase,
         label: phase
     }));
 
-    // Grow options for dropdown
     const growOptions: DropdownOption[] = grows.map(grow => ({
         id: grow.id,
         label: grow.name,

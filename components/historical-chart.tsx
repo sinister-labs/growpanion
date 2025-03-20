@@ -7,7 +7,6 @@ interface HistoricalChartProps {
 }
 
 export function HistoricalChart({ data }: HistoricalChartProps) {
-  // Dummy historical data - replace with real data in a production app
   const historicalData = [
     { time: "00:00", value: 20 },
     { time: "04:00", value: 22 },

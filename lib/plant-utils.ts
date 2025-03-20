@@ -21,20 +21,20 @@ interface PlantActivity {
  */
 export function getPlantActivities(plant: Plant): PlantActivity[] {
   const activities: PlantActivity[] = [
-    ...(plant.waterings || []).map((w) => ({ 
-      type: "Watered", 
-      date: new Date(w.date), 
-      details: `${w.amount} ml` 
+    ...(plant.waterings || []).map((w) => ({
+      type: "Watered",
+      date: new Date(w.date),
+      details: `${w.amount} ml`
     })),
-    ...(plant.hstRecords || []).map((t) => ({ 
-      type: "HST", 
-      date: new Date(t.date), 
-      details: t.method 
+    ...(plant.hstRecords || []).map((t) => ({
+      type: "HST",
+      date: new Date(t.date),
+      details: t.method
     })),
-    ...(plant.lstRecords || []).map((t) => ({ 
-      type: "LST", 
-      date: new Date(t.date), 
-      details: t.method 
+    ...(plant.lstRecords || []).map((t) => ({
+      type: "LST",
+      date: new Date(t.date),
+      details: t.method
     })),
     ...(plant.substrateRecords || []).map((s) => ({
       type: "Substrate",
@@ -43,7 +43,6 @@ export function getPlantActivities(plant: Plant): PlantActivity[] {
     })),
   ];
 
-  // Sort activities by date, most recent first
   return activities.sort((a, b) => b.date.getTime() - a.date.getTime());
 }
 
@@ -60,13 +59,11 @@ export function getLastActivity(plant: Plant): string {
   }
 
   const lastActivity = activities[0];
-  
-  // Calculate days since last activity
+
   const daysAgo = Math.floor(
     (new Date().getTime() - lastActivity.date.getTime()) / (1000 * 60 * 60 * 24)
   );
 
-  return `${lastActivity.type} ${daysAgo} day${daysAgo !== 1 ? "s" : ""} ago${
-    lastActivity.details ? ` (${lastActivity.details})` : ""
-  }`;
+  return `${lastActivity.type} ${daysAgo} day${daysAgo !== 1 ? "s" : ""} ago${lastActivity.details ? ` (${lastActivity.details})` : ""
+    }`;
 } 
