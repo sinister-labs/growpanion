@@ -4,38 +4,70 @@ import { useState, useCallback } from 'react'
 import { useRoutingProvider, RoutingContext } from '@/hooks/useRouting'
 import Header from '@/components/header'
 import DashboardContent from '@/app/dashboard-content'
-import GrowsPage from '@/app/grows/page'
-import GrowViewClient from '@/app/grows/view/grow-view-client'
-import SettingsPage from '@/app/settings/page'
+import GrowOverview from '@/components/grow-overview'
+import Settings from '@/components/settings'
+import GrowDetailClient from '@/components/grow-detail-client'
+import { ErrorBoundary } from '@/components/error-boundary'
+import { ScrollArea } from "@/components/ui/scroll-area"
 
 export default function Home() {
-  // Routing Provider-Zustand nutzen
   const routingState = useRoutingProvider();
 
-  // View basierend auf dem aktuellen State rendern
   const renderView = () => {
     switch (routingState.currentView) {
       case 'dashboard':
-        return <DashboardContent />
+        return (
+          <ErrorBoundary>
+            <DashboardContent />
+          </ErrorBoundary>
+        );
       case 'grows':
-        return <GrowsPage />
+        return (
+          <ErrorBoundary>
+            <GrowOverview />
+          </ErrorBoundary>
+        );
       case 'growDetail':
-        return <GrowViewClient growId={routingState.params.id || ''} />
+        return (
+          <ErrorBoundary>
+            <GrowDetailClient growId={routingState.params.id || ''} />
+          </ErrorBoundary>
+        );
       case 'settings':
-        return <SettingsPage />
+        return (
+          <ErrorBoundary>
+            <Settings />
+          </ErrorBoundary>
+        );
       default:
-        return <DashboardContent />
+        return (
+          <ErrorBoundary>
+            <DashboardContent />
+          </ErrorBoundary>
+        );
     }
   }
 
   return (
     <RoutingContext.Provider value={routingState}>
-      <div className="min-h-screen bg-neutral-950 text-white">
-        <Header />
-        <main className="container max-w-screen-xl mx-auto px-4 pb-8 relative z-10 pt-8">
-          {renderView()}
-        </main>
-        <div className="fixed inset-0 bg-gradient-to-br from-gray-900 to-black z-0"></div>
+
+      <div className="fixed inset-0 bg-gradient-to-br from-gray-900 to-black z-0"></div>
+
+      <div className="flex flex-col min-h-screen max-h-screen bg-transparent text-white overflow-hidden">
+        <div className="z-50 w-full">
+          <ErrorBoundary>
+            <Header />
+          </ErrorBoundary>
+        </div>
+
+        {/* Scrollbarer Content-Bereich mit ScrollArea */}
+        <div className="flex-grow overflow-hidden">
+          <ScrollArea className="h-[calc(100vh-80px)]">
+            <main className="container max-w-screen-xl mx-auto px-4 pb-8 pt-8 relative z-10">
+              {renderView()}
+            </main>
+          </ScrollArea>
+        </div>
       </div>
     </RoutingContext.Provider>
   )

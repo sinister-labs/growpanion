@@ -5,18 +5,17 @@ import { useRoutingProvider, RoutingContext, AppView, useRouting } from '@/hooks
 import Header from '@/components/header'
 import { Suspense } from 'react'
 import dynamic from 'next/dynamic'
-import GrowViewClient from '@/app/grows/view/grow-view-client'
+import GrowDetailClient from '@/components/grow-detail-client'
 
-// Dynamic imports für Lazy Loading (nur für nicht-kritische Komponenten)
 const DynamicDashboardContent = dynamic(() => import('@/app/dashboard-content'), {
     loading: () => <div className="p-8 text-center">Loading dashboard...</div>
 })
 
-const DynamicGrowsPage = dynamic(() => import('@/app/grows/page'), {
+const DynamicGrowsPage = dynamic(() => import('@/components/grow-overview'), {
     loading: () => <div className="p-8 text-center">Loading grows...</div>
 })
 
-const DynamicSettingsPage = dynamic(() => import('@/app/settings/page'), {
+const DynamicSettingsPage = dynamic(() => import('@/components/settings'), {
     loading: () => <div className="p-8 text-center">Loading settings...</div>
 })
 
@@ -56,8 +55,7 @@ function ViewRenderer() {
         case 'grows':
             return <DynamicGrowsPage />
         case 'growDetail':
-            // Direkte Einbindung ohne dynamic import
-            return <GrowViewClient growId={params.id || ''} />
+            return <GrowDetailClient growId={params.id || ''} />
         case 'settings':
             return <DynamicSettingsPage />
         default:
