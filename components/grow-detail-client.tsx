@@ -22,6 +22,7 @@ import { getGrowById } from "@/lib/db"
 import { useToast } from "@/hooks/use-toast"
 import { useRouter } from "next/navigation"
 import { Grow } from "@/lib/db"
+import { useRouting } from "@/hooks/useRouting"
 
 interface GrowDetailClientProps {
     id: string;
@@ -32,6 +33,7 @@ export function GrowDetailClient({ id }: GrowDetailClientProps) {
     const tabParam = searchParams.get('tab');
     const { toast } = useToast();
     const router = useRouter();
+    const { navigateTo } = useRouting();
 
     const [activeTab, setActiveTab] = useState<string>(tabParam || 'plants');
     const { grows, updateGrow } = useGrows();
@@ -101,11 +103,13 @@ export function GrowDetailClient({ id }: GrowDetailClientProps) {
                     <h2 className="text-xl font-semibold mb-4">Error</h2>
                     <p>{error.message}</p>
                     <div className="mt-4">
-                        <Link href="/grows">
-                            <Button variant="outline" className="border-red-500 text-red-400 hover:bg-red-900/20">
-                                Back to overview
-                            </Button>
-                        </Link>
+                        <Button
+                            variant="outline"
+                            className="border-red-500 text-red-400 hover:bg-red-900/20"
+                            onClick={() => navigateTo('grows')}
+                        >
+                            Back to overview
+                        </Button>
                     </div>
                 </div>
             </div>
@@ -119,11 +123,13 @@ export function GrowDetailClient({ id }: GrowDetailClientProps) {
                     <h2 className="text-xl font-semibold mb-4">Grow Not Found</h2>
                     <p>The requested grow could not be found.</p>
                     <div className="mt-4">
-                        <Link href="/grows">
-                            <Button variant="outline" className="border-red-500 text-red-400 hover:bg-red-900/20">
-                                Back to overview
-                            </Button>
-                        </Link>
+                        <Button
+                            variant="outline"
+                            className="border-red-500 text-red-400 hover:bg-red-900/20"
+                            onClick={() => navigateTo('grows')}
+                        >
+                            Back to overview
+                        </Button>
                     </div>
                 </div>
             </div>
@@ -135,20 +141,27 @@ export function GrowDetailClient({ id }: GrowDetailClientProps) {
     return (
         <main className="flex min-h-screen flex-col items-center p-4 sm:p-8 bg-black bg-opacity-90">
             <div className="w-full max-w-7xl relative z-10">
-                <Header />
 
                 <div className="space-y-8 mt-6">
                     <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
                         <div>
                             <div className="flex items-center gap-2 mb-1">
-                                <Link href="/" className="text-gray-400 hover:text-white flex items-center gap-1">
+                                <Button
+                                    variant="link"
+                                    className="text-gray-400 hover:text-white p-0 h-auto flex items-center gap-1"
+                                    onClick={() => navigateTo('dashboard')}
+                                >
                                     <Home className="h-4 w-4" />
                                     <span>Dashboard</span>
-                                </Link>
+                                </Button>
                                 <span className="text-gray-600">/</span>
-                                <Link href="/grows" className="text-gray-400 hover:text-white">
+                                <Button
+                                    variant="link"
+                                    className="text-gray-400 hover:text-white p-0 h-auto"
+                                    onClick={() => navigateTo('grows')}
+                                >
                                     Grows
-                                </Link>
+                                </Button>
                                 <span className="text-gray-600">/</span>
                                 <h1 className="font-semibold text-white">{safeGrow.name}</h1>
                             </div>
@@ -162,12 +175,14 @@ export function GrowDetailClient({ id }: GrowDetailClientProps) {
                             </div>
                         </div>
 
-                        <Link href="/grows">
-                            <Button variant="outline" className="border-gray-700 text-gray-400 hover:text-white rounded-full">
-                                <ArrowLeft className="mr-2 h-4 w-4" />
-                                Back to overview
-                            </Button>
-                        </Link>
+                        <Button
+                            variant="outline"
+                            className="border-gray-700 text-gray-400 hover:text-white rounded-full"
+                            onClick={() => navigateTo('grows')}
+                        >
+                            <ArrowLeft className="mr-2 h-4 w-4" />
+                            Back to overview
+                        </Button>
                     </div>
 
                     <GrowInfo
