@@ -4,6 +4,8 @@
 
 @import 'nprogress/nprogress.css';
 
+@import 'nprogress/nprogress.css';
+
 body {
   background-color: #000000;
   background-image: radial-gradient(circle at 25% 25%, rgba(74, 222, 128, 0.05) 0%, transparent 50%),
