@@ -3,48 +3,37 @@
 import { useState, useEffect } from "react"
 import { useGrows } from "@/hooks/useGrows"
 import { usePlants } from "@/hooks/usePlants"
-import Header from "@/components/header"
 import { Button } from "@/components/ui/button"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import {
-    Tabs,
-    TabsContent,
-    TabsList,
-    TabsTrigger
-} from "@/components/ui/tabs"
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { PlantList } from "@/components/plant-list"
 import { FertilizerMixesManager } from "@/components/fertilizer-mixes"
 import { GrowInfo } from "@/components/grow-info"
-import { Loader2, Home, ArrowLeft, Plus } from "lucide-react"
-import Link from "next/link"
-import { useSearchParams } from "next/navigation"
+import { Loader2, Home, ArrowLeft, ChevronLeft } from "lucide-react"
 import { getGrowById } from "@/lib/db"
 import { useToast } from "@/hooks/use-toast"
-import { useRouter } from "next/navigation"
 import { Grow } from "@/lib/db"
+import { useRouting } from "@/hooks/useRouting"
 
 interface GrowDetailClientProps {
-    id: string;
+    growId: string;
 }
 
-export function GrowDetailClient({ id }: GrowDetailClientProps) {
-    const searchParams = useSearchParams();
-    const tabParam = searchParams.get('tab');
+export default function GrowDetailClient(props: GrowDetailClientProps) {
+    const { growId } = props;
     const { toast } = useToast();
-    const router = useRouter();
+    const { navigateTo } = useRouting();
 
-    const [activeTab, setActiveTab] = useState<string>(tabParam || 'plants');
+    const [activeTab, setActiveTab] = useState<string>('plants');
     const { grows, updateGrow } = useGrows();
-    const { plants, isLoading: plantsLoading } = usePlants(id);
+    const { plants, isLoading: plantsLoading } = usePlants(growId);
     const [grow, setGrow] = useState<Grow | null>(null);
     const [isLoading, setIsLoading] = useState(true);
     const [error, setError] = useState<Error | null>(null);
-    const [isAddPlantDialogOpen, setIsAddPlantDialogOpen] = useState(false);
 
     useEffect(() => {
         const loadGrow = async () => {
             try {
-                const grow = await getGrowById(id);
+                const grow = await getGrowById(growId);
                 if (grow) {
                     setGrow(grow);
                 }
@@ -57,7 +46,7 @@ export function GrowDetailClient({ id }: GrowDetailClientProps) {
         };
 
         loadGrow();
-    }, [id]);
+    }, [growId]);
 
     const handlePhaseChange = (newPhase: string) => {
         if (!grow) return;
@@ -88,7 +77,7 @@ export function GrowDetailClient({ id }: GrowDetailClientProps) {
 
     if (isLoading || plantsLoading) {
         return (
-            <div className="flex min-h-screen items-center justify-center bg-black bg-opacity-90">
+            <div className="flex min-h-[50vh] items-center justify-center">
                 <Loader2 className="w-8 h-8 animate-spin text-green-500" />
             </div>
         );
@@ -96,17 +85,17 @@ export function GrowDetailClient({ id }: GrowDetailClientProps) {
 
     if (error) {
         return (
-            <div className="flex min-h-screen items-center justify-center bg-black bg-opacity-90">
-                <div className="bg-red-900/30 text-red-300 p-8 rounded-lg max-w-md">
-                    <h2 className="text-xl font-semibold mb-4">Error</h2>
-                    <p>{error.message}</p>
-                    <div className="mt-4">
-                        <Link href="/grows">
-                            <Button variant="outline" className="border-red-500 text-red-400 hover:bg-red-900/20">
-                                Back to overview
-                            </Button>
-                        </Link>
-                    </div>
+            <div className="bg-red-900/30 text-red-300 p-8 rounded-lg max-w-md">
+                <h2 className="text-xl font-semibold mb-4">Error</h2>
+                <p>{error.message}</p>
+                <div className="mt-4">
+                    <Button
+                        variant="outline"
+                        className="border-red-500 text-red-400 hover:bg-red-900/20"
+                        onClick={() => navigateTo('grows')}
+                    >
+                        Back to overview
+                    </Button>
                 </div>
             </div>
         );
@@ -114,17 +103,17 @@ export function GrowDetailClient({ id }: GrowDetailClientProps) {
 
     if (!grow) {
         return (
-            <div className="flex min-h-screen items-center justify-center bg-black bg-opacity-90">
-                <div className="bg-red-900/30 text-red-300 p-8 rounded-lg max-w-md">
-                    <h2 className="text-xl font-semibold mb-4">Grow Not Found</h2>
-                    <p>The requested grow could not be found.</p>
-                    <div className="mt-4">
-                        <Link href="/grows">
-                            <Button variant="outline" className="border-red-500 text-red-400 hover:bg-red-900/20">
-                                Back to overview
-                            </Button>
-                        </Link>
-                    </div>
+            <div className="bg-red-900/30 text-red-300 p-8 rounded-lg max-w-md">
+                <h2 className="text-xl font-semibold mb-4">Grow Not Found</h2>
+                <p>The requested grow could not be found.</p>
+                <div className="mt-4">
+                    <Button
+                        variant="outline"
+                        className="border-red-500 text-red-400 hover:bg-red-900/20"
+                        onClick={() => navigateTo('grows')}
+                    >
+                        Back to overview
+                    </Button>
                 </div>
             </div>
         );
@@ -133,74 +122,94 @@ export function GrowDetailClient({ id }: GrowDetailClientProps) {
     const safeGrow: Grow = grow;
 
     return (
-        <main className="flex min-h-screen flex-col items-center p-4 sm:p-8 bg-black bg-opacity-90">
-            <div className="w-full max-w-7xl relative z-10">
-                <Header />
-
-                <div className="space-y-8 mt-6">
-                    <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-                        <div>
-                            <div className="flex items-center gap-2 mb-1">
-                                <Link href="/" className="text-gray-400 hover:text-white flex items-center gap-1">
-                                    <Home className="h-4 w-4" />
-                                    <span>Dashboard</span>
-                                </Link>
-                                <span className="text-gray-600">/</span>
-                                <Link href="/grows" className="text-gray-400 hover:text-white">
-                                    Grows
-                                </Link>
-                                <span className="text-gray-600">/</span>
-                                <h1 className="font-semibold text-white">{safeGrow.name}</h1>
-                            </div>
-                            <div className="flex items-center gap-2 mt-6">
-                                <span className="bg-green-600/30 text-green-400 rounded px-2 py-1 text-xs">
-                                    {safeGrow.currentPhase}
-                                </span>
-                                <span className="text-gray-400 text-sm">
-                                    Duration: {Math.floor((new Date().getTime() - new Date(safeGrow.startDate).getTime()) / (1000 * 60 * 60 * 24))} Days
-                                </span>
-                            </div>
-                        </div>
-
-                        <Link href="/grows">
-                            <Button variant="outline" className="border-gray-700 text-gray-400 hover:text-white rounded-full">
-                                <ArrowLeft className="mr-2 h-4 w-4" />
-                                Back to overview
-                            </Button>
-                        </Link>
+        <div className="space-y-8 mt-6">
+            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+                <div>
+                    <div className="flex items-center gap-2 mb-1">
+                        <Button
+                            variant="link"
+                            className="text-gray-400 hover:text-white p-0 h-auto flex items-center gap-1"
+                            onClick={() => navigateTo('dashboard')}
+                        >
+                            <Home className="h-4 w-4" />
+                            <span>Dashboard</span>
+                        </Button>
+                        <span className="text-gray-600">/</span>
+                        <Button
+                            variant="link"
+                            className="text-gray-400 hover:text-white p-0 h-auto"
+                            onClick={() => navigateTo('grows')}
+                        >
+                            Grows
+                        </Button>
+                        <span className="text-gray-600">/</span>
+                        <h1 className="font-semibold text-white">{safeGrow.name}</h1>
                     </div>
-
-                    <GrowInfo
-                        grow={{
-                            id: safeGrow.id,
-                            name: safeGrow.name,
-                            startDate: safeGrow.startDate,
-                            currentPhase: safeGrow.currentPhase,
-                            phaseHistory: safeGrow.phaseHistory,
-                            plants: plants
-                        }}
-                        onPhaseChange={handlePhaseChange}
-                    />
-
-                    <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full ">
-                        <TabsList className="grid grid-cols-2 bg-gray-800 rounded-full">
-                            <TabsTrigger value="plants" className="data-[state=active]:bg-green-500 shadow-3xl shadow-green-500 data-[state=active]:text-gray-800 rounded-full">
-                                Plants
-                            </TabsTrigger>
-                            <TabsTrigger value="mixes" className="data-[state=active]:bg-green-500 shadow-3xl shadow-green-500 data-[state=active]:text-gray-800  rounded-full">
-                                Fertilizer mixes
-                            </TabsTrigger>
-                        </TabsList>
-                        <TabsContent value="plants" className="mt-4">
-                            <PlantList growId={id} />
-                        </TabsContent>
-                        <TabsContent value="mixes" className="mt-4">
-                            <FertilizerMixesManager growId={id} />
-                        </TabsContent>
-                    </Tabs>
+                    <div className="flex items-center gap-2 mt-6">
+                        <span className="bg-green-600/30 text-green-400 rounded px-2 py-1 text-xs">
+                            {safeGrow.currentPhase}
+                        </span>
+                        <span className="text-gray-400 text-sm">
+                            Duration: {Math.floor((new Date().getTime() - new Date(safeGrow.startDate).getTime()) / (1000 * 60 * 60 * 24))} Days
+                        </span>
+                    </div>
                 </div>
+
+                <Button
+                    variant="outline"
+                    className="border-gray-700 text-gray-400 hover:text-white rounded-full"
+                    onClick={() => navigateTo('grows')}
+                >
+                    <ArrowLeft className="mr-2 h-4 w-4" />
+                    Back to overview
+                </Button>
             </div>
-            <div className="fixed inset-0 bg-gradient-to-br from-gray-900 to-black z-0"></div>
-        </main>
+
+            <GrowInfo
+                grow={{
+                    id: safeGrow.id,
+                    name: safeGrow.name,
+                    startDate: safeGrow.startDate,
+                    currentPhase: safeGrow.currentPhase,
+                    phaseHistory: safeGrow.phaseHistory,
+                    plants: plants
+                }}
+                onPhaseChange={handlePhaseChange}
+            />
+
+            <div className="relative">
+                <Tabs defaultValue="plants" className="w-full">
+                    <TabsList className="grid grid-cols-2 bg-gray-800 rounded-full">
+                        <TabsTrigger
+                            value="plants"
+                            className="data-[state=active]:bg-green-500 shadow-3xl shadow-green-500 data-[state=active]:text-gray-800 rounded-full"
+                        >
+                            Plants
+                        </TabsTrigger>
+                        <TabsTrigger
+                            value="mixes"
+                            className="data-[state=active]:bg-green-500 shadow-3xl shadow-green-500 data-[state=active]:text-gray-800 rounded-full"
+                        >
+                            Fertilizer mixes
+                        </TabsTrigger>
+                    </TabsList>
+
+                    <div className="relative min-h-[500px] mt-4">
+                        <TabsContent
+                            value="plants"
+                            className="absolute top-0 left-0 w-full transition-opacity duration-300 opacity-100"
+                        >
+                            <PlantList growId={growId} />
+                        </TabsContent>
+                        <TabsContent
+                            value="mixes"
+                            className="absolute top-0 left-0 w-full transition-opacity duration-300 opacity-100"
+                        >
+                            <FertilizerMixesManager growId={growId} />
+                        </TabsContent>
+                    </div>
+                </Tabs>
+            </div>
+        </div>
     );
 } 
