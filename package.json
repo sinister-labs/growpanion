@@ -10,8 +10,6 @@
     "start": "next start",
     "lint": "next lint",
     "clean": "rimraf .next out",
-    "tauri": "tauri""lint": "next lint",
-    "clean": "rimraf .next out",
     "tauri": "tauri"
   },
   "dependencies": {
