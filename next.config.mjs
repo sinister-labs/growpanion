@@ -9,10 +9,10 @@ const internalPort = process.env.TAURI_DEV_PORT || '3000'
 const nextConfig = {
   output: isTauri || process.env.EXPORT_MODE ? 'export' : undefined,
   eslint: {
-    ignoreDuringBuilds: true,
+    ignoreDuringBuilds: false,
   },
   typescript: {
-    ignoreBuildErrors: true,
+    ignoreBuildErrors: false,
   },
   images: {
     unoptimized: true,
