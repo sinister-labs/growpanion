@@ -1,6 +1,12 @@
 // utils/apiClient.ts
 import { isTauri, invoke } from '@tauri-apps/api/core';
 
+interface TauriHttpResponse {
+    status: number;
+    body: string;
+    headers: Record<string, string>;
+}
+
 interface ApiRequestOptions extends RequestInit {
     /**
      * The complete URL for the API request.
@@ -30,10 +36,10 @@ export async function apiRequest<T>(options: ApiRequestOptions): Promise<T> {
                 }
             });
 
-            const httpResponse = JSON.parse(responseStr);
-            let responseData: any;
+            const httpResponse: TauriHttpResponse = JSON.parse(responseStr);
+            let responseData: T | { text: string };
             try {
-                responseData = JSON.parse(httpResponse.body);
+                responseData = JSON.parse(httpResponse.body) as T;
             } catch (e) {
                 responseData = { text: httpResponse.body };
             }

@@ -2,8 +2,14 @@
 
 import React from 'react';
 
+interface ChartDataPoint {
+  time: string;
+  value: number;
+  [key: string]: string | number; // Allow additional properties
+}
+
 interface HistoricalChartProps {
-  data?: any;
+  data?: ChartDataPoint[];
 }
 
 export function HistoricalChart({ data }: HistoricalChartProps) {

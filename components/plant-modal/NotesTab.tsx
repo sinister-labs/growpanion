@@ -6,6 +6,22 @@ import { EditorContent, EditorRoot } from 'novel';
 import { StarterKit } from '@tiptap/starter-kit';
 import { TabComponentProps } from './types';
 
+// Tiptap document structure
+interface TiptapContent {
+  type: string;
+  content?: TiptapContent[];
+  text?: string;
+  [key: string]: any; // Allow additional attributes
+}
+
+interface TiptapDocument {
+  type: 'doc';
+  content: TiptapContent[];
+}
+
+// For Tiptap Editor we use 'any' here as the actual Editor interface is complex
+// and we only need the getJSON method which returns the document structure
+
 const NotesTab: React.FC<TabComponentProps> = ({ localPlant, setLocalPlant }) => {
     // Initialisiere den Content-State mit den vorhandenen Notizen oder einem leeren Dokument
     const [content, setContent] = useState(() => {

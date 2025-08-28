@@ -11,7 +11,7 @@ export interface Plant {
     type: "regular" | "autoflowering" | "feminized";
     propagationMethod: "clone" | "seed";
     yield?: string;
-    notes?: any;
+    notes?: string | null | { type: 'doc'; content: any[] };
     waterings?: WateringRecord[];
     hstRecords?: TrainingRecord[];
     lstRecords?: TrainingRecord[];
@@ -89,8 +89,12 @@ export interface SubstrateTabProps extends TabComponentProps {
 
 export interface ImagesTabProps extends TabComponentProps {
     setFullscreenImage: React.Dispatch<React.SetStateAction<string | null>>;
-    getRootProps: any;
-    getInputProps: any;
+    getRootProps: () => {
+        [key: string]: unknown;
+    };
+    getInputProps: () => {
+        [key: string]: unknown;
+    };
     isDragActive: boolean;
 }
 

@@ -226,7 +226,7 @@ export default function GrowEnvironment({ grow, onPhaseChange }: GrowEnvironment
                 </div>
               )}
             </DialogHeader>
-            <HistoricalChart data={item} />
+            <HistoricalChart data={undefined} />
             {item.title.includes('VPD') && (
               <div className="mt-4 space-y-2 text-sm text-gray-300">
                 <p><span className="text-green-400 font-semibold">0.4-0.8 kPa:</span> Low Transpiration (Propagation / Early Growth Phase)</p>

@@ -9,6 +9,7 @@ import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { TuyaSensor } from '@/lib/db';
+import { TuyaDeviceProperty } from '@/lib/tuya-api';
 import { v4 as uuidv4 } from 'uuid';
 import { useToast } from '@/hooks/use-toast';
 import { Toaster } from '@/components/ui/toaster';
@@ -96,11 +97,9 @@ export default function SettingsPage() {
 
     useEffect(() => {
         if (sensorTestStatus.data) {
-            let properties = [];
+            let properties: TuyaDeviceProperty[] = [];
 
-            if (sensorTestStatus.data.result && sensorTestStatus.data.result.properties) {
-                properties = sensorTestStatus.data.result.properties;
-            } else if (sensorTestStatus.data.properties) {
+            if (sensorTestStatus.data.properties) {
                 properties = sensorTestStatus.data.properties;
             }
 

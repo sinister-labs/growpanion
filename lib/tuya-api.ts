@@ -16,13 +16,31 @@ interface TuyaAuthResponse {
   };
   error?: string;
   message?: string;
+  msg?: string;
 }
 
-interface SensorDataResponse {
+export interface TuyaDeviceProperty {
+  code: string;
+  value: boolean | number | string;
+  type: 'bool' | 'value' | 'enum' | 'string';
+  dp_id: number;
+  unit?: string;
+}
+
+export interface TuyaSensorDataResult {
+  properties: TuyaDeviceProperty[];
+  online: boolean;
+  last_online?: number;
+}
+
+export interface SensorDataResponse {
   success: boolean;
-  result?: any;
+  result?: TuyaSensorDataResult;
   error?: string;
   message?: string;
+  msg?: string;
+  t?: number;
+  tid?: string;
 }
 
 export class TuyaApiClient {
@@ -102,7 +120,7 @@ export class TuyaApiClient {
         "Content-Type": "application/json"
       };
 
-      const data = await apiRequest<any>({
+      const data = await apiRequest<TuyaAuthResponse>({
         url: `${this.baseUrl}/v1.0/token?grant_type=1`,
         method: "GET",
         headers: headers
@@ -163,7 +181,7 @@ export class TuyaApiClient {
         .digest('hex')
         .toUpperCase();
 
-      const data = await apiRequest<any>({
+      const data = await apiRequest<SensorDataResponse>({
         url: `${this.baseUrl}${signUrl}`,
         method: "GET",
         headers: {
@@ -178,8 +196,8 @@ export class TuyaApiClient {
 
       return {
         success: !!data.success,
-        result: data,
-        message: data.msg || ''
+        result: data.result,
+        message: data.msg || data.message || ''
       };
 
     } catch (error) {

@@ -1,7 +1,14 @@
 import { useState, useEffect, useCallback } from 'react';
 import { TuyaSensor } from '@/lib/db';
 import { useSettings } from './useSettings';
-import { TuyaApiClient } from '@/lib/tuya-api';
+import { TuyaApiClient, TuyaSensorDataResult, TuyaDeviceProperty } from '@/lib/tuya-api';
+
+interface SensorApiResponse {
+  success: boolean;
+  result?: TuyaSensorDataResult;
+  error?: string;
+  message?: string;
+}
 
 export interface SensorValue {
   name: string;
@@ -32,7 +39,7 @@ export function useSensorData(refreshInterval = 60000) {
    * @param apiData API response data
    * @returns Formatted sensor values
    */
-  const extractSensorValues = (sensorConfig: TuyaSensor, apiData: any): SensorValue[] => {
+  const extractSensorValues = (sensorConfig: TuyaSensor, apiData: SensorApiResponse): SensorValue[] => {
     if (!apiData?.result?.properties) {
       return [];
     }
@@ -41,7 +48,7 @@ export function useSensorData(refreshInterval = 60000) {
 
     return sensorConfig.values
       .map(valueSetting => {
-        const foundProperty = properties.find((prop: any) => prop.code === valueSetting.code);
+        const foundProperty = properties.find((prop: TuyaDeviceProperty) => prop.code === valueSetting.code);
 
         if (!foundProperty) {
           return null;
@@ -93,7 +100,7 @@ export function useSensorData(refreshInterval = 60000) {
             name: sensor.name,
             type: sensor.type,
             values: response.success && response.result
-              ? extractSensorValues(sensor, response.result)
+              ? extractSensorValues(sensor, response)
               : [],
             lastUpdated: new Date(),
             isLoading: false,

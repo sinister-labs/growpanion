@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { Settings, getSettings, saveSettings } from '@/lib/db';
-import { TuyaApiClient } from '@/lib/tuya-api';
+import { TuyaApiClient, TuyaSensorDataResult } from '@/lib/tuya-api';
 
 export function useSettings() {
   const [settings, setSettings] = useState<Settings | null>(null);
@@ -15,7 +15,7 @@ export function useSettings() {
     isChecking: boolean;
     success?: boolean;
     message?: string;
-    data?: any;
+    data?: TuyaSensorDataResult;
   }>({ isChecking: false });
 
   const loadSettings = useCallback(async () => {
