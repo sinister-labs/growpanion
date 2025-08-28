@@ -1,4 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { ProxyRequestSchema } from '@/lib/validation-schemas';
+import { validateFormData } from '@/lib/validation-utils';
 
 // Allowlist of domains that can be proxied to prevent SSRF attacks
 const ALLOWED_DOMAINS = [
@@ -56,14 +58,17 @@ function isValidProxyUrl(url: string): boolean {
 export async function POST(request: NextRequest) {
     try {
         const proxyData = await request.json();
-        const { url, method = 'GET', headers = {}, body = null } = proxyData;
-
-        if (!url || typeof url !== 'string') {
+        
+        // Validate request data
+        const validation = validateFormData(ProxyRequestSchema, proxyData);
+        if (!validation.isValid) {
             return NextResponse.json(
-                { error: 'Valid URL string is required' },
+                { error: 'Invalid request data', details: validation.errors },
                 { status: 400 }
             );
         }
+        
+        const { url, method = 'GET', headers = {}, body = null } = validation.data!
 
         // Validate URL against allowlist and security checks
         if (!isValidProxyUrl(url)) {

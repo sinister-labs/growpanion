@@ -2,6 +2,8 @@ import Dexie, { Table } from 'dexie';
 import { Plant, FertilizerMix } from '@/components/plant-modal/types';
 import { v4 as uuidv4 } from 'uuid';
 import { apiRequest } from '@/lib/apiClient';
+import { PlantSchema, GrowSchema, FertilizerMixSchema, SettingsSchema } from '@/lib/validation-schemas';
+import { validateOrThrow } from '@/lib/validation-utils';
 
 export interface Grow {
     id: string;
@@ -114,10 +116,9 @@ export async function getGrowById(id: string): Promise<Grow | undefined> {
 
 export async function saveGrow(grow: Grow): Promise<string> {
     try {
-        if (!grow || !grow.id || !grow.name) {
-            throw new Error('Invalid grow data: id and name are required');
-        }
-        return await db.grows.put(grow);
+        // Validate grow data before saving
+        const validatedGrow = validateOrThrow(GrowSchema, grow);
+        return await db.grows.put(validatedGrow);
     } catch (error) {
         console.error('Failed to save grow:', error);
         throw new Error('Unable to save grow to database');
@@ -183,9 +184,12 @@ export async function getPlantById(id: string): Promise<PlantDB | undefined> {
 
 export async function savePlant(plant: PlantDB): Promise<string> {
     try {
-        if (!plant || !plant.id || !plant.growId) {
+        // Validate plant data before saving (PlantDB extends Plant with growId)
+        const plantWithGrowId = { ...plant, growId: plant.growId };
+        if (!plant.id || !plant.growId) {
             throw new Error('Invalid plant data: id and growId are required');
         }
+        // Note: Using basic validation here since PlantDB extends Plant schema
         return await db.plants.put(plant);
     } catch (error) {
         console.error('Failed to save plant:', error);
@@ -247,6 +251,7 @@ export async function getFertilizerMixById(id: string): Promise<FertilizerMixDB 
 
 export async function saveFertilizerMix(mix: FertilizerMixDB): Promise<string> {
     try {
+        // Basic validation for fertilizer mix (FertilizerMixDB extends FertilizerMix with growId)
         if (!mix || !mix.id || !mix.growId) {
             throw new Error('Invalid fertilizer mix data: id and growId are required');
         }
@@ -299,7 +304,10 @@ export async function saveSettings(settings: Partial<Settings>): Promise<string>
             lastUpdated: new Date().toISOString()
         };
         
-        return await db.settings.put(updatedSettings);
+        // Validate complete settings object before saving
+        const validatedSettings = validateOrThrow(SettingsSchema.partial(), updatedSettings);
+        
+        return await db.settings.put({ ...currentSettings, ...validatedSettings });
     } catch (error) {
         console.error('Failed to save settings:', error);
         throw new Error('Unable to save settings to database');

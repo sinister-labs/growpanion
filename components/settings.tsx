@@ -10,6 +10,8 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { TuyaSensor } from '@/lib/db';
 import { TuyaDeviceProperty } from '@/lib/tuya-api';
+import { TuyaCredentialsSchema, TuyaSensorSchema } from '@/lib/validation-schemas';
+import { validateFormData } from '@/lib/validation-utils';
 import { v4 as uuidv4 } from 'uuid';
 import { useToast } from '@/hooks/use-toast';
 import { Toaster } from '@/components/ui/toaster';
