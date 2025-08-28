@@ -126,7 +126,7 @@ export default function SettingsPage() {
                     setIsTestDialogOpen(true);
                 }
             } else {
-                console.error("No properties found in sensor data:", sensorTestStatus.data);
+                console.error("No properties found in sensor data - API response structure may be invalid");
                 toast({
                     variant: "destructive",
                     title: "Error",
