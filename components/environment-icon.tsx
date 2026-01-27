@@ -6,8 +6,7 @@ import {
   Filter, 
   Fan, 
   Sun,
-  LucideIcon, 
-  HelpCircle
+  LucideIcon
 } from 'lucide-react';
 
 type IconType = 'temperature' | 'humidity' | 'vpd' | 'filter' | 'fan' | 'light' | string;

@@ -5,13 +5,11 @@ import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { ScrollArea } from "@/components/ui/scroll-area"
-import { Droplet, Edit, Plus, Save, Trash, X, Beaker, Loader2 } from "lucide-react"
-import { Badge } from "@/components/ui/badge"
+import { Droplet, Plus, Save, Trash, X, Beaker, Loader2 } from "lucide-react"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { useFertilizerMixes } from "@/hooks/useFertilizerMixes"
-import { FertilizerMix, Fertilizer } from "@/components/plant-modal/types"
+import { Fertilizer } from "@/components/plant-modal/types"
 import { FertilizerMixDB } from "@/lib/db"
 
 interface FertilizerMixesManagerProps {
@@ -35,17 +33,6 @@ export const FertilizerMixesManager = ({ growId }: FertilizerMixesManagerProps) 
         name: "",
         amount: ""
     });
-
-    const fertilizerOptions = [
-        "General Purpose",
-        "Bloom Booster",
-        "Root Stimulator",
-        "CalMag",
-        "PK Booster",
-        "Enzyme",
-        "Bakterien",
-        "Mykorrhiza"
-    ]
 
     const handleEditMix = (mix: FertilizerMixDB | null) => {
         setEditingMix(mix || {

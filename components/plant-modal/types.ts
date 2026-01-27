@@ -11,7 +11,7 @@ export interface Plant {
     type: "regular" | "autoflowering" | "feminized";
     propagationMethod: "clone" | "seed";
     yield?: string;
-    notes?: string | null | { type: 'doc'; content: any[] };
+    notes?: string | null | { type: 'doc'; content: Array<{ type: string; content?: Array<{ type: string }> }> };
     waterings?: WateringRecord[];
     hstRecords?: TrainingRecord[];
     lstRecords?: TrainingRecord[];

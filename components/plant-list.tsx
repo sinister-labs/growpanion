@@ -1,6 +1,5 @@
 "use client"
 
-import { useState } from "react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Dialog, DialogTrigger } from "@/components/ui/dialog"
 import { PlantModal } from "@/components/plant-modal"

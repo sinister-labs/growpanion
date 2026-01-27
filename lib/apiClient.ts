@@ -40,7 +40,7 @@ export async function apiRequest<T>(options: ApiRequestOptions): Promise<T> {
             let responseData: T | { text: string };
             try {
                 responseData = JSON.parse(httpResponse.body) as T;
-            } catch (e) {
+            } catch {
                 responseData = { text: httpResponse.body };
             }
 
@@ -56,7 +56,7 @@ export async function apiRequest<T>(options: ApiRequestOptions): Promise<T> {
             if (typeof body === 'string') {
                 try {
                     processedBody = JSON.parse(body);
-                } catch (e) {
+                } catch {
                     processedBody = body;
                 }
             }

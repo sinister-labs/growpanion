@@ -5,7 +5,7 @@ import { useDropzone } from 'react-dropzone';
 import { motion, AnimatePresence } from 'framer-motion';
 import { DialogContent } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
-import { X, ChevronRight, Menu, Save, Check, Trash2 } from 'lucide-react';
+import { ChevronRight, Menu, Save, Check, Trash2 } from 'lucide-react';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import {
     AlertDialog,
@@ -18,7 +18,7 @@ import {
     AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 
-import { getCurrentDate, getTabIcon, getTabLabel, FullscreenImage } from './shared-components';
+import { getCurrentDate, getTabIcon, FullscreenImage } from './shared-components';
 import { Plant, TabType, PlantModalProps, WateringRecord, TrainingRecord, SubstrateRecord } from './types';
 import InfoTab from './InfoTab';
 import WateringFeedingTab from './WateringFeedingTab';
@@ -40,7 +40,7 @@ export function PlantModal({ plant, updatePlant, deletePlant, growId }: PlantMod
     const [showDeleteDialog, setShowDeleteDialog] = useState(false);
 
     // Load fertilizer mixes from the current grow
-    const { mixes: availableMixes, isLoading: mixesLoading } = useFertilizerMixes(growId);
+    const { mixes: availableMixes } = useFertilizerMixes(growId);
 
     // Initialize entries
     const [newWatering, setNewWatering] = useState<WateringRecord>({
@@ -239,7 +239,7 @@ export function PlantModal({ plant, updatePlant, deletePlant, growId }: PlantMod
                 <AlertDialogHeader>
                     <AlertDialogTitle>Delete Plant</AlertDialogTitle>
                     <AlertDialogDescription className="text-gray-300">
-                        Are you sure you want to delete the plant "{plant.name}"?
+                        Are you sure you want to delete the plant &quot;{plant.name}&quot;?
                         <br />
                         <span className="text-red-400">This action cannot be undone.</span>
                     </AlertDialogDescription>

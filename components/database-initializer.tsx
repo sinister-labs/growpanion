@@ -12,12 +12,11 @@ interface DatabaseInitializerProps {
 export function DatabaseInitializer({ children }: DatabaseInitializerProps) {
     const [isInitialized, setIsInitialized] = useState(false);
     const [error, setError] = useState<string | null>(null);
-    const [loading, setLoading] = useState(true);
     const [loadingProgress, setLoadingProgress] = useState(0);
     const [dbInitComplete, setDbInitComplete] = useState(false);
 
     useEffect(() => {
-        const isTauri = typeof window !== 'undefined' && 'window' in globalThis && !!(window as any).__TAURI__;
+        const isTauri = typeof window !== 'undefined' && 'window' in globalThis && !!((window as Window & { __TAURI__?: unknown }).__TAURI__);
 
         const interval = setInterval(() => {
             setLoadingProgress((prev) => {
@@ -47,7 +46,6 @@ export function DatabaseInitializer({ children }: DatabaseInitializerProps) {
             } catch (err) {
                 console.error('Error initializing database:', err);
                 setError(err instanceof Error ? err.message : 'Unknown error initializing database');
-                setLoading(false);
             }
         };
 
@@ -60,7 +58,6 @@ export function DatabaseInitializer({ children }: DatabaseInitializerProps) {
         if (loadingProgress >= 100) {
             setTimeout(() => {
                 setIsInitialized(true);
-                setLoading(false);
             }, 300);
         }
     }, [loadingProgress]);

@@ -4,8 +4,6 @@
 import {
   ThermometerSun,
   Droplets,
-  AlertCircle,
-  RefreshCw,
   Lightbulb,
   Fan,
   Filter,

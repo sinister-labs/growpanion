@@ -19,8 +19,6 @@ export function GrowSelector() {
         isLoading,
         error,
         addGrow,
-        updateGrow,
-        removeGrow,
         setActiveGrow
     } = useGrows();
 

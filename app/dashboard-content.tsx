@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useEffect } from "react"
 import GrowEnvironment from "@/components/grow-environment"
 import { PlantList } from "@/components/plant-list"
 import { GrowInfo } from "@/components/grow-info"
@@ -8,21 +8,17 @@ import { useGrows } from "@/hooks/useGrows"
 import { usePlants } from "@/hooks/usePlants"
 import { Loader2, ArrowRight, TreesIcon as Plant, Home } from "lucide-react"
 import { Button } from "@/components/ui/button"
-import Link from "next/link"
 import { DropdownMenuItem } from "@/components/ui/dropdown-menu"
 import { CustomDropdown } from "@/components/ui/custom-dropdown"
 import { useToast } from "@/hooks/use-toast"
-import { useRouter } from "next/navigation"
 import { useRouting } from "@/hooks/useRouting"
 
 export default function DashboardContent() {
-    const { grows, activeGrowId, getActiveGrow, getActiveGrows, isGrowActive, isLoading, error, updateGrow, setActiveGrow } = useGrows();
-    const { plants, isLoading: plantsLoading } = usePlants(activeGrowId);
+    const { grows, activeGrowId, getActiveGrow, getActiveGrows, isLoading, error, updateGrow, setActiveGrow } = useGrows();
+    const { plants } = usePlants(activeGrowId);
     const activeGrow = getActiveGrow();
     const activeGrows = getActiveGrows();
-    const [isGrowDropdownOpen, setIsGrowDropdownOpen] = useState(false);
     const { toast } = useToast();
-    const router = useRouter();
     const { navigateTo } = useRouting();
 
     // Callback für Phasenänderungen im aktiven Grow

@@ -906,7 +906,7 @@ export default function SettingsPage() {
                                                                         {prop.type || 'unknown'}
                                                                     </span>
                                                                 </h4>
-                                                                {prop.name && <p className="text-sm text-gray-400 mt-1">{prop.name}</p>}
+                                                                {prop.unit && <p className="text-sm text-gray-400 mt-1">Unit: {prop.unit}</p>}
                                                             </div>
                                                             <div className="flex space-x-2">
                                                                 <Button

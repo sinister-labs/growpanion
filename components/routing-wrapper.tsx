@@ -1,7 +1,6 @@
 "use client"
 
-import { ReactNode } from 'react'
-import { useRoutingProvider, RoutingContext, AppView, useRouting } from '@/hooks/useRouting'
+import { useRoutingProvider, RoutingContext, useRouting } from '@/hooks/useRouting'
 import Header from '@/components/header'
 import { Suspense } from 'react'
 import dynamic from 'next/dynamic'

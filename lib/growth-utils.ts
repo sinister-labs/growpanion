@@ -21,7 +21,7 @@ export const GROWTH_PHASES = [
 /**
  * Icon mapping for each growth phase
  */
-export const PHASE_ICONS: Record<string, React.ForwardRefExoticComponent<any>> = {
+export const PHASE_ICONS: Record<string, React.ForwardRefExoticComponent<React.SVGProps<SVGSVGElement> & { title?: string; titleId?: string }>> = {
   Seedling: Sprout,
   Vegetative: Leaf,
   Flowering: Cannabis,

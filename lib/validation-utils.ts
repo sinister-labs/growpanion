@@ -50,7 +50,7 @@ export function validateData<T>(
         fieldErrors
       };
     }
-  } catch (error) {
+  } catch {
     return {
       success: false,
       errors: ['Validation failed due to unexpected error']
@@ -132,13 +132,13 @@ export function validateFormData<T>(
  * @returns Validation result
  */
 export function validatePartialData<T>(
-  schema: z.ZodObject<any>,
+  schema: z.ZodObject<z.ZodRawShape>,
   data: unknown
 ): ValidationResult<Partial<T>> {
   try {
     const partialSchema = schema.partial();
     return validateData(partialSchema, data) as ValidationResult<Partial<T>>;
-  } catch (error) {
+  } catch {
     return {
       success: false,
       errors: ['Partial validation failed due to unexpected error']

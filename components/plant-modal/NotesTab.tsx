@@ -4,29 +4,17 @@ import React, { useState } from 'react';
 import { motion } from 'framer-motion';
 import { EditorContent, EditorRoot } from 'novel';
 import { StarterKit } from '@tiptap/starter-kit';
-import { TabComponentProps } from './types';
+import { TabComponentProps, Plant } from './types';
 
-// Tiptap document structure
-interface TiptapContent {
-  type: string;
-  content?: TiptapContent[];
-  text?: string;
-  [key: string]: any; // Allow additional attributes
-}
-
-interface TiptapDocument {
-  type: 'doc';
-  content: TiptapContent[];
-}
-
-// For Tiptap Editor we use 'any' here as the actual Editor interface is complex
-// and we only need the getJSON method which returns the document structure
+// Generic JSON content type for the editor
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+type JSONContent = Record<string, any>;
 
 const NotesTab: React.FC<TabComponentProps> = ({ localPlant, setLocalPlant }) => {
     // Initialisiere den Content-State mit den vorhandenen Notizen oder einem leeren Dokument
-    const [content, setContent] = useState(() => {
+    const [content, setContent] = useState<JSONContent>(() => {
         if (typeof localPlant.notes === 'object' && localPlant.notes !== null) {
-            return localPlant.notes;
+            return localPlant.notes as JSONContent;
         }
 
         // Create an empty document with the correct structure
@@ -41,13 +29,14 @@ const NotesTab: React.FC<TabComponentProps> = ({ localPlant, setLocalPlant }) =>
         };
     });
 
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const handleUpdate = ({ editor }: { editor: any }) => {
         const json = editor.getJSON();
         setContent(json);
 
         setLocalPlant(prev => ({
             ...prev,
-            notes: json
+            notes: json as Plant['notes']
         }));
     };
 
