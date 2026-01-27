@@ -8,6 +8,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { PlantList } from "@/components/plant-list"
 import { FertilizerMixesManager } from "@/components/fertilizer-mixes"
 import { GrowInfo } from "@/components/grow-info"
+import { GrowDiary } from "@/components/grow-diary"
 import { Loader2, Home, ArrowLeft } from "lucide-react"
 import { getGrowById } from "@/lib/db"
 import { useToast } from "@/hooks/use-toast"
@@ -178,7 +179,7 @@ export default function GrowDetailClient(props: GrowDetailClientProps) {
 
             <div className="relative">
                 <Tabs defaultValue="plants" className="w-full">
-                    <TabsList className="grid grid-cols-2 bg-gray-800 rounded-full">
+                    <TabsList className="grid grid-cols-3 bg-gray-800 rounded-full">
                         <TabsTrigger
                             value="plants"
                             className="data-[state=active]:bg-green-500 shadow-3xl shadow-green-500 data-[state=active]:text-gray-800 rounded-full"
@@ -186,10 +187,16 @@ export default function GrowDetailClient(props: GrowDetailClientProps) {
                             Plants
                         </TabsTrigger>
                         <TabsTrigger
+                            value="diary"
+                            className="data-[state=active]:bg-green-500 shadow-3xl shadow-green-500 data-[state=active]:text-gray-800 rounded-full"
+                        >
+                            Diary
+                        </TabsTrigger>
+                        <TabsTrigger
                             value="mixes"
                             className="data-[state=active]:bg-green-500 shadow-3xl shadow-green-500 data-[state=active]:text-gray-800 rounded-full"
                         >
-                            Fertilizer mixes
+                            Mixes
                         </TabsTrigger>
                     </TabsList>
 
@@ -199,6 +206,12 @@ export default function GrowDetailClient(props: GrowDetailClientProps) {
                             className="absolute top-0 left-0 w-full transition-opacity duration-300 opacity-100"
                         >
                             <PlantList growId={growId} />
+                        </TabsContent>
+                        <TabsContent
+                            value="diary"
+                            className="absolute top-0 left-0 w-full transition-opacity duration-300 opacity-100"
+                        >
+                            <GrowDiary grow={safeGrow} plants={plants} />
                         </TabsContent>
                         <TabsContent
                             value="mixes"
