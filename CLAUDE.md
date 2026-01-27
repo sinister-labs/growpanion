@@ -10,6 +10,9 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 - `npm run build:web` - Build web application
 - `npm run build:tauri` - Build for Tauri desktop app (creates static export)
 - `npm run lint` - Run ESLint
+- `npm run test` - Run tests in watch mode (vitest)
+- `npm run test:run` - Run tests once
+- `npm run test:coverage` - Run tests with coverage report
 - `npm run clean` - Clean build artifacts (.next, out directories)
 - `npm run tauri` - Run Tauri commands
 
@@ -56,13 +59,27 @@ Mode switching is handled in `next.config.mjs` with conditional export configura
 - Plant strain tracking and genetics
 - Nutrient/fertilizer mix management
 - Multi-grow support with phase tracking
+- **Data Backup & Restore**: Export all data to JSON or encrypted .growpanion files
+  - Optional AES-256-GCM encryption with password protection
+  - Import with conflict resolution (Replace All / Merge / Skip Duplicates)
+  - Schema validation and progress tracking
 
 ### Important Files
 - `lib/db.ts` - Database schema and operations
 - `lib/tuya-api.ts` - Tuya Cloud API integration
 - `lib/vpd-utils.ts` - Vapor Pressure Deficit calculations
+- `lib/crypto-utils.ts` - AES-256-GCM encryption for backup files
+- `lib/export-import.ts` - Data export/import with schema validation
 - `components/plant-modal/` - Complex tabbed plant management interface
+- `components/export-import-dialog.tsx` - Backup/restore UI component
 - `next.config.mjs` - Conditional export configuration for web/Tauri modes
+
+### Testing
+- **Framework**: Vitest with jsdom environment
+- **Test Location**: `__tests__/` directory
+- **Setup**: `vitest.setup.ts` configures Web Crypto API for Node.js
+- **Config**: `vitest.config.ts`
+- Run `npm run test:run` for a quick verification
 
 ### Environment Configuration
 - `.env.local` - Web mode configuration
