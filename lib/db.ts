@@ -51,11 +51,28 @@ export interface TuyaSensor {
     }>;
 }
 
+export interface Strain {
+    id: string;
+    name: string;
+    breeder: string;
+    genetics: 'Indica' | 'Sativa' | 'Hybrid';
+    indicaPercent?: number;
+    sativaPercent?: number;
+    thcPercent?: number;
+    cbdPercent?: number;
+    floweringWeeks?: number;
+    difficulty?: 'easy' | 'medium' | 'hard';
+    description?: string;
+    createdAt?: string;
+    updatedAt?: string;
+}
+
 export class GrowPanionDB extends Dexie {
     grows!: Table<Grow, string>;
     plants!: Table<PlantDB, string>;
     fertilizerMixes!: Table<FertilizerMixDB, string>;
     settings!: Table<Settings, string>;
+    strains!: Table<Strain, string>;
 
     constructor() {
         super('GrowPanionDB');
@@ -78,6 +95,14 @@ export class GrowPanionDB extends Dexie {
             plants: 'id, name, genetic, type, propagationMethod, growId',
             fertilizerMixes: 'id, name, growId',
             settings: 'id'
+        });
+
+        this.version(4).stores({
+            grows: 'id, name, currentPhase',
+            plants: 'id, name, genetic, type, propagationMethod, growId',
+            fertilizerMixes: 'id, name, growId',
+            settings: 'id',
+            strains: 'id, name, breeder, genetics'
         });
 
         // Handle database upgrade events
@@ -317,6 +342,81 @@ export function generateId(): string {
     return Date.now().toString(36) + Math.random().toString(36).substring(2);
 }
 
+// ============== STRAIN FUNCTIONS ==============
+
+export async function getAllStrains(): Promise<Strain[]> {
+    try {
+        return await db.strains.toArray();
+    } catch (error) {
+        console.error('Failed to get all strains:', error);
+        throw new Error('Unable to retrieve strains from database');
+    }
+}
+
+export async function getStrainById(id: string): Promise<Strain | undefined> {
+    try {
+        if (!id || typeof id !== 'string') {
+            throw new Error('Invalid strain ID provided');
+        }
+        return await db.strains.get(id);
+    } catch (error) {
+        console.error(`Failed to get strain by id ${id}:`, error);
+        throw new Error('Unable to retrieve strain from database');
+    }
+}
+
+export async function saveStrain(strain: Strain): Promise<string> {
+    try {
+        if (!strain || !strain.id || !strain.name) {
+            throw new Error('Invalid strain data: id and name are required');
+        }
+        
+        const strainToSave: Strain = {
+            ...strain,
+            updatedAt: new Date().toISOString(),
+            createdAt: strain.createdAt || new Date().toISOString(),
+        };
+        
+        return await db.strains.put(strainToSave);
+    } catch (error) {
+        console.error('Failed to save strain:', error);
+        throw new Error('Unable to save strain to database');
+    }
+}
+
+export async function deleteStrain(id: string): Promise<void> {
+    try {
+        if (!id || typeof id !== 'string') {
+            throw new Error('Invalid strain ID provided');
+        }
+        
+        const strain = await db.strains.get(id);
+        if (!strain) {
+            throw new Error(`Strain with id ${id} not found`);
+        }
+        
+        await db.strains.delete(id);
+    } catch (error) {
+        console.error(`Failed to delete strain ${id}:`, error);
+        throw new Error('Unable to delete strain from database');
+    }
+}
+
+export async function searchStrains(query: string): Promise<Strain[]> {
+    try {
+        const allStrains = await db.strains.toArray();
+        const lowerQuery = query.toLowerCase();
+        return allStrains.filter(strain => 
+            strain.name.toLowerCase().includes(lowerQuery) ||
+            strain.breeder.toLowerCase().includes(lowerQuery) ||
+            strain.genetics.toLowerCase().includes(lowerQuery)
+        );
+    } catch (error) {
+        console.error('Failed to search strains:', error);
+        throw new Error('Unable to search strains in database');
+    }
+}
+
 export async function populateDBWithDemoDataIfEmpty(): Promise<void> {
     return;
 }
@@ -335,6 +435,7 @@ export async function checkDatabaseHealth(): Promise<boolean> {
         await db.plants.limit(1).toArray();
         await db.fertilizerMixes.limit(1).toArray();
         await db.settings.limit(1).toArray();
+        await db.strains.limit(1).toArray();
         
         return true;
     } catch (error) {
