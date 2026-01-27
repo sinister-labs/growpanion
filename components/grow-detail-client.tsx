@@ -9,7 +9,8 @@ import { PlantList } from "@/components/plant-list"
 import { FertilizerMixesManager } from "@/components/fertilizer-mixes"
 import { GrowInfo } from "@/components/grow-info"
 import { GrowDiary } from "@/components/grow-diary"
-import { Loader2, Home, ArrowLeft } from "lucide-react"
+import { ReminderList } from "@/components/notifications"
+import { Loader2, Home, ArrowLeft, Bell } from "lucide-react"
 import { getGrowById } from "@/lib/db"
 import { useToast } from "@/hooks/use-toast"
 import { Grow } from "@/lib/db"
@@ -179,7 +180,7 @@ export default function GrowDetailClient(props: GrowDetailClientProps) {
 
             <div className="relative">
                 <Tabs defaultValue="plants" className="w-full">
-                    <TabsList className="grid grid-cols-3 bg-gray-800 rounded-full">
+                    <TabsList className="grid grid-cols-4 bg-gray-800 rounded-full">
                         <TabsTrigger
                             value="plants"
                             className="data-[state=active]:bg-green-500 shadow-3xl shadow-green-500 data-[state=active]:text-gray-800 rounded-full"
@@ -197,6 +198,13 @@ export default function GrowDetailClient(props: GrowDetailClientProps) {
                             className="data-[state=active]:bg-green-500 shadow-3xl shadow-green-500 data-[state=active]:text-gray-800 rounded-full"
                         >
                             Mixes
+                        </TabsTrigger>
+                        <TabsTrigger
+                            value="reminders"
+                            className="data-[state=active]:bg-green-500 shadow-3xl shadow-green-500 data-[state=active]:text-gray-800 rounded-full"
+                        >
+                            <Bell className="h-4 w-4 mr-1" />
+                            Reminders
                         </TabsTrigger>
                     </TabsList>
 
@@ -218,6 +226,12 @@ export default function GrowDetailClient(props: GrowDetailClientProps) {
                             className="absolute top-0 left-0 w-full transition-opacity duration-300 opacity-100"
                         >
                             <FertilizerMixesManager growId={growId} />
+                        </TabsContent>
+                        <TabsContent
+                            value="reminders"
+                            className="absolute top-0 left-0 w-full transition-opacity duration-300 opacity-100"
+                        >
+                            <ReminderList growId={growId} growName={safeGrow.name} />
                         </TabsContent>
                     </div>
                 </Tabs>
