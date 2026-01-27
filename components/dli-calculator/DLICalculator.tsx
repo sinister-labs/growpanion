@@ -132,6 +132,7 @@ const DLICalculator: React.FC<DLICalculatorProps> = ({
 
   // Calculate optimal PPFD for current schedule
   const optimalPPFD = useMemo(() => {
+    if (photoperiod <= 0) return 0;
     const rec = DLI_RECOMMENDATIONS[phase];
     // DLI = PPFD × hours × 3600 / 1,000,000
     // PPFD = DLI × 1,000,000 / (hours × 3600)
