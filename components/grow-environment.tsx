@@ -8,14 +8,12 @@ import { HistoricalChart } from "@/components/historical-chart"
 import { useSensorData } from "@/hooks/useSensorData"
 import { Grow } from "@/lib/db"
 import { Loader2 } from "lucide-react"
-import { calculateDuration } from "@/lib/utils"
 import {
   calculateVPD,
   getOptimalVpdRange,
   getVpdStatus,
   getVpdStatusClass,
   getVpdStatusText,
-  VpdRange,
   VpdStatus
 } from "@/lib/vpd-utils"
 
@@ -39,8 +37,7 @@ interface EnvironmentData {
   phaseDescription?: string;
 }
 
-export default function GrowEnvironment({ grow, onPhaseChange }: GrowEnvironmentProps) {
-  const [selectedData, setSelectedData] = useState(null)
+export default function GrowEnvironment({ grow }: GrowEnvironmentProps) {
   const { sensorData, isLoading: sensorsLoading, error: sensorsError } = useSensorData(60000)
 
   const defaultEnvironmentData: EnvironmentData[] = [
@@ -56,13 +53,12 @@ export default function GrowEnvironment({ grow, onPhaseChange }: GrowEnvironment
   useEffect(() => {
     if (!sensorData) return;
 
-    let updatedData: EnvironmentData[] = [];
+    const updatedData: EnvironmentData[] = [];
     let temperatureValue: number | null = null;
     let humidityValue: number | null = null;
     let vpdValue: number | null = null;
 
-    const currentPhaseStart = grow?.phaseHistory.find((ph) => ph.phase === grow.currentPhase)?.startDate
-    const currentDay = currentPhaseStart ? calculateDuration(currentPhaseStart) : 0
+    const currentDay = 0
     const optimalVpdRange = getOptimalVpdRange(grow?.currentPhase, currentDay);
 
     sensorData.forEach(sensor => {

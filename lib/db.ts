@@ -1,8 +1,6 @@
 import Dexie, { Table } from 'dexie';
 import { Plant, FertilizerMix } from '@/components/plant-modal/types';
-import { v4 as uuidv4 } from 'uuid';
-import { apiRequest } from '@/lib/apiClient';
-import { PlantSchema, GrowSchema, FertilizerMixSchema, SettingsSchema } from '@/lib/validation-schemas';
+import { GrowSchema, SettingsSchema } from '@/lib/validation-schemas';
 import { validateOrThrow } from '@/lib/validation-utils';
 
 export interface Grow {
@@ -185,11 +183,9 @@ export async function getPlantById(id: string): Promise<PlantDB | undefined> {
 export async function savePlant(plant: PlantDB): Promise<string> {
     try {
         // Validate plant data before saving (PlantDB extends Plant with growId)
-        const plantWithGrowId = { ...plant, growId: plant.growId };
         if (!plant.id || !plant.growId) {
             throw new Error('Invalid plant data: id and growId are required');
         }
-        // Note: Using basic validation here since PlantDB extends Plant schema
         return await db.plants.put(plant);
     } catch (error) {
         console.error('Failed to save plant:', error);

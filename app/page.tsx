@@ -1,6 +1,5 @@
 "use client"
 
-import { useState, useCallback } from 'react'
 import { useRoutingProvider, RoutingContext } from '@/hooks/useRouting'
 import Header from '@/components/header'
 import DashboardContent from '@/app/dashboard-content'

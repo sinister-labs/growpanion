@@ -1,7 +1,5 @@
 "use client"
 
-import { Badge } from "@/components/ui/badge"
-
 type PhaseType = "Seedling" | "Vegetative" | "Flowering" | "Flushing" | "Drying" | "Curing" | "Done" | string;
 
 interface PhaseBadgeProps {

@@ -5,8 +5,7 @@ import {
     CardContent,
     CardHeader,
     CardTitle,
-    CardDescription,
-    CardFooter
+    CardDescription
 } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { ArrowRight, CheckCircle } from "lucide-react"
@@ -22,7 +21,7 @@ interface GrowCardProps {
     isActive?: boolean;
 }
 
-export function GrowCard({ grow, onClick, onSetActive, isActive }: GrowCardProps) {
+export function GrowCard({ grow, onSetActive, isActive }: GrowCardProps) {
     const { formatDate, getDaysSince } = useDateUtils();
 
     const formattedDate = formatDate(grow.startDate);

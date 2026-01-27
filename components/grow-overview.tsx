@@ -172,7 +172,7 @@ export default function GrowOverview() {
                                                     You have no completed grows.
                                                 </p>
                                                 <p className="text-sm text-gray-500 mb-4">
-                                                    Grows are marked as completed when they reach the "Done" phase.
+                                                    Grows are marked as completed when they reach the &quot;Done&quot; phase.
                                                 </p>
                                             </div>
                                         ) : (

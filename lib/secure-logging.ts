@@ -24,7 +24,7 @@ const SENSITIVE_FIELDS = [
  * @param obj The object to sanitize
  * @returns Sanitized object safe for logging
  */
-export function sanitizeForLogging(obj: any): any {
+export function sanitizeForLogging(obj: unknown): unknown {
   if (obj === null || obj === undefined) {
     return obj;
   }
@@ -41,9 +41,9 @@ export function sanitizeForLogging(obj: any): any {
     return obj.map(item => sanitizeForLogging(item));
   }
 
-  const sanitized: any = {};
+  const sanitized: Record<string, unknown> = {};
   
-  for (const [key, value] of Object.entries(obj)) {
+  for (const [key, value] of Object.entries(obj as Record<string, unknown>)) {
     const lowerKey = key.toLowerCase();
     
     if (SENSITIVE_FIELDS.some(field => lowerKey.includes(field.toLowerCase()))) {
@@ -63,7 +63,7 @@ export function sanitizeForLogging(obj: any): any {
  * @param message Error message
  * @param data Optional data to log (will be sanitized)
  */
-export function secureError(message: string, data?: any): void {
+export function secureError(message: string, data?: unknown): void {
   if (data) {
     console.error(message, sanitizeForLogging(data));
   } else {
@@ -76,7 +76,7 @@ export function secureError(message: string, data?: any): void {
  * @param message Warning message
  * @param data Optional data to log (will be sanitized)
  */
-export function secureWarn(message: string, data?: any): void {
+export function secureWarn(message: string, data?: unknown): void {
   if (data) {
     console.warn(message, sanitizeForLogging(data));
   } else {
@@ -90,7 +90,7 @@ export function secureWarn(message: string, data?: any): void {
  * @param message Log message
  * @param data Optional data to log (will be sanitized)
  */
-export function secureLog(message: string, data?: any): void {
+export function secureLog(message: string, data?: unknown): void {
   if (process.env.NODE_ENV === 'development') {
     if (data) {
       console.log(message, sanitizeForLogging(data));

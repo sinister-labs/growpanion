@@ -1,13 +1,11 @@
 import { Card } from '@/components/ui/card';
 import { ThermometerSun, Droplets, AlertCircle, RefreshCw, Lightbulb, Fan, Filter, Gauge, ToggleLeft } from 'lucide-react';
-import { ProcessedSensorData, SensorValue } from '@/hooks/useSensorData';
+import { ProcessedSensorData } from '@/hooks/useSensorData';
 import { cn } from '@/lib/utils';
 import { TuyaSensor } from '@/lib/db';
 import {
-  getSensorIcon,
   formatSensorValueName,
-  formatSensorValue,
-  getLastUpdatedText
+  formatSensorValue
 } from '@/lib/sensor-utils';
 
 interface SensorCardProps {
@@ -60,34 +58,6 @@ export function SensorCard({ sensor, className }: SensorCardProps) {
     }
 
     return <Gauge className={`${iconSize} text-purple-400`} />;
-  };
-
-  /**
-   * Formats the name of a sensor property for display
-   * @param valueName Name of the sensor property
-   * @returns Formatted name
-   */
-  const formatValueName = (valueName: string) => {
-    return valueName
-      .replace(/_/g, ' ')
-      .replace('current', '')
-      .replace('temp', 'Temperatur')
-      .replace('humidity', 'Luftfeuchtigkeit')
-      .replace('value', '')
-      .trim();
-  };
-
-  /**
-   * Formats a sensor value for display with an optional unit
-   * @param value Sensor value (number or string)
-   * @param unit Optional unit
-   * @returns Formatted value with unit
-   */
-  const formatValue = (value: string | number, unit?: string) => {
-    if (typeof value === 'number') {
-      return value % 1 !== 0 ? `${value.toFixed(1)}${unit || ''}` : `${value}${unit || ''}`;
-    }
-    return `${value}${unit || ''}`;
   };
 
   /**

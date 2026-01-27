@@ -2,7 +2,7 @@
 
 import { Button } from "@/components/ui/button"
 import { Settings } from "lucide-react"
-import { useRouting, AppView } from "@/hooks/useRouting"
+import { useRouting } from "@/hooks/useRouting"
 import Image from "next/image"
 
 export default function Header() {

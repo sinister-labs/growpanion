@@ -8,7 +8,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { PlantList } from "@/components/plant-list"
 import { FertilizerMixesManager } from "@/components/fertilizer-mixes"
 import { GrowInfo } from "@/components/grow-info"
-import { Loader2, Home, ArrowLeft, ChevronLeft } from "lucide-react"
+import { Loader2, Home, ArrowLeft } from "lucide-react"
 import { getGrowById } from "@/lib/db"
 import { useToast } from "@/hooks/use-toast"
 import { Grow } from "@/lib/db"
@@ -23,8 +23,7 @@ export default function GrowDetailClient(props: GrowDetailClientProps) {
     const { toast } = useToast();
     const { navigateTo } = useRouting();
 
-    const [activeTab, setActiveTab] = useState<string>('plants');
-    const { grows, updateGrow } = useGrows();
+    const { updateGrow } = useGrows();
     const { plants, isLoading: plantsLoading } = usePlants(growId);
     const [grow, setGrow] = useState<Grow | null>(null);
     const [isLoading, setIsLoading] = useState(true);
