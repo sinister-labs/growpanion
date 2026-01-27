@@ -34,6 +34,7 @@ import {
 } from "@/components/ui/dialog";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { useRouting } from '@/hooks/useRouting';
+import { ExportImportSection } from '@/components/export-import-dialog';
 
 const sensorTypes = [
     'Lamp',
@@ -1018,6 +1019,9 @@ export default function SettingsPage() {
                             </div>
                         </CardContent>
                     </Card>
+
+                    {/* Export/Import Section */}
+                    <ExportImportSection />
 
                     <Card className="bg-gray-800/50 backdrop-filter backdrop-blur-lg border border-gray-700 rounded-2xl text-left">
                         <CardHeader>
