@@ -70,10 +70,7 @@ const DiaryTimeline: React.FC<DiaryTimelineProps> = ({ events }) => {
                       <div>
                         <h4 className="font-medium text-white">{event.title}</h4>
                         {event.plantName && (
-                          <Badge 
-                            variant="outline" 
-                            className="text-xs mt-1 bg-green-600/20 text-green-400 border-green-600"
-                          >
+                          <Badge className="text-xs mt-1 bg-green-600/20 text-green-400 border-green-600">
                             {event.plantName}
                           </Badge>
                         )}

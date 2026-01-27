@@ -451,10 +451,8 @@ export default function SettingsPage() {
 
         // Backwards compatibility for old format
         if (sensor.values.length > 0 && typeof sensor.values[0] === 'string') {
-            // @ts-expect-error - Handling migration from old string[] format
-            setNewSensorValues(sensor.values.join(', '));
-            // @ts-expect-error - Handling migration from old string[] format
-            setValuesToAdd(sensor.values.map(v => ({ code: v })));
+            setNewSensorValues((sensor.values as unknown as string[]).join(', '));
+            setValuesToAdd((sensor.values as unknown as string[]).map(v => ({ code: v })));
         } else {
             setNewSensorValues(sensor.values.map(v => v.code).join(', '));
         }
@@ -906,7 +904,7 @@ export default function SettingsPage() {
                                                                         {prop.type || 'unknown'}
                                                                     </span>
                                                                 </h4>
-                                                                {prop.name && <p className="text-sm text-gray-400 mt-1">{prop.name}</p>}
+                                                                {prop.unit && <p className="text-sm text-gray-400 mt-1">Unit: {prop.unit}</p>}
                                                             </div>
                                                             <div className="flex space-x-2">
                                                                 <Button

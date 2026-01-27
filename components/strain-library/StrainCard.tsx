@@ -51,8 +51,7 @@ const StrainCard: React.FC<StrainCardProps> = ({
             <p className="text-sm text-gray-400">{strain.breeder}</p>
           </div>
           <Badge 
-            variant="outline" 
-            className={GENETICS_COLORS[strain.genetics] || GENETICS_COLORS.Hybrid}
+            className={`border ${GENETICS_COLORS[strain.genetics] || GENETICS_COLORS.Hybrid}`}
           >
             {strain.genetics}
           </Badge>
