@@ -38,8 +38,8 @@ export function StrainStatistics({ plants }: StrainStatisticsProps) {
           plantCount: strainPlants.length,
           totalYield: Math.round(totalYield),
           avgYield: Math.round(totalYield / strainPlants.length),
-          minYield: Math.round(Math.min(...yields)),
-          maxYield: Math.round(Math.max(...yields)),
+          minYield: yields.length > 0 ? Math.round(Math.min(...yields)) : 0,
+          maxYield: yields.length > 0 ? Math.round(Math.max(...yields)) : 0,
         };
       })
       .sort((a, b) => b.avgYield - a.avgYield); // Sort by average yield descending
@@ -79,7 +79,9 @@ export function StrainStatistics({ plants }: StrainStatisticsProps) {
       <div className="space-y-3">
         {strainStats.map((strain, index) => {
           const isAboveAvg = strain.avgYield >= overallAvg;
-          const percentDiff = Math.round(((strain.avgYield - overallAvg) / overallAvg) * 100);
+          const percentDiff = overallAvg > 0 
+            ? Math.round(((strain.avgYield - overallAvg) / overallAvg) * 100)
+            : 0;
           
           // Calculate bar width as percentage of max
           const maxAvgYield = Math.max(...strainStats.map(s => s.avgYield));
