@@ -2,35 +2,24 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import { useSettings } from '@/hooks/useSettings';
-import { Save, RefreshCw, Check, AlertCircle, Info, Plus, X, Edit, Trash, Zap, Clipboard, CopyCheck, Home } from 'lucide-react';
+import { Save, RefreshCw, Check, Info, Plus, X, Edit, Trash, Zap, Clipboard, CopyCheck, Home } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { TuyaSensor } from '@/lib/db';
 import { TuyaDeviceProperty } from '@/lib/tuya-api';
-import { TuyaCredentialsSchema, TuyaSensorSchema } from '@/lib/validation-schemas';
-import { validateFormData } from '@/lib/validation-utils';
 import { v4 as uuidv4 } from 'uuid';
 import { useToast } from '@/hooks/use-toast';
 import { Toaster } from '@/components/ui/toaster';
 import { CustomDropdown, DropdownOption } from '@/components/ui/custom-dropdown';
 
 import {
-    Select,
-    SelectContent,
-    SelectItem,
-    SelectTrigger,
-    SelectValue,
-} from "@/components/ui/select";
-import {
     Dialog,
     DialogContent,
     DialogDescription,
     DialogHeader,
     DialogTitle,
-    DialogFooter,
 } from "@/components/ui/dialog";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { useRouting } from '@/hooks/useRouting';
@@ -50,7 +39,6 @@ export default function SettingsPage() {
     const {
         settings,
         isLoading,
-        error,
         connectionStatus,
         sensorTestStatus,
         updateSettings,
@@ -75,7 +63,7 @@ export default function SettingsPage() {
     const [valuesToAdd, setValuesToAdd] = useState<TuyaSensor['values']>([]);
 
     const [isTestDialogOpen, setIsTestDialogOpen] = useState(false);
-    const [sensorProperties, setSensorProperties] = useState<any[]>([]);
+    const [sensorProperties, setSensorProperties] = useState<TuyaDeviceProperty[]>([]);
     const [selectedProperties, setSelectedProperties] = useState<string[]>([]);
     const [copiedProperty, setCopiedProperty] = useState<string | null>(null);
 
@@ -463,9 +451,9 @@ export default function SettingsPage() {
 
         // Backwards compatibility for old format
         if (sensor.values.length > 0 && typeof sensor.values[0] === 'string') {
-            // @ts-ignore - Handling migration from old string[] format
+            // @ts-expect-error - Handling migration from old string[] format
             setNewSensorValues(sensor.values.join(', '));
-            // @ts-ignore - Handling migration from old string[] format
+            // @ts-expect-error - Handling migration from old string[] format
             setValuesToAdd(sensor.values.map(v => ({ code: v })));
         } else {
             setNewSensorValues(sensor.values.map(v => v.code).join(', '));
@@ -887,7 +875,7 @@ export default function SettingsPage() {
                                 </div>
                             ) : (
                                 <div className="text-center py-8 text-gray-400 bg-gray-700/20 rounded-xl">
-                                    No sensors configured. Click "Add Sensor" to create your first sensor.
+                                    No sensors configured. Click &quot;Add Sensor&quot; to create your first sensor.
                                 </div>
                             )}
 
@@ -1014,7 +1002,7 @@ export default function SettingsPage() {
                                 <Info className="h-5 w-5 text-blue-400 mr-2 mt-0.5 flex-shrink-0" />
                                 <div className="text-sm text-blue-300">
                                     <p className="mb-1">The Tuya ID is found in the Tuya Smart App or the IoT Portal.</p>
-                                    <p>The value fields are the names of the data returned by the sensor (e.g. "temp_current" for the current temperature).</p>
+                                    <p>The value fields are the names of the data returned by the sensor (e.g. &quot;temp_current&quot; for the current temperature).</p>
                                 </div>
                             </div>
                         </CardContent>

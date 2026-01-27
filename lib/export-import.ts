@@ -151,7 +151,7 @@ export async function parseImportFile(
         try {
             jsonContent = await decrypt(content, password);
             wasEncrypted = true;
-        } catch (error) {
+        } catch {
             throw new Error('DECRYPTION_FAILED');
         }
     }

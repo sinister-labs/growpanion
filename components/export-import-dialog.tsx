@@ -120,7 +120,7 @@ export function ExportImportSection() {
                     setImportStep('idle');
                 }
             }
-        } catch (error) {
+        } catch {
             setImportError('Failed to read file');
             setImportStep('idle');
         }
