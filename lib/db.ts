@@ -18,6 +18,9 @@ export interface Grow {
         humidity?: number;
         lightSchedule?: string;
     };
+    // Harvest yield tracking
+    expectedYield?: number;
+    actualYield?: number;
 }
 
 export interface PlantDB extends Plant {
