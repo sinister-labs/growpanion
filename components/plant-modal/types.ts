@@ -3,6 +3,13 @@ export interface Fertilizer {
     amount: string;
 }
 
+export interface HarvestRecord {
+    date: string;
+    yieldWetGrams?: number;
+    yieldDryGrams?: number;
+    notes?: string;
+}
+
 export interface Plant {
     id: string;
     name: string;
@@ -17,6 +24,9 @@ export interface Plant {
     lstRecords?: TrainingRecord[];
     substrateRecords?: SubstrateRecord[];
     images?: string[];
+    // Harvest tracking
+    harvest?: HarvestRecord;
+    isHarvested?: boolean;
 }
 
 export interface WateringRecord {

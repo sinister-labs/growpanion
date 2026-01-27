@@ -1,7 +1,7 @@
 "use client"
 
 import { Button } from "@/components/ui/button"
-import { Settings, Menu } from "lucide-react"
+import { Settings, Menu, BarChart3 } from "lucide-react"
 import { useRouting } from "@/hooks/useRouting"
 import Image from "next/image"
 import { useState } from "react"
@@ -17,8 +17,9 @@ export default function Header() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
 
   const navItems = [
-    { view: 'dashboard' as const, label: 'Dashboard' },
-    { view: 'grows' as const, label: 'Grows' },
+    { view: 'dashboard' as const, label: 'Dashboard', icon: null },
+    { view: 'grows' as const, label: 'Grows', icon: null },
+    { view: 'statistics' as const, label: 'Stats', icon: BarChart3 },
   ]
 
   return (
@@ -55,6 +56,7 @@ export default function Header() {
                 } px-3`}
                 onClick={() => navigateTo(item.view)}
               >
+                {item.icon && <item.icon className="h-4 w-4 mr-1" />}
                 {item.label}
               </Button>
             ))}
@@ -82,6 +84,7 @@ export default function Header() {
                       setMobileMenuOpen(false)
                     }}
                   >
+                    {item.icon && <item.icon className="h-4 w-4 mr-2" />}
                     {item.label}
                   </DropdownMenuItem>
                 ))}
@@ -105,4 +108,3 @@ export default function Header() {
     </header>
   )
 }
-
