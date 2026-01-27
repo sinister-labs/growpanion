@@ -451,8 +451,10 @@ export default function SettingsPage() {
 
         // Backwards compatibility for old format
         if (sensor.values.length > 0 && typeof sensor.values[0] === 'string') {
-            setNewSensorValues((sensor.values as unknown as string[]).join(', '));
-            setValuesToAdd((sensor.values as unknown as string[]).map(v => ({ code: v })));
+            // @ts-expect-error - Handling migration from old string[] format
+            setNewSensorValues(sensor.values.join(', '));
+            // @ts-expect-error - Handling migration from old string[] format
+            setValuesToAdd(sensor.values.map(v => ({ code: v })));
         } else {
             setNewSensorValues(sensor.values.map(v => v.code).join(', '));
         }
