@@ -41,7 +41,7 @@ const ImagesTab: React.FC<ImagesTabProps> = ({
             </div>
 
             {localPlant.images && localPlant.images.length > 0 ? (
-                <div className="grid grid-cols-3 gap-4 w-full">
+                <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 sm:gap-4 w-full">
                     {localPlant.images.map((image, index) => (
                         <div
                             key={index}

@@ -30,7 +30,7 @@ const SubstrateTab: React.FC<SubstrateTabProps> = ({
             {/* Fixed input section */}
             <div className="flex-none mb-6">
                 <h3 className="text-xl font-semibold text-green-400 mb-4">Add Substrate</h3>
-                <div className="grid grid-cols-2 gap-4 mb-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-4">
                     <div>
                         <Label className="text-white">Date</Label>
                         <Input
@@ -53,7 +53,7 @@ const SubstrateTab: React.FC<SubstrateTabProps> = ({
                     </div>
                 </div>
 
-                <div className="grid grid-cols-2 gap-4 mb-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-4">
                     <div>
                         <Label className="text-white">Pot Size</Label>
                         <div className="relative">
