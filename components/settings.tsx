@@ -24,6 +24,8 @@ import {
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { useRouting } from '@/hooks/useRouting';
 import { ExportImportSection } from '@/components/export-import-dialog';
+import { DLICalculator } from '@/components/dli-calculator';
+import HarvestCalculator from '@/components/harvest-calculator/HarvestCalculator';
 
 const sensorTypes = [
     'Lamp',
@@ -451,10 +453,10 @@ export default function SettingsPage() {
 
         // Backwards compatibility for old format
         if (sensor.values.length > 0 && typeof sensor.values[0] === 'string') {
-            // @ts-expect-error - Handling migration from old string[] format
-            setNewSensorValues(sensor.values.join(', '));
-            // @ts-expect-error - Handling migration from old string[] format
-            setValuesToAdd(sensor.values.map(v => ({ code: v })));
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            setNewSensorValues((sensor.values as any[]).join(', '));
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            setValuesToAdd((sensor.values as any[]).map(v => ({ code: v })));
         } else {
             setNewSensorValues(sensor.values.map(v => v.code).join(', '));
         }
@@ -1010,6 +1012,22 @@ export default function SettingsPage() {
 
                     {/* Export/Import Section */}
                     <ExportImportSection />
+
+                    {/* Tools Section */}
+                    <Card className="bg-gray-800/50 backdrop-filter backdrop-blur-lg border border-gray-700 rounded-2xl text-left">
+                        <CardHeader>
+                            <CardTitle className="text-base sm:text-lg font-medium text-green-400">
+                                Grow Tools
+                            </CardTitle>
+                            <CardDescription className="text-gray-400">
+                                Calculators and utilities for optimizing your grow
+                            </CardDescription>
+                        </CardHeader>
+                        <CardContent className="space-y-6">
+                            <DLICalculator />
+                            <HarvestCalculator />
+                        </CardContent>
+                    </Card>
 
                     <Card className="bg-gray-800/50 backdrop-filter backdrop-blur-lg border border-gray-700 rounded-2xl text-left">
                         <CardHeader>
