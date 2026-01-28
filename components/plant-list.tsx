@@ -182,7 +182,7 @@ export function PlantList({ growId, plants: providedPlants, isLoading: providedI
                       <Button
                         variant="outline"
                         size="sm"
-                        className="w-full mt-2 border-green-600/50 text-green-400 hover:bg-green-600/20"
+                        className="w-full mt-2 border-green-600/50 text-green-400 hover:bg-green-600/20 rounded-full"
                         onClick={(e) => {
                           e.stopPropagation();
                           setHarvestPlant(plant);
