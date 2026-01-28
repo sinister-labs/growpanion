@@ -67,12 +67,39 @@ export interface Strain {
     updatedAt?: string;
 }
 
+export type ReminderType = 'watering' | 'feeding' | 'photo' | 'training' | 'custom';
+
+export interface Reminder {
+    id: string;
+    growId: string;
+    plantId?: string; // Optional: reminder can be for specific plant or whole grow
+    type: ReminderType;
+    title: string;
+    description?: string;
+    intervalDays: number; // How often to remind (0 = one-time)
+    lastTriggered?: string; // ISO date string
+    nextDue: string; // ISO date string
+    enabled: boolean;
+    createdAt: string;
+    updatedAt: string;
+}
+
+export interface NotificationSettings {
+    id: string; // Always 'notification-settings'
+    enabled: boolean;
+    permission: NotificationPermission | 'default';
+    defaultReminderTime: string; // HH:MM format, e.g., "09:00"
+    soundEnabled: boolean;
+}
+
 export class GrowPanionDB extends Dexie {
     grows!: Table<Grow, string>;
     plants!: Table<PlantDB, string>;
     fertilizerMixes!: Table<FertilizerMixDB, string>;
     settings!: Table<Settings, string>;
     strains!: Table<Strain, string>;
+    reminders!: Table<Reminder, string>;
+    notificationSettings!: Table<NotificationSettings, string>;
 
     constructor() {
         super('GrowPanionDB');
@@ -103,6 +130,16 @@ export class GrowPanionDB extends Dexie {
             fertilizerMixes: 'id, name, growId',
             settings: 'id',
             strains: 'id, name, breeder, genetics'
+        });
+
+        this.version(5).stores({
+            grows: 'id, name, currentPhase',
+            plants: 'id, name, genetic, type, propagationMethod, growId',
+            fertilizerMixes: 'id, name, growId',
+            settings: 'id',
+            strains: 'id, name, breeder, genetics',
+            reminders: 'id, growId, plantId, type, nextDue, enabled',
+            notificationSettings: 'id'
         });
 
         // Handle database upgrade events
@@ -421,6 +458,149 @@ export async function populateDBWithDemoDataIfEmpty(): Promise<void> {
     return;
 }
 
+// ============== REMINDER FUNCTIONS ==============
+
+export async function getAllReminders(): Promise<Reminder[]> {
+    try {
+        return await db.reminders.toArray();
+    } catch (error) {
+        console.error('Failed to get all reminders:', error);
+        throw new Error('Unable to retrieve reminders from database');
+    }
+}
+
+export async function getRemindersForGrow(growId: string): Promise<Reminder[]> {
+    try {
+        if (!growId || typeof growId !== 'string') {
+            throw new Error('Invalid grow ID provided');
+        }
+        return await db.reminders.where({ growId }).toArray();
+    } catch (error) {
+        console.error(`Failed to get reminders for grow ${growId}:`, error);
+        throw new Error('Unable to retrieve reminders from database');
+    }
+}
+
+export async function getRemindersForPlant(plantId: string): Promise<Reminder[]> {
+    try {
+        if (!plantId || typeof plantId !== 'string') {
+            throw new Error('Invalid plant ID provided');
+        }
+        return await db.reminders.where({ plantId }).toArray();
+    } catch (error) {
+        console.error(`Failed to get reminders for plant ${plantId}:`, error);
+        throw new Error('Unable to retrieve reminders from database');
+    }
+}
+
+export async function getDueReminders(): Promise<Reminder[]> {
+    try {
+        const now = new Date().toISOString();
+        return await db.reminders
+            .where('enabled').equals(1) // Dexie stores boolean as 0/1
+            .filter(reminder => reminder.nextDue <= now)
+            .toArray();
+    } catch (error) {
+        console.error('Failed to get due reminders:', error);
+        throw new Error('Unable to retrieve due reminders from database');
+    }
+}
+
+export async function getReminderById(id: string): Promise<Reminder | undefined> {
+    try {
+        if (!id || typeof id !== 'string') {
+            throw new Error('Invalid reminder ID provided');
+        }
+        return await db.reminders.get(id);
+    } catch (error) {
+        console.error(`Failed to get reminder by id ${id}:`, error);
+        throw new Error('Unable to retrieve reminder from database');
+    }
+}
+
+export async function saveReminder(reminder: Reminder): Promise<string> {
+    try {
+        if (!reminder || !reminder.id || !reminder.growId) {
+            throw new Error('Invalid reminder data: id and growId are required');
+        }
+        
+        const reminderToSave: Reminder = {
+            ...reminder,
+            updatedAt: new Date().toISOString(),
+            createdAt: reminder.createdAt || new Date().toISOString(),
+        };
+        
+        return await db.reminders.put(reminderToSave);
+    } catch (error) {
+        console.error('Failed to save reminder:', error);
+        throw new Error('Unable to save reminder to database');
+    }
+}
+
+export async function deleteReminder(id: string): Promise<void> {
+    try {
+        if (!id || typeof id !== 'string') {
+            throw new Error('Invalid reminder ID provided');
+        }
+        
+        const reminder = await db.reminders.get(id);
+        if (!reminder) {
+            throw new Error(`Reminder with id ${id} not found`);
+        }
+        
+        await db.reminders.delete(id);
+    } catch (error) {
+        console.error(`Failed to delete reminder ${id}:`, error);
+        throw new Error('Unable to delete reminder from database');
+    }
+}
+
+export async function deleteRemindersForGrow(growId: string): Promise<void> {
+    try {
+        if (!growId || typeof growId !== 'string') {
+            throw new Error('Invalid grow ID provided');
+        }
+        await db.reminders.where({ growId }).delete();
+    } catch (error) {
+        console.error(`Failed to delete reminders for grow ${growId}:`, error);
+        throw new Error('Unable to delete reminders from database');
+    }
+}
+
+// ============== NOTIFICATION SETTINGS FUNCTIONS ==============
+
+export async function getNotificationSettings(): Promise<NotificationSettings | undefined> {
+    try {
+        return await db.notificationSettings.get('notification-settings');
+    } catch (error) {
+        console.error('Failed to get notification settings:', error);
+        throw new Error('Unable to retrieve notification settings from database');
+    }
+}
+
+export async function saveNotificationSettings(settings: Partial<NotificationSettings>): Promise<string> {
+    try {
+        const currentSettings = await getNotificationSettings() || {
+            id: 'notification-settings',
+            enabled: false,
+            permission: 'default' as NotificationPermission,
+            defaultReminderTime: '09:00',
+            soundEnabled: true
+        };
+        
+        const updatedSettings: NotificationSettings = {
+            ...currentSettings,
+            ...settings,
+            id: 'notification-settings'
+        };
+        
+        return await db.notificationSettings.put(updatedSettings);
+    } catch (error) {
+        console.error('Failed to save notification settings:', error);
+        throw new Error('Unable to save notification settings to database');
+    }
+}
+
 /**
  * Health check function to verify database connectivity and integrity
  * @returns Promise<boolean> indicating if database is healthy
@@ -436,6 +616,8 @@ export async function checkDatabaseHealth(): Promise<boolean> {
         await db.fertilizerMixes.limit(1).toArray();
         await db.settings.limit(1).toArray();
         await db.strains.limit(1).toArray();
+        await db.reminders.limit(1).toArray();
+        await db.notificationSettings.limit(1).toArray();
         
         return true;
     } catch (error) {

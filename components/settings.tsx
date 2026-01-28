@@ -26,6 +26,7 @@ import { useRouting } from '@/hooks/useRouting';
 import { ExportImportSection } from '@/components/export-import-dialog';
 import { DLICalculator } from '@/components/dli-calculator';
 import HarvestCalculator from '@/components/harvest-calculator/HarvestCalculator';
+import { NotificationSettings } from '@/components/notifications';
 
 const sensorTypes = [
     'Lamp',
@@ -1028,6 +1029,9 @@ export default function SettingsPage() {
                             <HarvestCalculator />
                         </CardContent>
                     </Card>
+
+                    {/* Notifications Section */}
+                    <NotificationSettings />
 
                     <Card className="bg-gray-800/50 backdrop-filter backdrop-blur-lg border border-gray-700 rounded-2xl text-left">
                         <CardHeader>
