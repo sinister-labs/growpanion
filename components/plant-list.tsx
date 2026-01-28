@@ -1,15 +1,17 @@
 "use client"
 
+import { useState } from "react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Dialog, DialogTrigger } from "@/components/ui/dialog"
 import { PlantModal } from "@/components/plant-modal"
 import { Plant } from "@/components/plant-modal/types"
 import { usePlants } from "@/hooks/usePlants"
 import { Button } from "@/components/ui/button"
-import { Plus, Sprout } from "lucide-react"
+import { Plus, Sprout, Scale, CheckCircle2 } from "lucide-react"
 import { Loader2 } from "lucide-react"
 import { useToast } from "@/hooks/use-toast"
 import { getLastActivity } from "@/lib/plant-utils"
+import { HarvestDialog } from "@/components/harvest-dialog"
 
 /**
  * Component for displaying and managing plants within a grow
@@ -23,6 +25,7 @@ interface PlantListProps {
 export function PlantList({ growId, plants: providedPlants, isLoading: providedIsLoading }: PlantListProps) {
   const { plants: fetchedPlants, isLoading: fetchIsLoading, error, updatePlant, addPlant, removePlant } = usePlants(growId);
   const { toast } = useToast();
+  const [harvestPlant, setHarvestPlant] = useState<Plant | null>(null);
 
   const plants = providedPlants || fetchedPlants;
   const isLoading = providedIsLoading !== undefined ? providedIsLoading : fetchIsLoading;
@@ -146,13 +149,49 @@ export function PlantList({ growId, plants: providedPlants, isLoading: providedI
           {plants.map((plant) => (
             <Dialog key={plant.id}>
               <DialogTrigger asChild>
-                <Card className="bg-gray-800 bg-opacity-50 backdrop-filter backdrop-blur-lg border-gray-700 hover:border-green-400 transition-all duration-300 transform hover:scale-105 cursor-pointer text-left">
-                  <CardHeader>
-                    <CardTitle className="text-base sm:text-lg font-medium text-green-400">{plant.name}</CardTitle>
+                <Card className={`bg-gray-800 bg-opacity-50 backdrop-filter backdrop-blur-lg border-gray-700 hover:border-green-400 transition-all duration-300 transform hover:scale-105 cursor-pointer text-left ${
+                  plant.isHarvested ? 'border-green-600/50' : ''
+                }`}>
+                  <CardHeader className="pb-2">
+                    <div className="flex items-start justify-between">
+                      <CardTitle className="text-base sm:text-lg font-medium text-green-400">
+                        {plant.name}
+                      </CardTitle>
+                      {plant.isHarvested && (
+                        <div className="flex items-center gap-1 text-xs bg-green-600/20 text-green-400 px-2 py-1 rounded-full">
+                          <CheckCircle2 className="h-3 w-3" />
+                          Harvested
+                        </div>
+                      )}
+                    </div>
                   </CardHeader>
-                  <CardContent>
-                    <p className="text-sm sm:text-base text-white mb-2">{plant.genetic}</p>
-                    <p className="text-xs sm:text-sm text-gray-400">{getLastActivity(plant)}</p>
+                  <CardContent className="space-y-2">
+                    <p className="text-sm sm:text-base text-white">{plant.genetic}</p>
+                    {plant.isHarvested && plant.harvest?.yieldDryGrams ? (
+                      <div className="flex items-center gap-2 text-sm">
+                        <Scale className="h-4 w-4 text-green-400" />
+                        <span className="text-green-400 font-medium">
+                          {plant.harvest.yieldDryGrams}g
+                        </span>
+                        <span className="text-gray-500">dry</span>
+                      </div>
+                    ) : (
+                      <p className="text-xs sm:text-sm text-gray-400">{getLastActivity(plant)}</p>
+                    )}
+                    {!plant.isHarvested && (
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="w-full mt-2 border-green-600/50 text-green-400 hover:bg-green-600/20"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setHarvestPlant(plant);
+                        }}
+                      >
+                        <Scale className="h-4 w-4 mr-2" />
+                        Record Harvest
+                      </Button>
+                    )}
                   </CardContent>
                 </Card>
               </DialogTrigger>
@@ -166,7 +205,20 @@ export function PlantList({ growId, plants: providedPlants, isLoading: providedI
           ))}
         </div>
       )}
+
+      {/* Harvest Dialog */}
+      {harvestPlant && (
+        <HarvestDialog
+          open={!!harvestPlant}
+          onOpenChange={(open) => !open && setHarvestPlant(null)}
+          plant={harvestPlant}
+          onSave={(updatedPlant) => {
+            handleUpdatePlant(updatedPlant);
+            setHarvestPlant(null);
+          }}
+        />
+      )}
     </div>
-  )
+  );
 }
 
