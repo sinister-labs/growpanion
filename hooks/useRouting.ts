@@ -2,7 +2,7 @@
 
 import { useState, useCallback, createContext, useContext, useEffect } from 'react';
 
-export type AppView = 'dashboard' | 'grows' | 'growDetail' | 'settings' | 'statistics';
+export type AppView = 'dashboard' | 'grows' | 'growDetail' | 'settings' | 'statistics' | 'tools';
 
 interface RoutingContextType {
     currentView: AppView;

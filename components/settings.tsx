@@ -24,8 +24,6 @@ import {
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { useRouting } from '@/hooks/useRouting';
 import { ExportImportSection } from '@/components/export-import-dialog';
-import { DLICalculator } from '@/components/dli-calculator';
-import HarvestCalculator from '@/components/harvest-calculator/HarvestCalculator';
 import { NotificationSettings } from '@/components/notifications';
 
 const sensorTypes = [
@@ -1013,22 +1011,6 @@ export default function SettingsPage() {
 
                     {/* Export/Import Section */}
                     <ExportImportSection />
-
-                    {/* Tools Section */}
-                    <Card className="bg-gray-800/50 backdrop-filter backdrop-blur-lg border border-gray-700 rounded-2xl text-left">
-                        <CardHeader>
-                            <CardTitle className="text-base sm:text-lg font-medium text-green-400">
-                                Grow Tools
-                            </CardTitle>
-                            <CardDescription className="text-gray-400">
-                                Calculators and utilities for optimizing your grow
-                            </CardDescription>
-                        </CardHeader>
-                        <CardContent className="space-y-6">
-                            <DLICalculator />
-                            <HarvestCalculator />
-                        </CardContent>
-                    </Card>
 
                     {/* Notifications Section */}
                     <NotificationSettings />

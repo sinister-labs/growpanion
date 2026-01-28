@@ -7,6 +7,7 @@ import GrowOverview from '@/components/grow-overview'
 import Settings from '@/components/settings'
 import GrowDetailClient from '@/components/grow-detail-client'
 import Statistics from '@/components/statistics'
+import ToolsPage from '@/components/tools-page'
 import { ErrorBoundary } from '@/components/error-boundary'
 import { ScrollArea } from "@/components/ui/scroll-area"
 
@@ -43,6 +44,12 @@ export default function Home() {
         return (
           <ErrorBoundary>
             <Statistics />
+          </ErrorBoundary>
+        );
+      case 'tools':
+        return (
+          <ErrorBoundary>
+            <ToolsPage />
           </ErrorBoundary>
         );
       default:
