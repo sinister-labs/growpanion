@@ -52,6 +52,7 @@ export interface SubstrateRecord {
 export interface FertilizerMix {
     id: string;
     name: string;
+    description?: string;
     waterAmount: string;
     fertilizers: Fertilizer[];
 }
@@ -65,9 +66,10 @@ export interface NoRecordsIndicatorProps {
 
 export interface PlantModalProps {
     plant: Plant;
-    updatePlant: (plant: Plant) => void;
-    deletePlant: (plantId: string, plantName: string) => void;
+    updatePlant: (plant: Plant) => void | Promise<unknown>;
+    deletePlant: (plantId: string, plantName: string) => void | Promise<unknown>;
     growId: string;
+    onManageFertilizerMixes?: () => void;
 }
 
 export interface TabComponentProps {
@@ -81,6 +83,7 @@ export interface WateringFeedingTabProps extends TabComponentProps {
     handleWateringAdd: () => void;
     handleWateringDelete: (index: number) => void;
     availableMixes: FertilizerMix[];
+    onManageFertilizerMixes?: () => void;
 }
 
 export interface TrainingTabProps extends TabComponentProps {
@@ -111,4 +114,4 @@ export interface ImagesTabProps extends TabComponentProps {
 export interface FullscreenImageProps {
     fullscreenImage: string | null;
     setFullscreenImage: React.Dispatch<React.SetStateAction<string | null>>;
-} 
+}

@@ -26,6 +26,11 @@ const LSTTab: React.FC<TrainingTabProps> = ({
     handleTrainingAdd: handleLSTAdd,
     handleTrainingDelete: handleLSTDelete
 }) => {
+    const formatRecordDate = (date: string) => {
+        const recordDate = new Date(date);
+        return Number.isFinite(recordDate.getTime()) ? recordDate.toLocaleDateString() : 'Unknown date';
+    };
+
     const handleLSTChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         setNewLST({
             ...newLST,
@@ -119,7 +124,7 @@ const LSTTab: React.FC<TrainingTabProps> = ({
                                 className="flex flex-col bg-gray-800 p-3 rounded-lg border border-gray-700 w-full"
                             >
                                 <div className="flex justify-between items-center">
-                                    <span className="text-white">{new Date(record.date).toLocaleDateString()}</span>
+                                    <span className="text-white">{formatRecordDate(record.date)}</span>
                                     <div className="flex items-center gap-2">
                                         <div className="bg-green-600 text-white px-2 py-1 rounded-md text-sm">
                                             {record.method}
@@ -156,4 +161,4 @@ const LSTTab: React.FC<TrainingTabProps> = ({
     );
 };
 
-export default LSTTab; 
+export default LSTTab;

@@ -1,7 +1,24 @@
 import Dexie, { Table } from 'dexie';
 import { Plant, FertilizerMix } from '@/components/plant-modal/types';
-import { GrowSchema, SettingsSchema } from '@/lib/validation-schemas';
+import {
+    FertilizerMixDBSchema,
+    GrowSchema,
+    NotificationSettingsSchema,
+    PlantDBSchema,
+    ReminderSchema,
+    SettingsSchema,
+    StrainSchema
+} from '@/lib/validation-schemas';
 import { validateOrThrow } from '@/lib/validation-utils';
+import { normalizeSensorConfig } from '@/lib/sensor-utils';
+import {
+    getFertilizerMixReferenceError,
+    getPlantReferenceError,
+    getReminderReferenceError,
+    isDueAt,
+    removeFertilizerMixReferences
+} from '@/lib/persistence-utils';
+import { filterStrains } from '@/lib/strain-utils';
 
 export interface Grow {
     id: string;
@@ -144,10 +161,12 @@ export class GrowPanionDB extends Dexie {
 
         // Handle database upgrade events
         this.on('blocked', () => {
+            // eslint-disable-next-line no-console -- Database lifecycle diagnostics should be visible during local troubleshooting.
             console.warn('Database is blocked - another tab might be using an older version');
         });
 
         this.on('versionchange', () => {
+            // eslint-disable-next-line no-console -- Database lifecycle diagnostics should be visible during local troubleshooting.
             console.info('Database version changed, closing connection');
             this.close();
         });
@@ -193,17 +212,18 @@ export async function deleteGrow(id: string): Promise<void> {
         if (!id || typeof id !== 'string') {
             throw new Error('Invalid grow ID provided');
         }
-        
+
         // Check if grow exists before deleting
         const grow = await db.grows.get(id);
         if (!grow) {
             throw new Error(`Grow with id ${id} not found`);
         }
-        
-        // Also deletes all associated plants and mixes in transaction
-        await db.transaction('rw', [db.grows, db.plants, db.fertilizerMixes], async () => {
+
+        // Also deletes all associated plants, mixes, and reminders in one transaction.
+        await db.transaction('rw', [db.grows, db.plants, db.fertilizerMixes, db.reminders], async () => {
             await db.plants.where({ growId: id }).delete();
             await db.fertilizerMixes.where({ growId: id }).delete();
+            await db.reminders.where({ growId: id }).delete();
             await db.grows.delete(id);
         });
     } catch (error) {
@@ -247,11 +267,15 @@ export async function getPlantById(id: string): Promise<PlantDB | undefined> {
 
 export async function savePlant(plant: PlantDB): Promise<string> {
     try {
-        // Validate plant data before saving (PlantDB extends Plant with growId)
-        if (!plant.id || !plant.growId) {
-            throw new Error('Invalid plant data: id and growId are required');
+        const validatedPlant = validateOrThrow(PlantDBSchema, plant);
+        const grow = await db.grows.get(validatedPlant.growId);
+        const referenceError = getPlantReferenceError(validatedPlant, Boolean(grow));
+
+        if (referenceError) {
+            throw new Error(referenceError);
         }
-        return await db.plants.put(plant);
+
+        return await db.plants.put(validatedPlant);
     } catch (error) {
         console.error('Failed to save plant:', error);
         throw new Error('Unable to save plant to database');
@@ -263,14 +287,17 @@ export async function deletePlant(id: string): Promise<void> {
         if (!id || typeof id !== 'string') {
             throw new Error('Invalid plant ID provided');
         }
-        
+
         // Check if plant exists before deleting
         const plant = await db.plants.get(id);
         if (!plant) {
             throw new Error(`Plant with id ${id} not found`);
         }
-        
-        await db.plants.delete(id);
+
+        await db.transaction('rw', [db.plants, db.reminders], async () => {
+            await db.reminders.where({ plantId: id }).delete();
+            await db.plants.delete(id);
+        });
     } catch (error) {
         console.error(`Failed to delete plant ${id}:`, error);
         throw new Error('Unable to delete plant from database');
@@ -312,11 +339,15 @@ export async function getFertilizerMixById(id: string): Promise<FertilizerMixDB 
 
 export async function saveFertilizerMix(mix: FertilizerMixDB): Promise<string> {
     try {
-        // Basic validation for fertilizer mix (FertilizerMixDB extends FertilizerMix with growId)
-        if (!mix || !mix.id || !mix.growId) {
-            throw new Error('Invalid fertilizer mix data: id and growId are required');
+        const validatedMix = validateOrThrow(FertilizerMixDBSchema, mix);
+        const grow = await db.grows.get(validatedMix.growId);
+        const referenceError = getFertilizerMixReferenceError(validatedMix, Boolean(grow));
+
+        if (referenceError) {
+            throw new Error(referenceError);
         }
-        return await db.fertilizerMixes.put(mix);
+
+        return await db.fertilizerMixes.put(validatedMix);
     } catch (error) {
         console.error('Failed to save fertilizer mix:', error);
         throw new Error('Unable to save fertilizer mix to database');
@@ -328,14 +359,23 @@ export async function deleteFertilizerMix(id: string): Promise<void> {
         if (!id || typeof id !== 'string') {
             throw new Error('Invalid fertilizer mix ID provided');
         }
-        
+
         // Check if fertilizer mix exists before deleting
         const mix = await db.fertilizerMixes.get(id);
         if (!mix) {
             throw new Error(`Fertilizer mix with id ${id} not found`);
         }
-        
-        await db.fertilizerMixes.delete(id);
+
+        await db.transaction('rw', [db.fertilizerMixes, db.plants], async () => {
+            const plantsInGrow = await db.plants.where({ growId: mix.growId }).toArray();
+            const plantsToUpdate = removeFertilizerMixReferences(plantsInGrow, id);
+
+            if (plantsToUpdate.length > 0) {
+                await db.plants.bulkPut(plantsToUpdate);
+            }
+
+            await db.fertilizerMixes.delete(id);
+        });
     } catch (error) {
         console.error(`Failed to delete fertilizer mix ${id}:`, error);
         throw new Error('Unable to delete fertilizer mix from database');
@@ -356,18 +396,21 @@ export async function saveSettings(settings: Partial<Settings>): Promise<string>
         if (!settings || typeof settings !== 'object') {
             throw new Error('Invalid settings data provided');
         }
-        
+
         const currentSettings = await getSettings() || { id: 'global' };
         const updatedSettings: Settings = {
             ...currentSettings,
             ...settings,
             id: 'global', // Ensure ID is always set
-            lastUpdated: new Date().toISOString()
+            lastUpdated: new Date().toISOString(),
+            sensors: settings.sensors
+                ? settings.sensors.map(normalizeSensorConfig)
+                : currentSettings.sensors?.map(normalizeSensorConfig)
         };
-        
+
         // Validate complete settings object before saving
         const validatedSettings = validateOrThrow(SettingsSchema.partial(), updatedSettings);
-        
+
         return await db.settings.put({ ...currentSettings, ...validatedSettings });
     } catch (error) {
         console.error('Failed to save settings:', error);
@@ -404,17 +447,14 @@ export async function getStrainById(id: string): Promise<Strain | undefined> {
 
 export async function saveStrain(strain: Strain): Promise<string> {
     try {
-        if (!strain || !strain.id || !strain.name) {
-            throw new Error('Invalid strain data: id and name are required');
-        }
-        
         const strainToSave: Strain = {
             ...strain,
             updatedAt: new Date().toISOString(),
             createdAt: strain.createdAt || new Date().toISOString(),
         };
-        
-        return await db.strains.put(strainToSave);
+        const validatedStrain = validateOrThrow(StrainSchema, strainToSave);
+
+        return await db.strains.put(validatedStrain);
     } catch (error) {
         console.error('Failed to save strain:', error);
         throw new Error('Unable to save strain to database');
@@ -426,12 +466,12 @@ export async function deleteStrain(id: string): Promise<void> {
         if (!id || typeof id !== 'string') {
             throw new Error('Invalid strain ID provided');
         }
-        
+
         const strain = await db.strains.get(id);
         if (!strain) {
             throw new Error(`Strain with id ${id} not found`);
         }
-        
+
         await db.strains.delete(id);
     } catch (error) {
         console.error(`Failed to delete strain ${id}:`, error);
@@ -442,12 +482,7 @@ export async function deleteStrain(id: string): Promise<void> {
 export async function searchStrains(query: string): Promise<Strain[]> {
     try {
         const allStrains = await db.strains.toArray();
-        const lowerQuery = query.toLowerCase();
-        return allStrains.filter(strain => 
-            strain.name.toLowerCase().includes(lowerQuery) ||
-            strain.breeder.toLowerCase().includes(lowerQuery) ||
-            strain.genetics.toLowerCase().includes(lowerQuery)
-        );
+        return filterStrains(allStrains, query);
     } catch (error) {
         console.error('Failed to search strains:', error);
         throw new Error('Unable to search strains in database');
@@ -495,10 +530,9 @@ export async function getRemindersForPlant(plantId: string): Promise<Reminder[]>
 
 export async function getDueReminders(): Promise<Reminder[]> {
     try {
-        const now = new Date().toISOString();
+        const now = new Date();
         return await db.reminders
-            .where('enabled').equals(1) // Dexie stores boolean as 0/1
-            .filter(reminder => reminder.nextDue <= now)
+            .filter(reminder => reminder.enabled && isDueAt(reminder.nextDue, now))
             .toArray();
     } catch (error) {
         console.error('Failed to get due reminders:', error);
@@ -520,17 +554,25 @@ export async function getReminderById(id: string): Promise<Reminder | undefined>
 
 export async function saveReminder(reminder: Reminder): Promise<string> {
     try {
-        if (!reminder || !reminder.id || !reminder.growId) {
-            throw new Error('Invalid reminder data: id and growId are required');
-        }
-        
         const reminderToSave: Reminder = {
             ...reminder,
             updatedAt: new Date().toISOString(),
             createdAt: reminder.createdAt || new Date().toISOString(),
         };
-        
-        return await db.reminders.put(reminderToSave);
+        const validatedReminder = validateOrThrow(ReminderSchema, reminderToSave);
+        const [grow, plant] = await Promise.all([
+            db.grows.get(validatedReminder.growId),
+            validatedReminder.plantId?.trim()
+                ? db.plants.get(validatedReminder.plantId)
+                : Promise.resolve(undefined)
+        ]);
+        const referenceError = getReminderReferenceError(validatedReminder, Boolean(grow), plant);
+
+        if (referenceError) {
+            throw new Error(referenceError);
+        }
+
+        return await db.reminders.put(validatedReminder);
     } catch (error) {
         console.error('Failed to save reminder:', error);
         throw new Error('Unable to save reminder to database');
@@ -542,12 +584,12 @@ export async function deleteReminder(id: string): Promise<void> {
         if (!id || typeof id !== 'string') {
             throw new Error('Invalid reminder ID provided');
         }
-        
+
         const reminder = await db.reminders.get(id);
         if (!reminder) {
             throw new Error(`Reminder with id ${id} not found`);
         }
-        
+
         await db.reminders.delete(id);
     } catch (error) {
         console.error(`Failed to delete reminder ${id}:`, error);
@@ -587,14 +629,15 @@ export async function saveNotificationSettings(settings: Partial<NotificationSet
             defaultReminderTime: '09:00',
             soundEnabled: true
         };
-        
+
         const updatedSettings: NotificationSettings = {
             ...currentSettings,
             ...settings,
             id: 'notification-settings'
         };
-        
-        return await db.notificationSettings.put(updatedSettings);
+        const validatedSettings = validateOrThrow(NotificationSettingsSchema, updatedSettings);
+
+        return await db.notificationSettings.put(validatedSettings);
     } catch (error) {
         console.error('Failed to save notification settings:', error);
         throw new Error('Unable to save notification settings to database');
@@ -609,7 +652,7 @@ export async function checkDatabaseHealth(): Promise<boolean> {
     try {
         // Test database connection by performing a simple read operation
         await db.open();
-        
+
         // Test each table is accessible
         await db.grows.limit(1).toArray();
         await db.plants.limit(1).toArray();
@@ -618,7 +661,7 @@ export async function checkDatabaseHealth(): Promise<boolean> {
         await db.strains.limit(1).toArray();
         await db.reminders.limit(1).toArray();
         await db.notificationSettings.limit(1).toArray();
-        
+
         return true;
     } catch (error) {
         console.error('Database health check failed:', error);
@@ -648,4 +691,4 @@ export class DatabaseError extends Error {
         super(message);
         this.name = 'DatabaseError';
     }
-} 
+}

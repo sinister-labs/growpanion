@@ -4,7 +4,16 @@
 
 import { Grow, PlantDB } from '@/lib/db';
 
-export type DiaryEventType = 'phase' | 'watering' | 'hst' | 'lst' | 'substrate';
+export type DiaryEventType = 'phase' | 'watering' | 'hst' | 'lst' | 'substrate' | 'harvest';
+
+export const DIARY_EVENT_TYPES: DiaryEventType[] = [
+  'phase',
+  'watering',
+  'hst',
+  'lst',
+  'substrate',
+  'harvest',
+];
 
 export interface DiaryEvent {
   id: string;
@@ -113,10 +122,36 @@ export function aggregateGrowEvents(grow: Grow, plants: PlantDB[]): DiaryEvent[]
         icon: '🪴',
       });
     });
+
+    if (plant.harvest) {
+      const yieldText = plant.harvest.yieldDryGrams
+        ? `${plant.harvest.yieldDryGrams}g dry`
+        : plant.harvest.yieldWetGrams
+          ? `${plant.harvest.yieldWetGrams}g wet`
+          : 'Harvest recorded';
+
+      events.push({
+        id: `harvest-${plant.id}`,
+        type: 'harvest',
+        date: plant.harvest.date,
+        title: 'Harvest',
+        description: plant.harvest.notes ? `${yieldText} - ${plant.harvest.notes}` : yieldText,
+        plantName: plant.name,
+        plantId: plant.id,
+        details: {
+          yieldWetGrams: plant.harvest.yieldWetGrams,
+          yieldDryGrams: plant.harvest.yieldDryGrams,
+          notes: plant.harvest.notes,
+        },
+        icon: '⚖️',
+      });
+    }
   });
 
   // Sort events by date (newest first)
-  return events.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+  return events
+    .filter(event => Number.isFinite(new Date(event.date).getTime()))
+    .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
 }
 
 /**
@@ -131,10 +166,24 @@ export function filterEventsByType(events: DiaryEvent[], types: DiaryEventType[]
  * Filters events by date range
  */
 export function filterEventsByDateRange(events: DiaryEvent[], startDate?: string, endDate?: string): DiaryEvent[] {
+  const parsedStartTime = startDate ? new Date(startDate).getTime() : undefined;
+  const startTime = Number.isFinite(parsedStartTime) ? parsedStartTime : undefined;
+  let endTime: number | undefined;
+
+  if (endDate) {
+    const end = new Date(endDate);
+    if (!endDate.includes('T')) {
+      end.setHours(23, 59, 59, 999);
+    }
+    const parsedEndTime = end.getTime();
+    endTime = Number.isFinite(parsedEndTime) ? parsedEndTime : undefined;
+  }
+
   return events.filter(event => {
     const eventDate = new Date(event.date).getTime();
-    if (startDate && eventDate < new Date(startDate).getTime()) return false;
-    if (endDate && eventDate > new Date(endDate).getTime()) return false;
+    if (Number.isNaN(eventDate)) return false;
+    if (startTime !== undefined && eventDate < startTime) return false;
+    if (endTime !== undefined && eventDate > endTime) return false;
     return true;
   });
 }
@@ -146,7 +195,12 @@ export function groupEventsByDate(events: DiaryEvent[]): Map<string, DiaryEvent[
   const grouped = new Map<string, DiaryEvent[]>();
   
   events.forEach(event => {
-    const dateKey = new Date(event.date).toISOString().split('T')[0];
+    const eventDate = new Date(event.date);
+    if (!Number.isFinite(eventDate.getTime())) {
+      return;
+    }
+
+    const dateKey = eventDate.toISOString().split('T')[0];
     const existing = grouped.get(dateKey) || [];
     grouped.set(dateKey, [...existing, event]);
   });
@@ -154,17 +208,40 @@ export function groupEventsByDate(events: DiaryEvent[]): Map<string, DiaryEvent[
   return grouped;
 }
 
+export function formatDiaryDate(
+  dateValue: string,
+  options?: Intl.DateTimeFormatOptions,
+  fallback = 'Unknown date'
+): string {
+  const date = new Date(dateValue);
+
+  if (!Number.isFinite(date.getTime())) {
+    return fallback;
+  }
+
+  return date.toLocaleDateString('en-US', options);
+}
+
+export function formatDiaryTime(dateValue: string, fallback = ''): string {
+  const date = new Date(dateValue);
+
+  if (!Number.isFinite(date.getTime())) {
+    return fallback;
+  }
+
+  return date.toLocaleTimeString('en-US', {
+    hour: '2-digit',
+    minute: '2-digit',
+  });
+}
+
 /**
  * Gets event statistics for a grow
  */
 export function getEventStats(events: DiaryEvent[]): Record<DiaryEventType, number> {
-  const stats: Record<DiaryEventType, number> = {
-    phase: 0,
-    watering: 0,
-    hst: 0,
-    lst: 0,
-    substrate: 0,
-  };
+  const stats = Object.fromEntries(
+    DIARY_EVENT_TYPES.map(type => [type, 0])
+  ) as Record<DiaryEventType, number>;
 
   events.forEach(event => {
     stats[event.type]++;
@@ -193,7 +270,7 @@ function getPhaseIcon(phase: string): string {
  * Formats event for export
  */
 export function formatEventForExport(event: DiaryEvent): string {
-  const date = new Date(event.date).toLocaleDateString();
+  const date = formatDiaryDate(event.date);
   const plant = event.plantName ? ` [${event.plantName}]` : '';
   return `${date}${plant}: ${event.title} - ${event.description}`;
 }
@@ -208,6 +285,7 @@ export function getEventTypeColor(type: DiaryEventType): string {
     case 'hst': return 'bg-red-600/20 text-red-400 border-red-500';
     case 'lst': return 'bg-green-600/20 text-green-400 border-green-500';
     case 'substrate': return 'bg-amber-600/20 text-amber-400 border-amber-500';
+    case 'harvest': return 'bg-emerald-600/20 text-emerald-400 border-emerald-500';
     default: return 'bg-gray-600/20 text-gray-400 border-gray-500';
   }
 }
@@ -222,6 +300,7 @@ export function getEventTypeLabel(type: DiaryEventType): string {
     case 'hst': return 'HST Training';
     case 'lst': return 'LST Training';
     case 'substrate': return 'Substrate';
+    case 'harvest': return 'Harvest';
     default: return 'Unknown';
   }
 }

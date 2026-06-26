@@ -93,8 +93,10 @@ export function secureWarn(message: string, data?: unknown): void {
 export function secureLog(message: string, data?: unknown): void {
   if (process.env.NODE_ENV === 'development') {
     if (data) {
+      // eslint-disable-next-line no-console -- This helper is the centralized sanitized development logger.
       console.log(message, sanitizeForLogging(data));
     } else {
+      // eslint-disable-next-line no-console -- This helper is the centralized sanitized development logger.
       console.log(message);
     }
   }

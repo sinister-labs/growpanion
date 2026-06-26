@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { FertilizerMix } from '@/components/plant-modal/types';
 import {
     FertilizerMixDB,
@@ -12,10 +12,15 @@ export function useFertilizerMixes(growId: string | null) {
     const [mixes, setMixes] = useState<FertilizerMixDB[]>([]);
     const [isLoading, setIsLoading] = useState<boolean>(true);
     const [error, setError] = useState<Error | null>(null);
+    const loadRequestId = useRef(0);
+    const isMounted = useRef(false);
 
     const loadMixes = useCallback(async () => {
+        const requestId = ++loadRequestId.current;
+
         if (!growId) {
             setMixes([]);
+            setError(null);
             setIsLoading(false);
             return;
         }
@@ -23,17 +28,23 @@ export function useFertilizerMixes(growId: string | null) {
         setIsLoading(true);
         try {
             const loadedMixes = await getFertilizerMixesForGrow(growId);
+            if (!isMounted.current || requestId !== loadRequestId.current) return;
+
             setMixes(loadedMixes);
             setError(null);
         } catch (err) {
+            if (!isMounted.current || requestId !== loadRequestId.current) return;
+
             console.error('Error loading fertilizer mixes:', err);
             setError(err instanceof Error ? err : new Error('Unknown error loading fertilizer mixes'));
         } finally {
-            setIsLoading(false);
+            if (isMounted.current && requestId === loadRequestId.current) {
+                setIsLoading(false);
+            }
         }
     }, [growId]);
 
-    const addMix = useCallback(async (mixData: Omit<FertilizerMix, 'id'> & { description?: string }) => {
+    const addMix = useCallback(async (mixData: Omit<FertilizerMix, 'id'>) => {
         if (!growId) {
             throw new Error('No active grow selected');
         }
@@ -46,7 +57,9 @@ export function useFertilizerMixes(growId: string | null) {
             };
 
             await saveFertilizerMix(newMix);
-            setMixes(prev => [...prev, newMix]);
+            if (isMounted.current) {
+                setMixes(prev => [...prev, newMix]);
+            }
             return newMix;
         } catch (err) {
             console.error('Error adding fertilizer mix:', err);
@@ -66,9 +79,11 @@ export function useFertilizerMixes(growId: string | null) {
             };
 
             await saveFertilizerMix(mixWithGrowId);
-            setMixes(prev =>
-                prev.map(mix => mix.id === updatedMix.id ? mixWithGrowId : mix)
-            );
+            if (isMounted.current) {
+                setMixes(prev =>
+                    prev.map(mix => mix.id === updatedMix.id ? mixWithGrowId : mix)
+                );
+            }
             return mixWithGrowId;
         } catch (err) {
             console.error('Error updating fertilizer mix:', err);
@@ -79,7 +94,9 @@ export function useFertilizerMixes(growId: string | null) {
     const removeMix = useCallback(async (id: string) => {
         try {
             await deleteFertilizerMix(id);
-            setMixes(prev => prev.filter(mix => mix.id !== id));
+            if (isMounted.current) {
+                setMixes(prev => prev.filter(mix => mix.id !== id));
+            }
         } catch (err) {
             console.error('Error deleting fertilizer mix:', err);
             throw err;
@@ -87,8 +104,14 @@ export function useFertilizerMixes(growId: string | null) {
     }, []);
 
     useEffect(() => {
+        isMounted.current = true;
         loadMixes();
-    }, [loadMixes, growId]);
+
+        return () => {
+            isMounted.current = false;
+            loadRequestId.current += 1;
+        };
+    }, [loadMixes]);
 
     return {
         mixes,
@@ -99,4 +122,4 @@ export function useFertilizerMixes(growId: string | null) {
         updateMix,
         removeMix
     };
-} 
+}

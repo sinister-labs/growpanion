@@ -11,6 +11,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { useFertilizerMixes } from "@/hooks/useFertilizerMixes"
 import { Fertilizer } from "@/components/plant-modal/types"
 import { FertilizerMixDB } from "@/lib/db"
+import { formatDosePerLiter, hasExistingFertilizerMix } from "@/lib/feeding-utils"
 
 interface FertilizerMixesManagerProps {
     growId: string | null;
@@ -28,13 +29,18 @@ export const FertilizerMixesManager = ({ growId }: FertilizerMixesManagerProps) 
 
     const [isDialogOpen, setIsDialogOpen] = useState(false)
     const [editingMix, setEditingMix] = useState<FertilizerMixDB | null>(null)
+    const [isSaving, setIsSaving] = useState(false)
+    const [formError, setFormError] = useState<string | null>(null)
 
     const [tempFertilizer, setTempFertilizer] = useState<Fertilizer>({
         name: "",
         amount: ""
     });
 
+    const editingMixExists = hasExistingFertilizerMix(mixes, editingMix);
+
     const handleEditMix = (mix: FertilizerMixDB | null) => {
+        setFormError(null)
         setEditingMix(mix || {
             id: `mix-${Date.now()}`,
             name: "",
@@ -47,14 +53,22 @@ export const FertilizerMixesManager = ({ growId }: FertilizerMixesManagerProps) 
     }
 
     const handleAddFertilizer = () => {
-        if (!tempFertilizer.name || !tempFertilizer.amount || !editingMix) return;
+        const amount = Number(tempFertilizer.amount);
+        if (!tempFertilizer.name.trim() || !Number.isFinite(amount) || amount <= 0 || !editingMix) {
+            setFormError("Please enter a fertilizer name and a positive amount.");
+            return;
+        }
 
         setEditingMix({
             ...editingMix,
-            fertilizers: [...(editingMix.fertilizers || []), { ...tempFertilizer }]
+            fertilizers: [
+                ...(editingMix.fertilizers || []),
+                { name: tempFertilizer.name.trim(), amount: tempFertilizer.amount.trim() }
+            ]
         });
 
         setTempFertilizer({ name: "", amount: "" });
+        setFormError(null);
     };
 
     const handleRemoveFertilizer = (index: number) => {
@@ -66,26 +80,57 @@ export const FertilizerMixesManager = ({ growId }: FertilizerMixesManagerProps) 
         })
     }
 
-    const handleSaveMix = () => {
-        if (!editingMix || !editingMix.name || !editingMix.waterAmount || !editingMix.fertilizers.length || !growId) return;
+    const handleSaveMix = async () => {
+        if (!editingMix || !growId || isSaving) return;
+
+        const waterAmount = Number(editingMix.waterAmount);
+        if (!editingMix.name.trim() || !Number.isFinite(waterAmount) || waterAmount <= 0 || !editingMix.fertilizers.length) {
+            setFormError("Please enter a mix name, a positive water amount, and at least one fertilizer.");
+            return;
+        }
 
         const mixToSave = {
             ...editingMix,
+            name: editingMix.name.trim(),
+            description: editingMix.description?.trim() || undefined,
+            waterAmount: editingMix.waterAmount.trim(),
             growId
         };
 
-        if (mixes.some(mix => mix.id === editingMix.id)) {
-            updateMix(mixToSave);
-        } else {
-            addMix(mixToSave);
-        }
+        setIsSaving(true);
+        setFormError(null);
+        try {
+            if (mixes.some(mix => mix.id === editingMix.id)) {
+                await updateMix(mixToSave);
+            } else {
+                await addMix(mixToSave);
+            }
 
-        setIsDialogOpen(false)
-        setEditingMix(null)
+            setIsDialogOpen(false)
+            setEditingMix(null)
+        } catch (err) {
+            console.error('Error saving fertilizer mix:', err);
+            setFormError(err instanceof Error ? err.message : "Failed to save fertilizer mix.");
+        } finally {
+            setIsSaving(false);
+        }
     }
 
-    const handleDeleteMix = (id: string) => {
-        removeMix(id)
+    const handleDeleteMix = async (id: string) => {
+        if (isSaving) return;
+
+        setIsSaving(true);
+        setFormError(null);
+        try {
+            await removeMix(id);
+            setIsDialogOpen(false);
+            setEditingMix(null);
+        } catch (err) {
+            console.error('Error deleting fertilizer mix:', err);
+            setFormError(err instanceof Error ? err.message : "Failed to delete fertilizer mix.");
+        } finally {
+            setIsSaving(false);
+        }
     }
 
     const handleMixCardClick = (mix: FertilizerMixDB) => {
@@ -158,7 +203,7 @@ export const FertilizerMixesManager = ({ growId }: FertilizerMixesManagerProps) 
                                                 {fert.name}
                                             </div>
                                             <div className="bg-green-600/80 text-white px-2 py-1 rounded-full text-sm">
-                                                {fert.amount} ml/L
+                                                {formatDosePerLiter(fert.amount, mix.waterAmount)}
                                             </div>
                                         </div>
                                     ))}
@@ -173,7 +218,7 @@ export const FertilizerMixesManager = ({ growId }: FertilizerMixesManagerProps) 
                 <DialogContent className="bg-gray-800/95 backdrop-blur-md border-gray-700 text-white max-w-3xl rounded-xl p-6">
                     <DialogHeader>
                         <div className="flex justify-between items-center">
-                            <DialogTitle className="text-green-400 text-xl">{editingMix && editingMix.id.startsWith('mix-') ? 'New Fertilizer Mix' : 'Edit Fertilizer Mix'}</DialogTitle>
+                            <DialogTitle className="text-green-400 text-xl">{editingMixExists ? 'Edit Fertilizer Mix' : 'New Fertilizer Mix'}</DialogTitle>
                         </div>
                     </DialogHeader>
 
@@ -193,6 +238,7 @@ export const FertilizerMixesManager = ({ growId }: FertilizerMixesManagerProps) 
                                                 id="mix-name"
                                                 value={editingMix?.name || ''}
                                                 onChange={e => setEditingMix(prev => prev ? { ...prev, name: e.target.value } : null)}
+                                                disabled={isSaving}
                                             />
                                         </div>
                                         <div>
@@ -202,6 +248,7 @@ export const FertilizerMixesManager = ({ growId }: FertilizerMixesManagerProps) 
                                                 value={editingMix?.description || ''}
                                                 onChange={e => setEditingMix(prev => prev ? { ...prev, description: e.target.value } : null)}
                                                 className="bg-gray-800/80 border-gray-700 text-white rounded-2xl px-4 py-2"
+                                                disabled={isSaving}
                                             />
                                         </div>
                                         <div>
@@ -209,8 +256,11 @@ export const FertilizerMixesManager = ({ growId }: FertilizerMixesManagerProps) 
                                             <Input
                                                 id="water-amount"
                                                 type="number"
+                                                min="1"
+                                                step="1"
                                                 value={editingMix?.waterAmount || ''}
                                                 onChange={e => setEditingMix(prev => prev ? { ...prev, waterAmount: e.target.value } : null)}
+                                                disabled={isSaving}
                                             />
                                         </div>
                                     </div>
@@ -227,6 +277,7 @@ export const FertilizerMixesManager = ({ growId }: FertilizerMixesManagerProps) 
                                                     onChange={e => setTempFertilizer(prev => ({ ...prev, name: e.target.value }))}
                                                     placeholder="Enter fertilizer name"
                                                     className="bg-gray-800/80 backdrop-blur-sm border border-gray-700 text-white"
+                                                    disabled={isSaving}
                                                 />
                                             </div>
                                             <div className="sm:w-48">
@@ -235,8 +286,11 @@ export const FertilizerMixesManager = ({ growId }: FertilizerMixesManagerProps) 
                                                     <Input
                                                         id="fert-amount"
                                                         type="number"
+                                                        min="0.01"
+                                                        step="0.01"
                                                         value={tempFertilizer.amount}
                                                         onChange={e => setTempFertilizer(prev => ({ ...prev, amount: e.target.value }))}
+                                                        disabled={isSaving}
                                                     />
                                                     <span className="absolute inset-y-0 right-0 flex items-center pr-4 text-gray-400 pointer-events-none border-l-2 pl-2 border-gray-700 bg-gray-700 rounded-r-full">
                                                         ml
@@ -247,6 +301,7 @@ export const FertilizerMixesManager = ({ growId }: FertilizerMixesManagerProps) 
                                                 <Button
                                                     onClick={handleAddFertilizer}
                                                     className="bg-green-600 hover:bg-green-700 rounded-full w-full sm:w-auto mt-4 sm:mt-0"
+                                                    disabled={isSaving}
                                                 >
                                                     <Plus className="mr-2 h-4 w-4" /> Add
                                                 </Button>
@@ -271,6 +326,7 @@ export const FertilizerMixesManager = ({ growId }: FertilizerMixesManagerProps) 
                                                                 size="icon"
                                                                 className="h-8 w-8 text-gray-400 hover:text-white hover:bg-gray-700/50 rounded-full"
                                                                 onClick={() => handleRemoveFertilizer(idx)}
+                                                                disabled={isSaving}
                                                             >
                                                                 <X className="h-4 w-4" />
                                                             </Button>
@@ -291,23 +347,26 @@ export const FertilizerMixesManager = ({ growId }: FertilizerMixesManagerProps) 
                     </div>
 
                     <div className="mt-6 flex flex-col gap-4">
+                        {formError && (
+                            <p className="text-sm text-red-400">{formError}</p>
+                        )}
                         <Button
                             onClick={handleSaveMix}
                             className="bg-green-600 hover:bg-green-700 rounded-full w-full"
-                            disabled={!editingMix || !editingMix.name || !editingMix.waterAmount || !editingMix.fertilizers.length}
+                            disabled={!editingMix || !editingMix.name.trim() || !editingMix.waterAmount || !editingMix.fertilizers.length || isSaving}
                         >
                             <Save className="mr-2 h-4 w-4" />
-                            Save Mix
+                            {isSaving ? "Saving..." : "Save Mix"}
                         </Button>
-                        {editingMix && !editingMix.id.startsWith('mix-') && (
+                        {editingMixExists && (
                             <Button
                                 variant="ghost"
                                 size="sm"
                                 className="text-red-400 hover:text-red-300 hover:bg-red-950/30 rounded-full w-full"
+                                disabled={isSaving}
                                 onClick={() => {
                                     if (editingMix) {
                                         handleDeleteMix(editingMix.id);
-                                        setIsDialogOpen(false);
                                     }
                                 }}
                             >
@@ -320,4 +379,4 @@ export const FertilizerMixesManager = ({ growId }: FertilizerMixesManagerProps) 
             </Dialog>
         </div>
     )
-} 
+}

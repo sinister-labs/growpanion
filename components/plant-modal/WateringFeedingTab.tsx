@@ -9,18 +9,21 @@ import { NoRecordsIndicator } from './shared-components';
 import { Droplets, Trash2, ArrowRight } from 'lucide-react';
 import { CustomDropdown, DropdownOption } from '@/components/ui/custom-dropdown';
 import { DropdownMenuItem } from '@/components/ui/dropdown-menu';
-import { useRouter } from 'next/navigation';
+import { calculateFertilizerAmount, formatDosePerLiter } from '@/lib/feeding-utils';
 
-const WateringFeedingTab: React.FC<WateringFeedingTabProps & { growId: string }> = ({
+const WateringFeedingTab: React.FC<WateringFeedingTabProps> = ({
     localPlant,
     newWatering,
     setNewWatering,
     handleWateringAdd,
     handleWateringDelete,
     availableMixes,
-    growId
+    onManageFertilizerMixes
 }) => {
-    const router = useRouter();
+    const formatRecordDate = (date: string) => {
+        const recordDate = new Date(date);
+        return Number.isFinite(recordDate.getTime()) ? recordDate.toLocaleDateString() : 'Unknown date';
+    };
 
     const handleWateringChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         setNewWatering({
@@ -66,6 +69,8 @@ const WateringFeedingTab: React.FC<WateringFeedingTabProps & { growId: string }>
                             <Input
                                 type="number"
                                 name="amount"
+                                min="1"
+                                step="1"
                                 value={newWatering.amount}
                                 onChange={handleWateringChange}
                                 className="pr-8"
@@ -86,19 +91,15 @@ const WateringFeedingTab: React.FC<WateringFeedingTabProps & { growId: string }>
                         placeholder={mixOptions.length === 0 ? "No fertilizer mixes available" : "Select mix"}
                         width="w-full"
                         buttonClassName={`bg-gray-800 border-gray-700 focus:ring-green-500 focus:border-green-500 ${mixOptions.length === 0 ? 'opacity-70' : ''}`}
-                        renderFooter={() => (
+                        renderFooter={onManageFertilizerMixes ? () => (
                             <DropdownMenuItem
                                 className="py-2 cursor-pointer text-gray-300 hover:text-white"
-                                onClick={() => {
-                                    if (growId) {
-                                        router.push(`/grows/${growId}?tab=mixes`);
-                                    }
-                                }}
+                                onClick={onManageFertilizerMixes}
                             >
                                 {mixOptions.length === 0 ? "Create fertilizer mixes" : "Manage fertilizer mixes"}
                                 <ArrowRight className="h-3.5 w-3.5 ml-auto" />
                             </DropdownMenuItem>
-                        )}
+                        ) : undefined}
                     />
                 </div>
 
@@ -122,7 +123,7 @@ const WateringFeedingTab: React.FC<WateringFeedingTabProps & { growId: string }>
                                 className="flex flex-col bg-gray-800 p-3 rounded-lg border border-gray-700 w-full"
                             >
                                 <div className="flex justify-between items-center">
-                                    <span className="text-white">{new Date(watering.date).toLocaleDateString()}</span>
+                                    <span className="text-white">{formatRecordDate(watering.date)}</span>
                                     <div className="flex items-center gap-2">
                                         <div className="bg-green-600 text-white px-2 py-1 rounded-md text-sm">
                                             {watering.amount} ml
@@ -141,7 +142,7 @@ const WateringFeedingTab: React.FC<WateringFeedingTabProps & { growId: string }>
                                 {watering.mixId && (
                                     <div className="mt-2 pl-2 border-l-2 border-gray-700">
                                         <div className="border-green-600 text-green-400 px-2 py-1 rounded-md border text-sm inline-block">
-                                            {availableMixes.find(mix => mix.id === watering.mixId)?.name}
+                                            {availableMixes.find(mix => mix.id === watering.mixId)?.name || 'Unavailable fertilizer mix'}
                                         </div>
 
                                         <div className="mt-2 text-sm text-gray-400">
@@ -150,10 +151,16 @@ const WateringFeedingTab: React.FC<WateringFeedingTabProps & { growId: string }>
                                                 return mix && mix.fertilizers && mix.fertilizers.length > 0 ? (
                                                     <>
                                                         {mix.fertilizers.map((fert, i) => (
-                                                            <div key={i} className="flex justify-between items-center py-1">
-                                                                <span>{fert.name} <span className="text-xs">({fert.amount} ml / {mix.waterAmount} ml)</span></span>
-                                                                <span className="text-green-400">{(parseFloat(fert.amount) / parseFloat(mix.waterAmount) * parseFloat(watering.amount)).toFixed(1)} ml</span>
-                                                            </div>
+                                                            (() => {
+                                                                const calculatedAmount = calculateFertilizerAmount(fert.amount, mix.waterAmount, watering.amount);
+
+                                                                return (
+                                                                    <div key={i} className="flex justify-between items-center py-1">
+                                                                        <span>{fert.name} <span className="text-xs">({formatDosePerLiter(fert.amount, mix.waterAmount)})</span></span>
+                                                                        <span className="text-green-400">{calculatedAmount ? `${calculatedAmount} ml` : 'n/a'}</span>
+                                                                    </div>
+                                                                );
+                                                            })()
                                                         ))}
                                                     </>
                                                 ) : null;
@@ -175,4 +182,4 @@ const WateringFeedingTab: React.FC<WateringFeedingTabProps & { growId: string }>
     );
 };
 
-export default WateringFeedingTab; 
+export default WateringFeedingTab;

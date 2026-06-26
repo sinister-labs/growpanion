@@ -8,6 +8,28 @@ const KEY_LENGTH = 256;
 const IV_LENGTH = 12; // 96 bits recommended for GCM
 const SALT_LENGTH = 16;
 const ITERATIONS = 100000;
+const BASE64_CHUNK_SIZE = 0x8000;
+
+export function bytesToBase64(bytes: Uint8Array): string {
+    let binary = '';
+
+    for (let i = 0; i < bytes.length; i += BASE64_CHUNK_SIZE) {
+        binary += String.fromCharCode(...bytes.subarray(i, i + BASE64_CHUNK_SIZE));
+    }
+
+    return btoa(binary);
+}
+
+export function base64ToBytes(value: string): Uint8Array {
+    const binary = atob(value);
+    const bytes = new Uint8Array(binary.length);
+
+    for (let i = 0; i < binary.length; i++) {
+        bytes[i] = binary.charCodeAt(i);
+    }
+
+    return bytes;
+}
 
 /**
  * Derives an AES-256 key from a password using PBKDF2
@@ -68,7 +90,7 @@ export async function encrypt(data: string, password: string): Promise<string> {
     combined.set(iv, salt.length);
     combined.set(new Uint8Array(ciphertext), salt.length + iv.length);
     
-    return btoa(String.fromCharCode(...combined));
+    return bytesToBase64(combined);
 }
 
 /**
@@ -77,9 +99,7 @@ export async function encrypt(data: string, password: string): Promise<string> {
  */
 export async function decrypt(encryptedData: string, password: string): Promise<string> {
     // Decode from base64
-    const combined = new Uint8Array(
-        atob(encryptedData).split('').map(c => c.charCodeAt(0))
-    );
+    const combined = base64ToBytes(encryptedData);
     
     // Extract salt, IV, and ciphertext
     const salt = combined.slice(0, SALT_LENGTH);

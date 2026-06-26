@@ -1,51 +1,25 @@
 "use client";
 
 import React, { useMemo } from 'react';
-import { HarvestedPlant } from './index';
 import { Calendar, TrendingUp } from 'lucide-react';
+import {
+  getRunningYieldHistory,
+  getYieldHistory,
+  type HarvestedPlant,
+} from '@/lib/statistics-utils';
 
 interface YieldHistoryProps {
   plants: HarvestedPlant[];
 }
 
-interface HistoryEntry {
-  date: string;
-  plantName: string;
-  strainName: string;
-  growName: string;
-  yieldDry: number;
-  yieldWet?: number;
-}
-
 export function YieldHistory({ plants }: YieldHistoryProps) {
-  const history = useMemo<HistoryEntry[]>(() => {
-    return plants
-      .filter(p => p.harvest?.date)
-      .map(plant => ({
-        date: plant.harvest!.date,
-        plantName: plant.name,
-        strainName: plant.genetic || 'Unknown Strain',
-        growName: plant.grow?.name || 'Unknown Grow',
-        yieldDry: plant.harvest?.yieldDryGrams || 0,
-        yieldWet: plant.harvest?.yieldWetGrams,
-      }))
-      .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+  const history = useMemo(() => {
+    return getYieldHistory(plants);
   }, [plants]);
 
   // Calculate running average
   const runningStats = useMemo(() => {
-    let total = 0;
-    let count = 0;
-    
-    // Reverse to process chronologically
-    return [...history].reverse().map(entry => {
-      total += entry.yieldDry;
-      count++;
-      return {
-        ...entry,
-        runningAvg: Math.round(total / count),
-      };
-    }).reverse();
+    return getRunningYieldHistory(history);
   }, [history]);
 
   // Find max yield for scaling
@@ -77,11 +51,14 @@ export function YieldHistory({ plants }: YieldHistoryProps) {
       <div className="space-y-3">
         {runningStats.map((entry, index) => {
           const barWidth = (entry.yieldDry / maxYield) * 100;
-          const formattedDate = new Date(entry.date).toLocaleDateString('en-US', {
+          const entryDate = new Date(entry.date);
+          const formattedDate = Number.isFinite(entryDate.getTime())
+            ? entryDate.toLocaleDateString('en-US', {
             month: 'short',
             day: 'numeric',
             year: 'numeric'
-          });
+          })
+            : 'Unknown date';
 
           return (
             <div

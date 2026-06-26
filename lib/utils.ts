@@ -12,8 +12,15 @@ export function cn(...inputs: ClassValue[]) {
  */
 export function calculateDuration(startDate: string): number {
   const start = new Date(startDate);
-  const now = new Date();
-  const diffTime = Math.abs(now.getTime() - start.getTime());
+  if (Number.isNaN(start.getTime())) {
+    return 0;
+  }
+
+  const diffTime = Date.now() - start.getTime();
+  if (diffTime <= 0) {
+    return 0;
+  }
+
   const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
   return diffDays;
 }
@@ -24,6 +31,6 @@ export function calculateDuration(startDate: string): number {
  * @returns Formatted date
  */
 export function formatDate(dateString: string): string {
-  return new Date(dateString).toLocaleDateString();
+  const date = new Date(dateString);
+  return Number.isFinite(date.getTime()) ? date.toLocaleDateString() : 'Unknown date';
 }
-

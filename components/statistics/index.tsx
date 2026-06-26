@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -13,86 +13,116 @@ import {
   ArrowLeft,
   Loader2,
   Award,
-  Calendar
+  Calendar,
+  AlertCircle
 } from 'lucide-react';
 import { useRouting } from '@/hooks/useRouting';
 import { getAllGrows, getAllPlants, Grow, PlantDB } from '@/lib/db';
 import { StrainStatistics } from './StrainStatistics';
 import { GrowStatistics } from './GrowStatistics';
 import { YieldHistory } from './YieldHistory';
-
-export interface HarvestedPlant extends PlantDB {
-  grow?: Grow;
-}
+import { getHarvestedPlants, getYieldSummary } from '@/lib/statistics-utils';
 
 export default function Statistics() {
   const { navigateTo } = useRouting();
   const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [grows, setGrows] = useState<Grow[]>([]);
   const [plants, setPlants] = useState<PlantDB[]>([]);
+  const loadRequestId = useRef(0);
+  const isMounted = useRef(false);
 
-  useEffect(() => {
-    const loadData = async () => {
-      try {
-        const [growsData, plantsData] = await Promise.all([
-          getAllGrows(),
-          getAllPlants(),
-        ]);
-        setGrows(growsData);
-        setPlants(plantsData);
-      } catch (error) {
-        console.error('Failed to load statistics data:', error);
-      } finally {
+  const loadData = useCallback(async () => {
+    const requestId = ++loadRequestId.current;
+    setIsLoading(true);
+    try {
+      const [growsData, plantsData] = await Promise.all([
+        getAllGrows(),
+        getAllPlants(),
+      ]);
+
+      if (!isMounted.current || requestId !== loadRequestId.current) {
+        return;
+      }
+
+      setGrows(growsData);
+      setPlants(plantsData);
+      setError(null);
+    } catch (error) {
+      if (!isMounted.current || requestId !== loadRequestId.current) {
+        return;
+      }
+
+      console.error('Failed to load statistics data:', error);
+      setError(error instanceof Error ? error.message : 'Failed to load statistics data');
+    } finally {
+      if (isMounted.current && requestId === loadRequestId.current) {
         setIsLoading(false);
       }
-    };
-
-    loadData();
+    }
   }, []);
 
+  useEffect(() => {
+    isMounted.current = true;
+    loadData();
+
+    return () => {
+      isMounted.current = false;
+      loadRequestId.current += 1;
+    };
+  }, [loadData]);
+
   // Filter to only harvested plants with dry yield data
-  const harvestedPlants = useMemo<HarvestedPlant[]>(() => {
-    return plants
-      .filter(p => p.isHarvested && p.harvest?.yieldDryGrams && p.harvest.yieldDryGrams > 0)
-      .map(plant => ({
-        ...plant,
-        grow: grows.find(g => g.id === plant.growId),
-      }));
+  const harvestedPlants = useMemo(() => {
+    return getHarvestedPlants(plants, grows);
   }, [plants, grows]);
 
   // Summary statistics
   const summary = useMemo(() => {
-    if (harvestedPlants.length === 0) {
-      return null;
-    }
-
-    const totalDryYield = harvestedPlants.reduce(
-      (sum, p) => sum + (p.harvest?.yieldDryGrams || 0), 
-      0
-    );
-    const avgYieldPerPlant = totalDryYield / harvestedPlants.length;
-    const maxYield = Math.max(...harvestedPlants.map(p => p.harvest?.yieldDryGrams || 0));
-    const minYield = Math.min(...harvestedPlants.map(p => p.harvest?.yieldDryGrams || 0));
-
-    // Unique strains
-    const uniqueStrains = new Set(harvestedPlants.map(p => p.genetic)).size;
-    const uniqueGrows = new Set(harvestedPlants.map(p => p.growId)).size;
-
-    return {
-      totalPlants: harvestedPlants.length,
-      totalDryYield: Math.round(totalDryYield),
-      avgYieldPerPlant: Math.round(avgYieldPerPlant),
-      maxYield: Math.round(maxYield),
-      minYield: Math.round(minYield),
-      uniqueStrains,
-      uniqueGrows,
-    };
+    return getYieldSummary(harvestedPlants);
   }, [harvestedPlants]);
 
   if (isLoading) {
     return (
       <div className="flex min-h-[50vh] items-center justify-center">
         <Loader2 className="w-8 h-8 animate-spin text-green-500" />
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="space-y-8 mt-6">
+        <div className="flex items-center gap-2 mb-1">
+          <Button
+            variant="link"
+            className="text-gray-400 hover:text-white p-0 h-auto flex items-center gap-1"
+            onClick={() => navigateTo('dashboard')}
+          >
+            <Home className="h-4 w-4" />
+            <span>Dashboard</span>
+          </Button>
+          <span className="text-gray-600">/</span>
+          <h1 className="font-semibold text-white flex items-center gap-2">
+            <BarChart3 className="h-5 w-5 text-green-400" />
+            Yield Statistics
+          </h1>
+        </div>
+
+        <Card className="bg-red-900/20 border-red-800">
+          <CardContent className="py-10 text-center">
+            <AlertCircle className="h-12 w-12 mx-auto mb-4 text-red-400" />
+            <h2 className="text-xl font-semibold text-white mb-2">Statistics could not be loaded</h2>
+            <p className="text-red-200 mb-6">{error}</p>
+            <Button
+              variant="outline"
+              className="border-red-700 text-red-200 hover:bg-red-900/30"
+              onClick={loadData}
+            >
+              Try again
+            </Button>
+          </CardContent>
+        </Card>
       </div>
     );
   }

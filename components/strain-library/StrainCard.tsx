@@ -5,6 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Strain } from '@/lib/db';
+import { hasStrainNumber } from '@/lib/strain-utils';
 import { Edit, Trash2, Cannabis, Clock, Gauge } from 'lucide-react';
 
 interface StrainCardProps {
@@ -59,14 +60,14 @@ const StrainCard: React.FC<StrainCardProps> = ({
       </CardHeader>
       <CardContent className="space-y-3">
         {/* Genetics percentages */}
-        {(strain.indicaPercent || strain.sativaPercent) && (
+        {(hasStrainNumber(strain.indicaPercent) || hasStrainNumber(strain.sativaPercent)) && (
           <div className="flex gap-4 text-sm">
-            {strain.indicaPercent && (
+            {hasStrainNumber(strain.indicaPercent) && (
               <span className="text-purple-400">
                 {strain.indicaPercent}% Indica
               </span>
             )}
-            {strain.sativaPercent && (
+            {hasStrainNumber(strain.sativaPercent) && (
               <span className="text-yellow-400">
                 {strain.sativaPercent}% Sativa
               </span>
@@ -76,12 +77,12 @@ const StrainCard: React.FC<StrainCardProps> = ({
 
         {/* THC/CBD */}
         <div className="flex gap-4 text-sm">
-          {strain.thcPercent !== undefined && (
+          {hasStrainNumber(strain.thcPercent) && (
             <span className="text-gray-300">
               THC: {strain.thcPercent}%
             </span>
           )}
-          {strain.cbdPercent !== undefined && (
+          {hasStrainNumber(strain.cbdPercent) && (
             <span className="text-gray-300">
               CBD: {strain.cbdPercent}%
             </span>
@@ -90,7 +91,7 @@ const StrainCard: React.FC<StrainCardProps> = ({
 
         {/* Additional info */}
         <div className="flex flex-wrap gap-2">
-          {strain.floweringWeeks && (
+          {hasStrainNumber(strain.floweringWeeks) && (
             <span className="flex items-center gap-1 text-xs bg-gray-700/50 px-2 py-1 rounded">
               <Clock className="h-3 w-3" />
               {strain.floweringWeeks} weeks

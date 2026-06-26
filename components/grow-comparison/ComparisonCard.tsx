@@ -3,6 +3,7 @@
 import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { ArrowUp, ArrowDown, Minus } from 'lucide-react';
+import { getComparisonDirection, getComparisonValueClass } from '@/lib/comparison-utils';
 
 interface ComparisonMetric {
   label: string;
@@ -23,19 +24,26 @@ const ComparisonCard: React.FC<ComparisonCardProps> = ({
   icon,
   metrics,
 }) => {
+  const renderValue = (value: string | number, unit?: string) => {
+    if (value === '-') {
+      return value;
+    }
+
+    return `${value}${unit || ''}`;
+  };
+
   const getComparisonIcon = (
     value1: string | number,
     value2: string | number,
     higherIsBetter = true
   ) => {
-    const num1 = typeof value1 === 'number' ? value1 : parseFloat(value1.toString());
-    const num2 = typeof value2 === 'number' ? value2 : parseFloat(value2.toString());
+    const direction = getComparisonDirection(value1, value2, higherIsBetter);
 
-    if (isNaN(num1) || isNaN(num2) || num1 === num2) {
+    if (direction === 'equal') {
       return <Minus className="h-4 w-4 text-gray-400" />;
     }
 
-    if ((num1 > num2 && higherIsBetter) || (num1 < num2 && !higherIsBetter)) {
+    if (direction === 'first') {
       return <ArrowUp className="h-4 w-4 text-green-400" />;
     }
 
@@ -48,18 +56,7 @@ const ComparisonCard: React.FC<ComparisonCardProps> = ({
     isFirst: boolean,
     higherIsBetter = true
   ) => {
-    const num1 = typeof value1 === 'number' ? value1 : parseFloat(value1.toString());
-    const num2 = typeof value2 === 'number' ? value2 : parseFloat(value2.toString());
-
-    if (isNaN(num1) || isNaN(num2) || num1 === num2) {
-      return 'text-white';
-    }
-
-    const isBetter = isFirst
-      ? (num1 > num2 && higherIsBetter) || (num1 < num2 && !higherIsBetter)
-      : (num2 > num1 && higherIsBetter) || (num2 < num1 && !higherIsBetter);
-
-    return isBetter ? 'text-green-400' : 'text-gray-400';
+    return getComparisonValueClass(value1, value2, isFirst, higherIsBetter);
   };
 
   return (
@@ -76,11 +73,11 @@ const ComparisonCard: React.FC<ComparisonCardProps> = ({
             <span className="text-xs text-gray-400 flex-1">{metric.label}</span>
             <div className="flex items-center gap-3">
               <span className={`text-sm font-medium ${getValueColor(metric.value1, metric.value2, true, metric.higherIsBetter)}`}>
-                {metric.value1}{metric.unit || ''}
+                {renderValue(metric.value1, metric.unit)}
               </span>
               {getComparisonIcon(metric.value1, metric.value2, metric.higherIsBetter)}
               <span className={`text-sm font-medium ${getValueColor(metric.value1, metric.value2, false, metric.higherIsBetter)}`}>
-                {metric.value2}{metric.unit || ''}
+                {renderValue(metric.value2, metric.unit)}
               </span>
             </div>
           </div>

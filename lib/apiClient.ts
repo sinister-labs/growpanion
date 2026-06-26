@@ -16,6 +16,24 @@ interface ApiRequestOptions extends RequestInit {
     url: string;
 }
 
+export function normalizeApiHeaders(headers: HeadersInit | undefined): Record<string, string> {
+    if (!headers) {
+        return {};
+    }
+
+    if (headers instanceof Headers) {
+        return Object.fromEntries(headers.entries());
+    }
+
+    if (Array.isArray(headers)) {
+        return Object.fromEntries(headers.map(([key, value]) => [key, value]));
+    }
+
+    return Object.fromEntries(
+        Object.entries(headers).map(([key, value]) => [key, String(value)])
+    );
+}
+
 /**
  * Universal API client that communicates either through NextJS or Tauri backend
  * @param options Request options including the complete URL
@@ -24,6 +42,7 @@ interface ApiRequestOptions extends RequestInit {
 export async function apiRequest<T>(options: ApiRequestOptions): Promise<T> {
     const { url, method = 'GET', headers = {}, body, ...restOptions } = options;
     const isTauriApp = await isTauri();
+    const normalizedHeaders = normalizeApiHeaders(headers);
 
     if (isTauriApp) {
         try {
@@ -31,12 +50,18 @@ export async function apiRequest<T>(options: ApiRequestOptions): Promise<T> {
                 args: {
                     url,
                     method,
-                    headers: headers ? JSON.stringify(headers) : '{}',
-                    body: typeof body === 'string' ? body : body ? JSON.stringify(body) : null,
+                    headers: JSON.stringify(normalizedHeaders),
+                    body: body !== null && body !== undefined
+                        ? typeof body === 'string' ? body : JSON.stringify(body)
+                        : null,
                 }
             });
 
             const httpResponse: TauriHttpResponse = JSON.parse(responseStr);
+            if (httpResponse.status < 200 || httpResponse.status >= 300) {
+                throw new Error(`API Error (${httpResponse.status}): ${httpResponse.body}`);
+            }
+
             let responseData: T | { text: string };
             try {
                 responseData = JSON.parse(httpResponse.body) as T;
@@ -65,12 +90,11 @@ export async function apiRequest<T>(options: ApiRequestOptions): Promise<T> {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
-                    ...headers
                 },
                 body: JSON.stringify({
                     url,
                     method,
-                    headers,
+                    headers: normalizedHeaders,
                     body: processedBody
                 }),
                 ...restOptions

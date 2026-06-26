@@ -1,54 +1,22 @@
 "use client";
 
 import React, { useMemo } from 'react';
-import { HarvestedPlant } from './index';
 import { Leaf, TrendingUp, TrendingDown } from 'lucide-react';
+import { getStrainStats, type HarvestedPlant } from '@/lib/statistics-utils';
 
 interface StrainStatisticsProps {
   plants: HarvestedPlant[];
 }
 
-interface StrainStats {
-  name: string;
-  plantCount: number;
-  totalYield: number;
-  avgYield: number;
-  minYield: number;
-  maxYield: number;
-}
-
 export function StrainStatistics({ plants }: StrainStatisticsProps) {
-  const strainStats = useMemo<StrainStats[]>(() => {
-    const groupedByStrain = plants.reduce((acc, plant) => {
-      const strain = plant.genetic || 'Unknown';
-      if (!acc[strain]) {
-        acc[strain] = [];
-      }
-      acc[strain].push(plant);
-      return acc;
-    }, {} as Record<string, HarvestedPlant[]>);
-
-    return Object.entries(groupedByStrain)
-      .map(([name, strainPlants]) => {
-        const yields = strainPlants.map(p => p.harvest?.yieldDryGrams || 0);
-        const totalYield = yields.reduce((sum, y) => sum + y, 0);
-        
-        return {
-          name,
-          plantCount: strainPlants.length,
-          totalYield: Math.round(totalYield),
-          avgYield: Math.round(totalYield / strainPlants.length),
-          minYield: yields.length > 0 ? Math.round(Math.min(...yields)) : 0,
-          maxYield: yields.length > 0 ? Math.round(Math.max(...yields)) : 0,
-        };
-      })
-      .sort((a, b) => b.avgYield - a.avgYield); // Sort by average yield descending
+  const strainStats = useMemo(() => {
+    return getStrainStats(plants);
   }, [plants]);
 
   // Calculate overall average for comparison
   const overallAvg = useMemo(() => {
     if (plants.length === 0) return 0;
-    const total = plants.reduce((sum, p) => sum + (p.harvest?.yieldDryGrams || 0), 0);
+    const total = plants.reduce((sum, p) => sum + p.harvest.yieldDryGrams, 0);
     return Math.round(total / plants.length);
   }, [plants]);
 
@@ -85,7 +53,7 @@ export function StrainStatistics({ plants }: StrainStatisticsProps) {
           
           // Calculate bar width as percentage of max
           const maxAvgYield = Math.max(...strainStats.map(s => s.avgYield));
-          const barWidth = (strain.avgYield / maxAvgYield) * 100;
+          const barWidth = maxAvgYield > 0 ? (strain.avgYield / maxAvgYield) * 100 : 0;
 
           return (
             <div

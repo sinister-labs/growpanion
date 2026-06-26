@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useGrows } from "@/hooks/useGrows";
 import { Grow } from "@/lib/db";
 import { Button } from "@/components/ui/button";
@@ -10,7 +10,7 @@ import { Input } from "@/components/ui/input";
 import { Calendar, List, PlusCircle, Loader2 } from "lucide-react";
 import { CustomDropdown, DropdownOption } from "@/components/ui/custom-dropdown";
 import { formatDate } from "@/lib/utils";
-import { GROWTH_PHASES } from "@/lib/growth-utils";
+import { createInitialPhaseHistory, GROWTH_PHASES } from "@/lib/growth-utils";
 
 export function GrowSelector() {
     const {
@@ -27,10 +27,19 @@ export function GrowSelector() {
         name: "",
         startDate: new Date().toISOString().split("T")[0],
         currentPhase: "Seedling",
-        phaseHistory: [
-            { phase: "Seedling", startDate: new Date().toISOString() }
-        ]
+        phaseHistory: createInitialPhaseHistory("Seedling", new Date().toISOString().split("T")[0])
     });
+    const [isCreating, setIsCreating] = useState(false);
+    const [createError, setCreateError] = useState<string | null>(null);
+    const isMounted = useRef(false);
+
+    useEffect(() => {
+        isMounted.current = true;
+
+        return () => {
+            isMounted.current = false;
+        };
+    }, []);
 
     const handleGrowChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         setNewGrow({
@@ -47,23 +56,51 @@ export function GrowSelector() {
     };
 
     const handleCreateGrow = async () => {
-        if (!newGrow.name || !newGrow.startDate || !newGrow.currentPhase) {
+        const name = newGrow.name?.trim();
+        const startDate = newGrow.startDate;
+
+        if (!name || !startDate || !newGrow.currentPhase) {
+            setCreateError("Name, start date, and phase are required.");
             return;
         }
 
+        const parsedStartDate = new Date(startDate);
+        if (!Number.isFinite(parsedStartDate.getTime())) {
+            setCreateError("Start date is invalid.");
+            return;
+        }
+
+        setIsCreating(true);
+        setCreateError(null);
         try {
-            await addGrow(newGrow as Omit<Grow, "id">);
+            const growToCreate = {
+                ...newGrow,
+                name,
+                startDate,
+                phaseHistory: createInitialPhaseHistory(newGrow.currentPhase, startDate),
+            } as Omit<Grow, "id">;
+
+            await addGrow(growToCreate);
+            if (!isMounted.current) {
+                return;
+            }
+
             setIsNewGrowDialogOpen(false);
             setNewGrow({
                 name: "",
                 startDate: new Date().toISOString().split("T")[0],
                 currentPhase: "Seedling",
-                phaseHistory: [
-                    { phase: "Seedling", startDate: new Date().toISOString() }
-                ]
+                phaseHistory: createInitialPhaseHistory("Seedling", new Date().toISOString().split("T")[0])
             });
         } catch (error) {
             console.error("Error creating grow:", error);
+            if (isMounted.current) {
+                setCreateError(error instanceof Error ? error.message : "Could not create grow.");
+            }
+        } finally {
+            if (isMounted.current) {
+                setIsCreating(false);
+            }
         }
     };
 
@@ -100,7 +137,16 @@ export function GrowSelector() {
         <div className="bg-gray-800/50 rounded-lg border border-gray-700 p-4">
             <div className="flex justify-between items-center mb-4">
                 <h3 className="text-lg font-medium text-green-400">My Grows</h3>
-                <Dialog open={isNewGrowDialogOpen} onOpenChange={setIsNewGrowDialogOpen}>
+                <Dialog
+                    open={isNewGrowDialogOpen}
+                    onOpenChange={(open) => {
+                        if (isCreating) return;
+                        setIsNewGrowDialogOpen(open);
+                        if (open) {
+                            setCreateError(null);
+                        }
+                    }}
+                >
                     <DialogTrigger asChild>
                         <Button
                             variant="outline"
@@ -116,6 +162,11 @@ export function GrowSelector() {
                             <DialogTitle className="text-green-400">Create New Grow</DialogTitle>
                         </DialogHeader>
                         <div className="space-y-4 py-4">
+                            {createError && (
+                                <div className="rounded-md border border-red-800 bg-red-900/20 p-3 text-sm text-red-200">
+                                    {createError}
+                                </div>
+                            )}
                             <div className="grid w-full gap-2">
                                 <Label htmlFor="name">Name</Label>
                                 <Input
@@ -124,6 +175,7 @@ export function GrowSelector() {
                                     value={newGrow.name || ""}
                                     onChange={handleGrowChange}
                                     placeholder="e.g. Summer Grow 2023"
+                                    disabled={isCreating}
                                 />
                             </div>
                             <div className="grid w-full gap-2">
@@ -135,6 +187,7 @@ export function GrowSelector() {
                                         type="date"
                                         value={newGrow.startDate || ""}
                                         onChange={handleGrowChange}
+                                        disabled={isCreating}
                                     />
                                     <Calendar className="absolute right-3 top-2.5 h-4 w-4 text-gray-400 pointer-events-none" />
                                 </div>
@@ -147,14 +200,16 @@ export function GrowSelector() {
                                     onChange={handlePhaseChange}
                                     width="w-full"
                                     buttonClassName="bg-gray-700 border-gray-600"
+                                    disabled={isCreating}
                                 />
                             </div>
                             <div className="pt-4">
                                 <Button
                                     onClick={handleCreateGrow}
+                                    disabled={isCreating}
                                     className="w-full bg-green-600 hover:bg-green-700"
                                 >
-                                    Create Grow
+                                    {isCreating ? "Creating..." : "Create Grow"}
                                 </Button>
                             </div>
                         </div>
@@ -207,4 +262,4 @@ export function GrowSelector() {
             )}
         </div>
     );
-} 
+}

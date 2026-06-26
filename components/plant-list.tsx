@@ -20,78 +20,82 @@ interface PlantListProps {
   growId: string | null;
   plants?: Plant[];
   isLoading?: boolean;
+  onManageFertilizerMixes?: () => void;
 }
 
-export function PlantList({ growId, plants: providedPlants, isLoading: providedIsLoading }: PlantListProps) {
+export function PlantList({ growId, plants: providedPlants, isLoading: providedIsLoading, onManageFertilizerMixes }: PlantListProps) {
   const { plants: fetchedPlants, isLoading: fetchIsLoading, error, updatePlant, addPlant, removePlant } = usePlants(growId);
   const { toast } = useToast();
   const [harvestPlant, setHarvestPlant] = useState<Plant | null>(null);
+  const [isAddingPlant, setIsAddingPlant] = useState(false);
 
   const plants = providedPlants || fetchedPlants;
   const isLoading = providedIsLoading !== undefined ? providedIsLoading : fetchIsLoading;
 
-  const handleAddNewPlant = () => {
-    if (!growId) return;
+  const handleAddNewPlant = async () => {
+    if (!growId || isAddingPlant) return;
 
     const newPlant: Omit<Plant, 'id'> = {
       name: "New Plant",
-      genetic: "",
-      manufacturer: "",
+      genetic: "Unknown",
+      manufacturer: "Unknown",
       type: "regular",
       propagationMethod: "seed"
     };
 
-    addPlant(newPlant)
-      .then((plant) => {
-        toast({
-          variant: "success",
-          title: "Plant added",
-          description: `The plant "${plant.name}" has been successfully added.`,
-        });
-      })
-      .catch((error) => {
-        toast({
-          variant: "destructive",
-          title: "Error",
-          description: "Failed to add plant: " + error.message,
-        });
+    setIsAddingPlant(true);
+    try {
+      const plant = await addPlant(newPlant);
+      toast({
+        variant: "success",
+        title: "Plant added",
+        description: `The plant "${plant.name}" has been successfully added.`,
       });
+    } catch (error) {
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: "Failed to add plant: " + (error instanceof Error ? error.message : "Unknown error"),
+      });
+    } finally {
+      setIsAddingPlant(false);
+    }
   };
 
-  const handleUpdatePlant = (plant: Plant) => {
-    updatePlant(plant)
-      .then(() => {
-        toast({
-          variant: "success",
-          title: "Plant updated",
-          description: `The plant "${plant.name}" has been successfully updated.`,
-        });
-      })
-      .catch((error) => {
-        toast({
-          variant: "destructive",
-          title: "Error",
-          description: "Failed to update plant: " + error.message,
-        });
+  const handleUpdatePlant = async (plant: Plant): Promise<boolean> => {
+    try {
+      await updatePlant(plant);
+      toast({
+        variant: "success",
+        title: "Plant updated",
+        description: `The plant "${plant.name}" has been successfully updated.`,
       });
+      return true;
+    } catch (error) {
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: "Failed to update plant: " + (error instanceof Error ? error.message : "Unknown error"),
+      });
+      return false;
+    }
   };
 
-  const handleDeletePlant = (plantId: string, plantName: string) => {
-    removePlant(plantId)
-      .then(() => {
-        toast({
-          variant: "success",
-          title: "Plant deleted",
-          description: `The plant "${plantName}" has been successfully deleted.`,
-        });
-      })
-      .catch((error) => {
-        toast({
-          variant: "destructive",
-          title: "Error",
-          description: "Failed to delete plant: " + error.message,
-        });
+  const handleDeletePlant = async (plantId: string, plantName: string) => {
+    try {
+      await removePlant(plantId);
+      toast({
+        variant: "success",
+        title: "Plant deleted",
+        description: `The plant "${plantName}" has been successfully deleted.`,
       });
+    } catch (error) {
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: "Failed to delete plant: " + (error instanceof Error ? error.message : "Unknown error"),
+      });
+    }
   };
 
   if (!growId) {
@@ -127,8 +131,10 @@ export function PlantList({ growId, plants: providedPlants, isLoading: providedI
         <Button
           onClick={handleAddNewPlant}
           className="bg-green-600 hover:bg-green-700"
+          disabled={isAddingPlant}
         >
-          <Plus className="mr-2 h-4 w-4" /> New Plant
+          {isAddingPlant ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Plus className="mr-2 h-4 w-4" />}
+          New Plant
         </Button>
       </div>
 
@@ -140,8 +146,10 @@ export function PlantList({ growId, plants: providedPlants, isLoading: providedI
           <Button
             onClick={handleAddNewPlant}
             className="bg-green-600 hover:bg-green-700"
+            disabled={isAddingPlant}
           >
-            <Plus className="mr-2 h-4 w-4" /> Add First Plant
+            {isAddingPlant ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Plus className="mr-2 h-4 w-4" />}
+            Add First Plant
           </Button>
         </div>
       ) : (
@@ -176,7 +184,9 @@ export function PlantList({ growId, plants: providedPlants, isLoading: providedI
                         <span className="text-gray-500">dry</span>
                       </div>
                     ) : (
-                      <p className="text-xs sm:text-sm text-gray-400">{getLastActivity(plant)}</p>
+                      <p className={`text-xs sm:text-sm ${plant.isHarvested ? 'text-green-400' : 'text-gray-400'}`}>
+                        {getLastActivity(plant)}
+                      </p>
                     )}
                     {!plant.isHarvested && (
                       <Button
@@ -184,6 +194,7 @@ export function PlantList({ growId, plants: providedPlants, isLoading: providedI
                         size="sm"
                         className="w-full mt-2 border-green-600/50 text-green-400 hover:bg-green-600/20 rounded-full"
                         onClick={(e) => {
+                          e.preventDefault();
                           e.stopPropagation();
                           setHarvestPlant(plant);
                         }}
@@ -200,6 +211,7 @@ export function PlantList({ growId, plants: providedPlants, isLoading: providedI
                 updatePlant={handleUpdatePlant}
                 deletePlant={handleDeletePlant}
                 growId={growId}
+                onManageFertilizerMixes={onManageFertilizerMixes}
               />
             </Dialog>
           ))}
@@ -212,13 +224,15 @@ export function PlantList({ growId, plants: providedPlants, isLoading: providedI
           open={!!harvestPlant}
           onOpenChange={(open) => !open && setHarvestPlant(null)}
           plant={harvestPlant}
-          onSave={(updatedPlant) => {
-            handleUpdatePlant(updatedPlant);
-            setHarvestPlant(null);
+          onSave={async (updatedPlant) => {
+            const saved = await handleUpdatePlant(updatedPlant);
+            if (saved) {
+              setHarvestPlant(null);
+            }
+            return saved;
           }}
         />
       )}
     </div>
   );
 }
-

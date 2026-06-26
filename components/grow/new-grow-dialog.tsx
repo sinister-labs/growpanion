@@ -12,7 +12,7 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { CustomDropdown } from "@/components/ui/custom-dropdown"
-import { phaseOptions } from "@/components/ui/phase-badge"
+import { createInitialPhaseHistory, GROWTH_PHASES } from "@/lib/growth-utils"
 import { useDateUtils } from "@/hooks/useDateUtils"
 import { Calendar } from "lucide-react"
 
@@ -29,9 +29,7 @@ export function NewGrowDialog({ isOpen, onClose, onCreateGrow }: NewGrowDialogPr
         name: "",
         startDate: todayISOString(),
         currentPhase: "Seedling",
-        phaseHistory: [
-            { phase: "Seedling", startDate: new Date().toISOString() }
-        ]
+        phaseHistory: createInitialPhaseHistory("Seedling", todayISOString())
     });
 
     const [isSubmitting, setIsSubmitting] = useState(false);
@@ -58,7 +56,12 @@ export function NewGrowDialog({ isOpen, onClose, onCreateGrow }: NewGrowDialogPr
         setIsSubmitting(true);
 
         try {
-            await onCreateGrow(newGrow as Omit<Grow, "id">);
+            const growToCreate = {
+                ...newGrow,
+                phaseHistory: createInitialPhaseHistory(newGrow.currentPhase, newGrow.startDate),
+            } as Omit<Grow, "id">;
+
+            await onCreateGrow(growToCreate);
             resetForm();
             onClose();
         } catch (error) {
@@ -73,11 +76,14 @@ export function NewGrowDialog({ isOpen, onClose, onCreateGrow }: NewGrowDialogPr
             name: "",
             startDate: todayISOString(),
             currentPhase: "Seedling",
-            phaseHistory: [
-                { phase: "Seedling", startDate: new Date().toISOString() }
-            ]
+            phaseHistory: createInitialPhaseHistory("Seedling", todayISOString())
         });
     };
+
+    const phaseOptions = GROWTH_PHASES.filter(phase => phase !== "Done").map(phase => ({
+        id: phase,
+        label: phase
+    }));
 
     return (
         <Dialog open={isOpen} onOpenChange={(open) => {
@@ -137,4 +143,4 @@ export function NewGrowDialog({ isOpen, onClose, onCreateGrow }: NewGrowDialogPr
             </DialogContent>
         </Dialog>
     );
-} 
+}

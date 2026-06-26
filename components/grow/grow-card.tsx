@@ -1,5 +1,6 @@
 "use client"
 
+import type { KeyboardEvent } from "react"
 import {
     Card,
     CardContent,
@@ -13,6 +14,7 @@ import { Badge } from "@/components/ui/badge"
 import { Grow } from "@/lib/db"
 import { PhaseBadge } from "@/components/ui/phase-badge"
 import { useDateUtils } from "@/hooks/useDateUtils"
+import { getGrowElapsedDays } from "@/lib/growth-utils"
 
 interface GrowCardProps {
     grow: Grow;
@@ -21,15 +23,25 @@ interface GrowCardProps {
     isActive?: boolean;
 }
 
-export function GrowCard({ grow, onSetActive, isActive }: GrowCardProps) {
-    const { formatDate, getDaysSince } = useDateUtils();
+export function GrowCard({ grow, onClick, onSetActive, isActive }: GrowCardProps) {
+    const { formatDate } = useDateUtils();
 
     const formattedDate = formatDate(grow.startDate);
-    const daysSinceStart = getDaysSince(grow.startDate);
+    const daysSinceStart = getGrowElapsedDays(grow);
+    const handleKeyDown = (event: KeyboardEvent<HTMLDivElement>) => {
+        if (event.key === 'Enter' || event.key === ' ') {
+            event.preventDefault();
+            onClick();
+        }
+    };
 
     if (isActive === undefined || isActive) {
         return (
             <Card
+                role="button"
+                tabIndex={0}
+                onClick={onClick}
+                onKeyDown={handleKeyDown}
                 className={`bg-gray-800 bg-opacity-50 backdrop-filter backdrop-blur-lg border-gray-700 hover:border-green-400 transition-all duration-300 transform hover:scale-105 cursor-pointer ${isActive ? 'border-green-500 ring-1 ring-green-500' : ''}`}
             >
                 <CardHeader>
@@ -81,6 +93,10 @@ export function GrowCard({ grow, onSetActive, isActive }: GrowCardProps) {
     } else {
         return (
             <Card
+                role="button"
+                tabIndex={0}
+                onClick={onClick}
+                onKeyDown={handleKeyDown}
                 className="bg-gray-800/50 backdrop-filter backdrop-blur-lg border-gray-700 hover:border-gray-500 transition-all duration-300 transform hover:scale-105 cursor-pointer opacity-80"
             >
                 <CardHeader>
@@ -115,4 +131,4 @@ export function GrowCard({ grow, onSetActive, isActive }: GrowCardProps) {
             </Card>
         );
     }
-} 
+}

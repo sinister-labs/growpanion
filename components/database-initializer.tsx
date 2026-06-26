@@ -9,6 +9,22 @@ interface DatabaseInitializerProps {
     children: React.ReactNode;
 }
 
+const isDatabaseMarkedInitialized = (): boolean => {
+    try {
+        return sessionStorage.getItem('dbInitialized') === 'true';
+    } catch {
+        return false;
+    }
+};
+
+const markDatabaseInitialized = () => {
+    try {
+        sessionStorage.setItem('dbInitialized', 'true');
+    } catch {
+        // Storage can be unavailable in restricted browser contexts; DB init itself still succeeded.
+    }
+};
+
 export function DatabaseInitializer({ children }: DatabaseInitializerProps) {
     const [isInitialized, setIsInitialized] = useState(false);
     const [error, setError] = useState<string | null>(null);
@@ -16,8 +32,6 @@ export function DatabaseInitializer({ children }: DatabaseInitializerProps) {
     const [dbInitComplete, setDbInitComplete] = useState(false);
 
     useEffect(() => {
-        const isTauri = typeof window !== 'undefined' && 'window' in globalThis && !!((window as Window & { __TAURI__?: unknown }).__TAURI__);
-
         const interval = setInterval(() => {
             setLoadingProgress((prev) => {
                 const increment = dbInitComplete ? 5 : Math.random() * 7;
@@ -27,39 +41,61 @@ export function DatabaseInitializer({ children }: DatabaseInitializerProps) {
             });
         }, 200);
 
+        return () => clearInterval(interval);
+    }, [dbInitComplete]);
+
+    useEffect(() => {
+        let isMounted = true;
+        let completeTimeout: ReturnType<typeof setTimeout> | null = null;
+
         const initDatabase = async () => {
             try {
-                if (isTauri && sessionStorage.getItem('dbInitialized') !== 'true') {
-                    sessionStorage.setItem('dbInitialized', 'true');
+                if (!isDatabaseMarkedInitialized()) {
+                    await populateDBWithDemoDataIfEmpty();
+                    markDatabaseInitialized();
+                }
 
-                    setTimeout(() => {
-                        setDbInitComplete(true);
-                    }, 1500);
+                if (!isMounted) {
                     return;
                 }
 
-                await populateDBWithDemoDataIfEmpty();
-
-                setTimeout(() => {
-                    setDbInitComplete(true);
+                completeTimeout = setTimeout(() => {
+                    if (isMounted) {
+                        setDbInitComplete(true);
+                    }
                 }, 1200);
             } catch (err) {
                 console.error('Error initializing database:', err);
-                setError(err instanceof Error ? err.message : 'Unknown error initializing database');
+                if (isMounted) {
+                    setError(err instanceof Error ? err.message : 'Unknown error initializing database');
+                }
             }
         };
 
         initDatabase();
 
-        return () => clearInterval(interval);
-    }, [dbInitComplete]);
+        return () => {
+            isMounted = false;
+            if (completeTimeout) {
+                clearTimeout(completeTimeout);
+            }
+        };
+    }, []);
 
     useEffect(() => {
+        let initTimeout: ReturnType<typeof setTimeout> | null = null;
+
         if (loadingProgress >= 100) {
-            setTimeout(() => {
+            initTimeout = setTimeout(() => {
                 setIsInitialized(true);
             }, 300);
         }
+
+        return () => {
+            if (initTimeout) {
+                clearTimeout(initTimeout);
+            }
+        };
     }, [loadingProgress]);
 
     if (error) {
@@ -142,4 +178,4 @@ export function DatabaseInitializer({ children }: DatabaseInitializerProps) {
     }
 
     return <>{children}</>;
-} 
+}

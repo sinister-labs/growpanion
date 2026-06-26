@@ -1,53 +1,18 @@
 "use client";
 
 import React, { useMemo } from 'react';
-import { HarvestedPlant } from './index';
 import { Grow } from '@/lib/db';
 import { Scale, Calendar, Leaf } from 'lucide-react';
+import { getGrowStats, type HarvestedPlant } from '@/lib/statistics-utils';
 
 interface GrowStatisticsProps {
   plants: HarvestedPlant[];
   grows: Grow[];
 }
 
-interface GrowStats {
-  id: string;
-  name: string;
-  startDate: string;
-  plantCount: number;
-  totalYield: number;
-  avgYieldPerPlant: number;
-  strains: string[];
-}
-
 export function GrowStatistics({ plants, grows }: GrowStatisticsProps) {
-  const growStats = useMemo<GrowStats[]>(() => {
-    const groupedByGrow = plants.reduce((acc, plant) => {
-      if (!acc[plant.growId]) {
-        acc[plant.growId] = [];
-      }
-      acc[plant.growId].push(plant);
-      return acc;
-    }, {} as Record<string, HarvestedPlant[]>);
-
-    return Object.entries(groupedByGrow)
-      .map(([growId, growPlants]) => {
-        const grow = grows.find(g => g.id === growId);
-        const yields = growPlants.map(p => p.harvest?.yieldDryGrams || 0);
-        const totalYield = yields.reduce((sum, y) => sum + y, 0);
-        const uniqueStrains = [...new Set(growPlants.map(p => p.genetic))];
-
-        return {
-          id: growId,
-          name: grow?.name || 'Unknown Grow',
-          startDate: grow?.startDate || '',
-          plantCount: growPlants.length,
-          totalYield: Math.round(totalYield),
-          avgYieldPerPlant: Math.round(totalYield / growPlants.length),
-          strains: uniqueStrains,
-        };
-      })
-      .sort((a, b) => new Date(b.startDate).getTime() - new Date(a.startDate).getTime());
+  const growStats = useMemo(() => {
+    return getGrowStats(plants, grows);
   }, [plants, grows]);
 
   if (growStats.length === 0) {
@@ -63,7 +28,8 @@ export function GrowStatistics({ plants, grows }: GrowStatisticsProps) {
     <div className="space-y-4">
       {/* Grow Cards */}
       {growStats.map((grow) => {
-        const formattedDate = grow.startDate 
+        const startDate = new Date(grow.startDate);
+        const formattedDate = Number.isFinite(startDate.getTime())
           ? new Date(grow.startDate).toLocaleDateString('en-US', {
               month: 'short',
               year: 'numeric'

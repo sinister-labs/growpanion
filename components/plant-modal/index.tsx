@@ -18,7 +18,7 @@ import {
     AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 
-import { getCurrentDate, getTabIcon, FullscreenImage } from './shared-components';
+import { getCurrentDate, getTabIcon, FullscreenImage, isRenderableImage } from './shared-components';
 import { Plant, TabType, PlantModalProps, WateringRecord, TrainingRecord, SubstrateRecord } from './types';
 import InfoTab from './InfoTab';
 import WateringFeedingTab from './WateringFeedingTab';
@@ -29,18 +29,26 @@ import NotesTab from './NotesTab';
 import ImagesTab from './ImagesTab';
 import { Badge } from '../ui/badge';
 import { useFertilizerMixes } from "@/hooks/useFertilizerMixes";
+import { normalizeSubstrateRecord, normalizeTrainingRecord, normalizeWateringRecord } from '@/lib/plant-modal-utils';
 
-export function PlantModal({ plant, updatePlant, deletePlant, growId }: PlantModalProps) {
+const MAX_IMAGE_SIZE_BYTES = 5 * 1024 * 1024;
+
+export function PlantModal({ plant, updatePlant, deletePlant, growId, onManageFertilizerMixes }: PlantModalProps) {
     const [activeTab, setActiveTab] = useState<TabType>("info");
     const [localPlant, setLocalPlant] = useState<Plant>(plant);
     const [isMobile, setIsMobile] = useState(false);
     const [isMenuOpen, setIsMenuOpen] = useState(false);
     const [fullscreenImage, setFullscreenImage] = useState<string | null>(null);
     const [isSaving, setIsSaving] = useState(false);
+    const [isDeleting, setIsDeleting] = useState(false);
+    const [saveError, setSaveError] = useState<string | null>(null);
     const [showDeleteDialog, setShowDeleteDialog] = useState(false);
 
     // Load fertilizer mixes from the current grow
     const { mixes: availableMixes } = useFertilizerMixes(growId);
+    const previewImage = isRenderableImage(localPlant.images?.[0])
+        ? localPlant.images?.[0]
+        : "/placeholder.svg";
 
     // Initialize entries
     const [newWatering, setNewWatering] = useState<WateringRecord>({
@@ -81,13 +89,15 @@ export function PlantModal({ plant, updatePlant, deletePlant, growId }: PlantMod
     }, [plant]);
 
     const handleWateringAdd = () => {
-        if (!newWatering.date || !newWatering.amount) return;
+        const amount = Number(newWatering.amount);
+        const date = new Date(newWatering.date);
+        if (!Number.isFinite(date.getTime()) || !Number.isFinite(amount) || amount <= 0) return;
 
         setLocalPlant({
             ...localPlant,
             waterings: [
                 ...(localPlant.waterings || []),
-                { ...newWatering }
+                normalizeWateringRecord(newWatering)
             ]
         });
 
@@ -99,13 +109,14 @@ export function PlantModal({ plant, updatePlant, deletePlant, growId }: PlantMod
     };
 
     const handleHSTAdd = () => {
-        if (!newHST.date || !newHST.method) return;
+        const date = new Date(newHST.date);
+        if (!Number.isFinite(date.getTime()) || !newHST.method.trim()) return;
 
         setLocalPlant({
             ...localPlant,
             hstRecords: [
                 ...(localPlant.hstRecords || []),
-                { ...newHST }
+                normalizeTrainingRecord(newHST)
             ]
         });
 
@@ -116,13 +127,14 @@ export function PlantModal({ plant, updatePlant, deletePlant, growId }: PlantMod
     };
 
     const handleLSTAdd = () => {
-        if (!newLST.date || !newLST.method) return;
+        const date = new Date(newLST.date);
+        if (!Number.isFinite(date.getTime()) || !newLST.method.trim()) return;
 
         setLocalPlant({
             ...localPlant,
             lstRecords: [
                 ...(localPlant.lstRecords || []),
-                { ...newLST }
+                normalizeTrainingRecord(newLST)
             ]
         });
 
@@ -133,13 +145,15 @@ export function PlantModal({ plant, updatePlant, deletePlant, growId }: PlantMod
     };
 
     const handleSubstrateAdd = () => {
-        if (!newSubstrate.date || !newSubstrate.substrateType || !newSubstrate.potSize) return;
+        const date = new Date(newSubstrate.date);
+        const potSize = Number(newSubstrate.potSize);
+        if (!Number.isFinite(date.getTime()) || !newSubstrate.substrateType.trim() || !Number.isFinite(potSize) || potSize <= 0) return;
 
         setLocalPlant({
             ...localPlant,
             substrateRecords: [
                 ...(localPlant.substrateRecords || []),
-                { ...newSubstrate }
+                normalizeSubstrateRecord(newSubstrate)
             ]
         });
 
@@ -151,16 +165,32 @@ export function PlantModal({ plant, updatePlant, deletePlant, growId }: PlantMod
         });
     };
 
-    const handleSave = () => {
-        setIsSaving(true);
-        // Save plant data and call updatePlant callback
-        // The toast appears in the PlantList component through the passed callback
-        updatePlant(localPlant);
+    const handleSave = async () => {
+        const plantToSave: Plant = {
+            ...localPlant,
+            name: localPlant.name.trim(),
+            genetic: localPlant.genetic.trim(),
+            manufacturer: localPlant.manufacturer.trim(),
+        };
 
-        // Short animation for visual feedback directly in the component
-        setTimeout(() => {
+        if (!plantToSave.name || !plantToSave.genetic || !plantToSave.manufacturer) {
+            setSaveError("Name, genetic, and manufacturer are required.");
+            setActiveTab("info");
+            return;
+        }
+
+        setIsSaving(true);
+        setSaveError(null);
+        try {
+            const result = await updatePlant(plantToSave);
+            if (result === false) {
+                setSaveError("Failed to save plant.");
+            }
+        } catch (error) {
+            setSaveError(error instanceof Error ? error.message : "Failed to save plant.");
+        } finally {
             setIsSaving(false);
-        }, 1000);
+        }
     };
 
     // Delete functions for the different record types
@@ -194,19 +224,29 @@ export function PlantModal({ plant, updatePlant, deletePlant, growId }: PlantMod
 
     const onDrop = useCallback((acceptedFiles: File[]) => {
         acceptedFiles.forEach((file) => {
+            if (!file.type.startsWith('image/') || file.size > MAX_IMAGE_SIZE_BYTES) {
+                return;
+            }
+
             const reader = new FileReader();
             reader.onload = () => {
+                if (typeof reader.result !== 'string' || !reader.result.startsWith('data:image/')) {
+                    return;
+                }
+
                 setLocalPlant((prevPlant) => ({
                     ...prevPlant,
                     images: [...(prevPlant.images || []), reader.result as string],
                 }));
             };
+            reader.onerror = () => undefined;
             reader.readAsDataURL(file);
         });
     }, []);
 
     const { getRootProps, getInputProps, isDragActive } = useDropzone({
         onDrop,
+        maxSize: MAX_IMAGE_SIZE_BYTES,
         accept: {
             'image/*': []
         }
@@ -224,12 +264,24 @@ export function PlantModal({ plant, updatePlant, deletePlant, growId }: PlantMod
 
     // Function to open the delete dialog
     const handleDeleteClick = () => {
+        setSaveError(null);
         setShowDeleteDialog(true);
     };
 
     // Function to delete the plant
-    const confirmDelete = () => {
-        deletePlant(plant.id, plant.name);
+    const confirmDelete = async () => {
+        if (isDeleting) return;
+
+        setIsDeleting(true);
+        setSaveError(null);
+        try {
+            await deletePlant(plant.id, plant.name);
+            setShowDeleteDialog(false);
+        } catch (error) {
+            setSaveError(error instanceof Error ? error.message : "Failed to delete plant.");
+        } finally {
+            setIsDeleting(false);
+        }
     };
 
     // Füge den Bestätigungsdialog für das Löschen hinzu
@@ -243,16 +295,26 @@ export function PlantModal({ plant, updatePlant, deletePlant, growId }: PlantMod
                         <br />
                         <span className="text-red-400">This action cannot be undone.</span>
                     </AlertDialogDescription>
+                    {saveError && (
+                        <p className="text-sm text-red-400">{saveError}</p>
+                    )}
                 </AlertDialogHeader>
                 <AlertDialogFooter>
-                    <AlertDialogCancel className="bg-gray-700 text-white hover:bg-gray-600 border-none rounded-full">
+                    <AlertDialogCancel
+                        disabled={isDeleting}
+                        className="bg-gray-700 text-white hover:bg-gray-600 border-none rounded-full"
+                    >
                         Cancel
                     </AlertDialogCancel>
                     <AlertDialogAction
-                        onClick={confirmDelete}
+                        onClick={(event) => {
+                            event.preventDefault();
+                            void confirmDelete();
+                        }}
+                        disabled={isDeleting}
                         className="bg-red-600 text-white hover:bg-red-700 border-none rounded-full"
                     >
-                        Delete Plant
+                        {isDeleting ? 'Deleting...' : 'Delete Plant'}
                     </AlertDialogAction>
                 </AlertDialogFooter>
             </AlertDialogContent>
@@ -279,8 +341,9 @@ export function PlantModal({ plant, updatePlant, deletePlant, growId }: PlantMod
                 <div className="flex items-center justify-between p-4 border-b border-gray-700">
                     <div className="flex items-center space-x-4">
                         <div className="w-24 aspect-square rounded-md overflow-hidden border-2 border-green-500">
+                            {/* eslint-disable-next-line @next/next/no-img-element -- User images are stored as dynamic data/blob URLs from IndexedDB. */}
                             <img
-                                src={localPlant.images?.[0] || "/placeholder.svg"}
+                                src={previewImage}
                                 alt={localPlant.name}
                                 className="w-full h-full object-cover"
                             />
@@ -420,7 +483,7 @@ export function PlantModal({ plant, updatePlant, deletePlant, growId }: PlantMod
                                                         handleWateringAdd={handleWateringAdd}
                                                         handleWateringDelete={handleWateringDelete}
                                                         availableMixes={availableMixes}
-                                                        growId={growId}
+                                                        onManageFertilizerMixes={onManageFertilizerMixes}
                                                     />
                                                 )}
                                                 {activeTab === "hst" && (
@@ -455,6 +518,7 @@ export function PlantModal({ plant, updatePlant, deletePlant, growId }: PlantMod
                                                 )}
                                                 {activeTab === "notes" && (
                                                     <NotesTab
+                                                        key={localPlant.id}
                                                         localPlant={localPlant}
                                                         setLocalPlant={setLocalPlant}
                                                     />
@@ -484,6 +548,9 @@ export function PlantModal({ plant, updatePlant, deletePlant, growId }: PlantMod
 
             {/* Footer mit nur Speichern: */}
             <div className="p-3 border-t border-gray-700 bg-gray-900/50 backdrop-blur-sm">
+                {saveError && (
+                    <p className="text-sm text-red-400 mb-2">{saveError}</p>
+                )}
                 <Button
                     onClick={handleSave}
                     className={`w-full transition-all duration-200 ${isSaving ? "bg-green-800 hover:bg-green-800" : "bg-green-600 hover:bg-green-700"
@@ -498,7 +565,7 @@ export function PlantModal({ plant, updatePlant, deletePlant, growId }: PlantMod
                     <span className={`absolute inset-0 flex items-center justify-center transition-all duration-200 ${isSaving ? "opacity-100 transform scale-100" : "opacity-0 transform scale-50"
                         }`}>
                         <Check className="h-5 w-5 mr-2" />
-                        Saved
+                        Saving...
                     </span>
                 </Button>
             </div>
@@ -513,4 +580,4 @@ export function PlantModal({ plant, updatePlant, deletePlant, growId }: PlantMod
             </AnimatePresence>
         </DialogContent>
     );
-} 
+}

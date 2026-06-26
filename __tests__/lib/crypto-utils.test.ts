@@ -1,7 +1,18 @@
 import { describe, it, expect } from 'vitest';
-import { encrypt, decrypt, isEncryptedFormat, testDecryption } from '@/lib/crypto-utils';
+import { base64ToBytes, bytesToBase64, encrypt, decrypt, isEncryptedFormat, testDecryption } from '@/lib/crypto-utils';
 
 describe('crypto-utils', () => {
+    describe('base64 byte helpers', () => {
+        it('round-trips byte arrays without relying on argument-spread limits', () => {
+            const bytes = new Uint8Array(150000);
+            bytes.forEach((_, index) => {
+                bytes[index] = index % 256;
+            });
+
+            expect(base64ToBytes(bytesToBase64(bytes))).toEqual(bytes);
+        });
+    });
+
     describe('encrypt/decrypt', () => {
         it('should encrypt and decrypt a simple string', async () => {
             const plaintext = 'Hello, World!';

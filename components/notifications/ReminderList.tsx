@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useRef, useState, useEffect, useCallback } from 'react';
 import { 
     Bell, 
     Droplets, 
@@ -31,9 +31,12 @@ import {
     ReminderType,
     getRemindersForGrow,
     saveReminder,
-    deleteReminder
+    deleteReminder,
+    getNotificationSettings
 } from '@/lib/db';
 import { ReminderDialog } from './ReminderDialog';
+import { calculateNextDue } from '@/lib/notification-utils';
+import { formatReminderDueStatus, getReminderDueBadgeClass, sortRemindersByDueDate } from '@/lib/reminder-utils';
 
 const typeIcons: Record<ReminderType, React.ReactNode> = {
     watering: <Droplets className="h-4 w-4 text-blue-500" />,
@@ -64,14 +67,22 @@ export function ReminderList({ growId, growName }: ReminderListProps) {
     const [editingReminder, setEditingReminder] = useState<Reminder | undefined>();
     const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
     const [reminderToDelete, setReminderToDelete] = useState<string | null>(null);
+    const loadRequestId = useRef(0);
+    const isMounted = useRef(true);
 
     const loadReminders = useCallback(async () => {
+        const requestId = ++loadRequestId.current;
+        setIsLoading(true);
+
         try {
             const data = await getRemindersForGrow(growId);
+            if (!isMounted.current || requestId !== loadRequestId.current) return;
+
             // Sort by next due date
-            data.sort((a, b) => new Date(a.nextDue).getTime() - new Date(b.nextDue).getTime());
-            setReminders(data);
+            setReminders(sortRemindersByDueDate(data));
         } catch (error) {
+            if (!isMounted.current || requestId !== loadRequestId.current) return;
+
             console.error('Failed to load reminders:', error);
             toast({
                 title: 'Error',
@@ -79,19 +90,34 @@ export function ReminderList({ growId, growName }: ReminderListProps) {
                 variant: 'destructive'
             });
         } finally {
-            setIsLoading(false);
+            if (isMounted.current && requestId === loadRequestId.current) {
+                setIsLoading(false);
+            }
         }
     }, [growId, toast]);
 
     useEffect(() => {
+        isMounted.current = true;
         loadReminders();
+        return () => {
+            isMounted.current = false;
+        };
     }, [loadReminders]);
 
     const handleToggleEnabled = async (reminder: Reminder) => {
         try {
-            const updated = { ...reminder, enabled: !reminder.enabled };
+            const enabling = !reminder.enabled;
+            const currentDue = new Date(reminder.nextDue);
+            const settings = enabling ? await getNotificationSettings() : null;
+            const updated = {
+                ...reminder,
+                enabled: enabling,
+                nextDue: enabling && (!Number.isFinite(currentDue.getTime()) || currentDue <= new Date())
+                    ? calculateNextDue(reminder.intervalDays, settings?.defaultReminderTime)
+                    : reminder.nextDue
+            };
             await saveReminder(updated);
-            setReminders(prev => prev.map(r => r.id === reminder.id ? updated : r));
+            setReminders(prev => sortRemindersByDueDate(prev.map(r => r.id === reminder.id ? updated : r)));
             toast({
                 title: updated.enabled ? 'Reminder Enabled' : 'Reminder Disabled',
                 description: `"${reminder.title}" is now ${updated.enabled ? 'active' : 'paused'}`
@@ -143,38 +169,6 @@ export function ReminderList({ growId, growName }: ReminderListProps) {
         setDialogOpen(false);
         setEditingReminder(undefined);
         loadReminders();
-    };
-
-    const formatNextDue = (dateString: string): string => {
-        const date = new Date(dateString);
-        const now = new Date();
-        const diffMs = date.getTime() - now.getTime();
-        const diffHours = Math.floor(diffMs / (1000 * 60 * 60));
-        const diffDays = Math.floor(diffHours / 24);
-
-        if (diffMs < 0) {
-            return 'Overdue';
-        } else if (diffHours < 1) {
-            return 'Due soon';
-        } else if (diffHours < 24) {
-            return `In ${diffHours}h`;
-        } else if (diffDays === 1) {
-            return 'Tomorrow';
-        } else {
-            return `In ${diffDays} days`;
-        }
-    };
-
-    const getDueBadgeClass = (dateString: string): string => {
-        const date = new Date(dateString);
-        const now = new Date();
-        const diffMs = date.getTime() - now.getTime();
-        const diffHours = diffMs / (1000 * 60 * 60);
-
-        const baseClass = 'inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-semibold';
-        if (diffMs < 0) return `${baseClass} bg-red-500/20 text-red-400`;
-        if (diffHours < 24) return `${baseClass} bg-green-500/20 text-green-400`;
-        return `${baseClass} bg-gray-500/20 text-gray-400`;
     };
 
     if (isLoading) {
@@ -248,8 +242,8 @@ export function ReminderList({ growId, growName }: ReminderListProps) {
                                     </div>
                                     <div className="flex items-center gap-2">
                                         {reminder.enabled && (
-                                            <span className={getDueBadgeClass(reminder.nextDue)}>
-                                                {formatNextDue(reminder.nextDue)}
+                                            <span className={getReminderDueBadgeClass(reminder.nextDue)}>
+                                                {formatReminderDueStatus(reminder.nextDue)}
                                             </span>
                                         )}
                                         <Button

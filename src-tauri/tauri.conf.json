@@ -2,7 +2,7 @@
     "identifier": "com.synrlabs.growpanion",
     "build": {
         "beforeDevCommand": "npm run dev",
-        "beforeBuildCommand": "npm run build",
+        "beforeBuildCommand": "env NEXT_PUBLIC_DEPLOYMENT_MODE=tauri npm run build",
         "devUrl": "http://localhost:3000",
         "frontendDist": "../out"
     },

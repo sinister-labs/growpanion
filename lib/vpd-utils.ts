@@ -9,7 +9,12 @@
  * @returns Saturation vapor pressure in kPa
  */
 export function calculateSVP(tempC: number): number {
-  return 0.61078 * Math.exp((17.27 * tempC) / (tempC + 237.3));
+  if (!Number.isFinite(tempC) || tempC <= -237.3) {
+    return 0;
+  }
+
+  const svp = 0.61078 * Math.exp((17.27 * tempC) / (tempC + 237.3));
+  return Number.isFinite(svp) ? svp : 0;
 }
 
 /**
@@ -19,16 +24,23 @@ export function calculateSVP(tempC: number): number {
  * @returns VPD in kPa
  */
 export function calculateVPD(airTempC: number, humidity: number): number {
+  if (!Number.isFinite(airTempC)) {
+    return 0;
+  }
+
+  const normalizedHumidity = Number.isFinite(humidity)
+    ? Math.min(100, Math.max(0, humidity))
+    : 0;
   const leafTempC = airTempC - 2;
 
   const leafSVP = calculateSVP(leafTempC);
 
   const airSVP = calculateSVP(airTempC);
-  const actualVaporPressure = airSVP * (humidity / 100);
+  const actualVaporPressure = airSVP * (normalizedHumidity / 100);
 
   const vpd = leafSVP - actualVaporPressure;
 
-  return Number(vpd.toFixed(2));
+  return Math.max(0, Number(vpd.toFixed(2)));
 }
 
 export interface VpdRange {
@@ -87,7 +99,7 @@ export function getOptimalVpdRange(phase?: string, currentDay?: number): VpdRang
   }
 
   if (lowerPhase === 'vegetative') {
-    if (currentDay && currentDay <= 14) {
+    if (typeof currentDay === 'number' && Number.isFinite(currentDay) && currentDay <= 14) {
       return vpdRanges['early_veg'];
     } else {
       return vpdRanges['late_veg'];
@@ -95,7 +107,7 @@ export function getOptimalVpdRange(phase?: string, currentDay?: number): VpdRang
   }
 
   if (lowerPhase === 'flowering') {
-    if (currentDay && currentDay <= 21) {
+    if (typeof currentDay === 'number' && Number.isFinite(currentDay) && currentDay <= 21) {
       return vpdRanges['early_flower'];
     } else {
       return vpdRanges['late_flower'];
@@ -118,6 +130,7 @@ export type VpdStatus = 'optimal' | 'low' | 'high' | 'unknown';
  */
 export function getVpdStatus(vpdValue: number, optimalRange: VpdRange | null): VpdStatus {
   if (!optimalRange) return 'unknown';
+  if (!Number.isFinite(vpdValue)) return 'unknown';
 
   if (vpdValue < optimalRange.min) return 'low';
   if (vpdValue > optimalRange.max) return 'high';
@@ -157,4 +170,4 @@ export function getVpdStatusText(status: VpdStatus, optimalRange: VpdRange | nul
     default:
       return 'Status unknown';
   }
-} 
+}

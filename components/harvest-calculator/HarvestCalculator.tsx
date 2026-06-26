@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useMemo } from 'react';
+import React, { useEffect, useState, useMemo } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -32,13 +32,30 @@ interface HarvestCalculatorProps {
   onSaveYield?: (expected: number, actual: number) => void;
 }
 
+const clampFiniteNumber = (value: number, min: number, max: number, fallback: number): number => {
+  if (!Number.isFinite(value)) return fallback;
+  return Math.min(max, Math.max(min, value));
+};
+
+const parseClampedNumber = (value: string, min: number, max: number, fallback: number): number => {
+  if (value.trim() === '') return fallback;
+  return clampFiniteNumber(Number(value), min, max, fallback);
+};
+
+const parseOptionalClampedNumber = (value: string, min: number, max: number): number | undefined => {
+  if (value.trim() === '') return undefined;
+  const parsed = Number(value);
+  return Number.isFinite(parsed) ? clampFiniteNumber(parsed, min, max, min) : undefined;
+};
+
 const HarvestCalculator: React.FC<HarvestCalculatorProps> = ({
   initialPlantCount = 4,
+  expectedYield,
   actualYield: initialActualYield,
   onSaveYield,
 }) => {
   // Form state
-  const [plantCount, setPlantCount] = useState(initialPlantCount);
+  const [plantCount, setPlantCount] = useState(() => Math.round(clampFiniteNumber(initialPlantCount, 1, 100, 4)));
   const [strainType, setStrainType] = useState<StrainType>('photo');
   const [medium, setMedium] = useState<MediumType>('soil');
   const [lightType, setLightType] = useState<LightType>('led');
@@ -47,7 +64,16 @@ const HarvestCalculator: React.FC<HarvestCalculatorProps> = ({
   const [growSpaceSqM, setGrowSpaceSqM] = useState<number | undefined>(1);
 
   // Actual yield input
-  const [actualYield, setActualYield] = useState<number | undefined>(initialActualYield);
+  const [actualYield, setActualYield] = useState<number | undefined>(() => (
+    initialActualYield != null ? parseOptionalClampedNumber(String(initialActualYield), 0.1, 100000) : undefined
+  ));
+
+  useEffect(() => {
+    setActualYield(initialActualYield != null
+      ? parseOptionalClampedNumber(String(initialActualYield), 0.1, 100000)
+      : undefined
+    );
+  }, [initialActualYield]);
 
   // Calculate estimation
   const estimation = useMemo<YieldEstimation>(() => {
@@ -62,13 +88,20 @@ const HarvestCalculator: React.FC<HarvestCalculatorProps> = ({
     });
   }, [plantCount, strainType, medium, lightType, lightWattage, experienceLevel, growSpaceSqM]);
 
+  const comparisonExpectedYield = expectedYield != null && Number.isFinite(expectedYield) && expectedYield > 0
+    ? expectedYield
+    : estimation.averageYield;
+
   // Calculate comparison if actual yield is provided
   const comparison = useMemo<YieldComparison | null>(() => {
     if (actualYield && actualYield > 0) {
-      return compareYield(estimation, actualYield);
+      return compareYield({
+        ...estimation,
+        averageYield: comparisonExpectedYield,
+      }, actualYield);
     }
     return null;
-  }, [estimation, actualYield]);
+  }, [estimation, comparisonExpectedYield, actualYield]);
 
   // Dropdown options
   const strainOptions = Object.entries(STRAIN_TYPE_LABELS).map(([id, label]) => ({
@@ -93,7 +126,7 @@ const HarvestCalculator: React.FC<HarvestCalculatorProps> = ({
 
   const handleSave = () => {
     if (onSaveYield && actualYield) {
-      onSaveYield(estimation.averageYield, actualYield);
+      onSaveYield(comparisonExpectedYield, actualYield);
     }
   };
 
@@ -142,7 +175,7 @@ const HarvestCalculator: React.FC<HarvestCalculatorProps> = ({
                   min={1}
                   max={100}
                   value={plantCount}
-                  onChange={(e) => setPlantCount(Math.max(1, parseInt(e.target.value) || 1))}
+                  onChange={(e) => setPlantCount(Math.round(parseClampedNumber(e.target.value, 1, 100, 1)))}
                   className="mt-1"
                 />
               </div>
@@ -190,7 +223,7 @@ const HarvestCalculator: React.FC<HarvestCalculatorProps> = ({
                   min={50}
                   max={2000}
                   value={lightWattage}
-                  onChange={(e) => setLightWattage(Math.max(50, parseInt(e.target.value) || 400))}
+                  onChange={(e) => setLightWattage(parseClampedNumber(e.target.value, 50, 2000, 400))}
                   className="mt-1"
                 />
               </div>
@@ -215,7 +248,7 @@ const HarvestCalculator: React.FC<HarvestCalculatorProps> = ({
                   max={100}
                   step={0.1}
                   value={growSpaceSqM || ''}
-                  onChange={(e) => setGrowSpaceSqM(parseFloat(e.target.value) || undefined)}
+                  onChange={(e) => setGrowSpaceSqM(parseOptionalClampedNumber(e.target.value, 0.1, 100))}
                   className="mt-1"
                   placeholder="e.g., 1.0"
                 />
@@ -275,7 +308,7 @@ const HarvestCalculator: React.FC<HarvestCalculatorProps> = ({
                   type="number"
                   min={0}
                   value={actualYield || ''}
-                  onChange={(e) => setActualYield(parseInt(e.target.value) || undefined)}
+                  onChange={(e) => setActualYield(parseOptionalClampedNumber(e.target.value, 0.1, 100000))}
                   className="mt-1"
                   placeholder="Enter your actual harvest weight in grams"
                 />

@@ -15,12 +15,13 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Plant, HarvestRecord } from '@/components/plant-modal/types';
 import { Scale, Droplets, Leaf, Calendar } from 'lucide-react';
+import { calculateDryingLoss, parsePositiveHarvestWeight } from '@/lib/harvest-utils';
 
 interface HarvestDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   plant: Plant;
-  onSave: (plant: Plant) => void;
+  onSave: (plant: Plant) => boolean | void | Promise<boolean | void>;
 }
 
 export function HarvestDialog({ open, onOpenChange, plant, onSave }: HarvestDialogProps) {
@@ -34,21 +35,28 @@ export function HarvestDialog({ open, onOpenChange, plant, onSave }: HarvestDial
     plant.harvest?.yieldDryGrams?.toString() || ''
   );
   const [notes, setNotes] = useState(plant.harvest?.notes || '');
+  const [isSaving, setIsSaving] = useState(false);
+  const [saveError, setSaveError] = useState<string | null>(null);
 
-  const dryingLoss = React.useMemo(() => {
-    const wet = parseFloat(yieldWetGrams);
-    const dry = parseFloat(yieldDryGrams);
-    if (wet > 0 && dry > 0) {
-      return Math.round(((wet - dry) / wet) * 100);
-    }
-    return null;
-  }, [yieldWetGrams, yieldDryGrams]);
+  const wetWeightValue = parsePositiveHarvestWeight(yieldWetGrams);
+  const dryWeightValue = parsePositiveHarvestWeight(yieldDryGrams);
+  const dryingLoss = React.useMemo(
+    () => calculateDryingLoss(wetWeightValue, dryWeightValue),
+    [wetWeightValue, dryWeightValue]
+  );
+  const hasInvalidWetWeight = yieldWetGrams.trim() !== '' && wetWeightValue === null;
+  const hasInvalidDryWeight = yieldDryGrams.trim() !== '' && dryWeightValue === null;
+  const hasImpossibleDryingLoss = wetWeightValue !== null &&
+    dryWeightValue !== null &&
+    dryWeightValue > wetWeightValue;
 
-  const handleSave = () => {
+  const handleSave = async () => {
+    if (isSaving) return;
+
     const harvest: HarvestRecord = {
       date: harvestDate,
-      yieldWetGrams: yieldWetGrams ? parseFloat(yieldWetGrams) : undefined,
-      yieldDryGrams: yieldDryGrams ? parseFloat(yieldDryGrams) : undefined,
+      yieldWetGrams: wetWeightValue ?? undefined,
+      yieldDryGrams: dryWeightValue ?? undefined,
       notes: notes || undefined,
     };
 
@@ -58,11 +66,23 @@ export function HarvestDialog({ open, onOpenChange, plant, onSave }: HarvestDial
       isHarvested: true,
     };
 
-    onSave(updatedPlant);
-    onOpenChange(false);
+    setIsSaving(true);
+    setSaveError(null);
+    try {
+      const saved = await onSave(updatedPlant);
+      if (saved === false) {
+        setSaveError('Failed to save harvest.');
+        return;
+      }
+      onOpenChange(false);
+    } catch (error) {
+      setSaveError(error instanceof Error ? error.message : 'Failed to save harvest.');
+    } finally {
+      setIsSaving(false);
+    }
   };
 
-  const canSave = yieldDryGrams && parseFloat(yieldDryGrams) > 0;
+  const canSave = dryWeightValue !== null && !hasInvalidWetWeight && !hasImpossibleDryingLoss;
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -141,6 +161,30 @@ export function HarvestDialog({ open, onOpenChange, plant, onSave }: HarvestDial
             </div>
           )}
 
+          {hasImpossibleDryingLoss && (
+            <p className="text-xs text-red-400">
+              Dry weight cannot be greater than wet weight.
+            </p>
+          )}
+
+          {hasInvalidWetWeight && (
+            <p className="text-xs text-red-400">
+              Wet weight must be a positive number when provided.
+            </p>
+          )}
+
+          {hasInvalidDryWeight && (
+            <p className="text-xs text-red-400">
+              Dry weight must be a positive number.
+            </p>
+          )}
+
+          {saveError && (
+            <p className="text-xs text-red-400">
+              {saveError}
+            </p>
+          )}
+
           {/* Notes */}
           <div className="space-y-2">
             <Label>Notes (Optional)</Label>
@@ -158,16 +202,17 @@ export function HarvestDialog({ open, onOpenChange, plant, onSave }: HarvestDial
             variant="outline"
             onClick={() => onOpenChange(false)}
             className="border-gray-600 text-gray-300"
+            disabled={isSaving}
           >
             Cancel
           </Button>
           <Button
             onClick={handleSave}
-            disabled={!canSave}
+            disabled={!canSave || isSaving}
             className="bg-green-600 hover:bg-green-700"
           >
             <Scale className="h-4 w-4 mr-2" />
-            Save Harvest
+            {isSaving ? 'Saving...' : 'Save Harvest'}
           </Button>
         </DialogFooter>
       </DialogContent>

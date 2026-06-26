@@ -1,15 +1,31 @@
 "use client";
 
-import React from 'react';
+import React, { useState } from 'react';
 import { motion } from 'framer-motion';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { Button } from '@/components/ui/button';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { TabComponentProps } from './types';
 import { CustomDropdown, DropdownOption } from '@/components/ui/custom-dropdown';
+import { StrainLibrary } from '@/components/strain-library';
+import type { Strain } from '@/lib/db';
+import { Cannabis } from 'lucide-react';
 
 const InfoTab: React.FC<TabComponentProps> = ({ localPlant, setLocalPlant }) => {
+    const [isStrainSelectorOpen, setIsStrainSelectorOpen] = useState(false);
+
     const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         setLocalPlant({ ...localPlant, [e.target.name]: e.target.value });
+    };
+
+    const handleStrainSelect = (strain: Strain) => {
+        setLocalPlant((currentPlant) => ({
+            ...currentPlant,
+            genetic: strain.name,
+            manufacturer: strain.breeder,
+        }));
+        setIsStrainSelectorOpen(false);
     };
 
     // Dropdown options for plant type
@@ -44,6 +60,17 @@ const InfoTab: React.FC<TabComponentProps> = ({ localPlant, setLocalPlant }) => 
                     value={localPlant.name || ''}
                     onChange={handleInputChange}
                 />
+            </div>
+            <div className="flex justify-end">
+                <Button
+                    type="button"
+                    variant="outline"
+                    onClick={() => setIsStrainSelectorOpen(true)}
+                    className="border-green-600/50 text-green-400 hover:bg-green-600/20"
+                >
+                    <Cannabis className="h-4 w-4 mr-2" />
+                    Select Strain
+                </Button>
             </div>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-4">
                 <div>
@@ -114,8 +141,16 @@ const InfoTab: React.FC<TabComponentProps> = ({ localPlant, setLocalPlant }) => 
                     </span>
                 </div>
             </div>
+            <Dialog open={isStrainSelectorOpen} onOpenChange={setIsStrainSelectorOpen}>
+                <DialogContent className="bg-gray-900 border-gray-700 text-white max-w-5xl max-h-[85vh] overflow-y-auto">
+                    <DialogHeader>
+                        <DialogTitle className="text-green-400">Select Strain</DialogTitle>
+                    </DialogHeader>
+                    <StrainLibrary selectionMode onSelectStrain={handleStrainSelect} />
+                </DialogContent>
+            </Dialog>
         </motion.div>
     );
 };
 
-export default InfoTab; 
+export default InfoTab;

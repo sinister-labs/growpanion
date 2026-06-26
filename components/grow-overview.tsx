@@ -2,7 +2,6 @@
 
 import { useState } from "react"
 import { useGrows } from "@/hooks/useGrows"
-import { Montserrat } from "next/font/google"
 import { Button } from "@/components/ui/button"
 import { Home, Plus } from "lucide-react"
 import {
@@ -15,8 +14,6 @@ import { Loader2 } from "lucide-react"
 import { useRouting } from "@/hooks/useRouting"
 import { NewGrowDialog } from "@/components/grow/new-grow-dialog"
 import { GrowCard } from "@/components/grow/grow-card"
-
-const montserrat = Montserrat({ subsets: ["latin"] })
 
 export default function GrowOverview() {
     const {
@@ -58,7 +55,7 @@ export default function GrowOverview() {
     }
 
     return (
-        <div className={`flex min-h-screen flex-col items-center space-y-8 ${montserrat.className}`}>
+        <div className="flex min-h-screen flex-col items-center space-y-8">
             <div className="w-full">
                 <div className="space-y-8 mt-6">
                     <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
@@ -145,18 +142,13 @@ export default function GrowOverview() {
                                         ) : (
                                             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                                                 {activeGrows.map(grow => (
-                                                    <div
+                                                    <GrowCard
                                                         key={grow.id}
-                                                        className="cursor-pointer"
+                                                        grow={grow}
+                                                        isActive={grow.id === activeGrowId}
+                                                        onSetActive={() => setActiveGrow(grow.id)}
                                                         onClick={() => navigateTo('growDetail', { id: grow.id })}
-                                                    >
-                                                        <GrowCard
-                                                            grow={grow}
-                                                            isActive={grow.id === activeGrowId}
-                                                            onSetActive={() => setActiveGrow(grow.id)}
-                                                            onClick={() => navigateTo('growDetail', { id: grow.id })}
-                                                        />
-                                                    </div>
+                                                    />
                                                 ))}
                                             </div>
                                         )}
@@ -178,17 +170,12 @@ export default function GrowOverview() {
                                         ) : (
                                             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                                                 {completedGrows.map(grow => (
-                                                    <div
+                                                    <GrowCard
                                                         key={grow.id}
-                                                        className="cursor-pointer"
+                                                        grow={grow}
+                                                        isActive={false}
                                                         onClick={() => navigateTo('growDetail', { id: grow.id })}
-                                                    >
-                                                        <GrowCard
-                                                            grow={grow}
-                                                            isActive={false}
-                                                            onClick={() => navigateTo('growDetail', { id: grow.id })}
-                                                        />
-                                                    </div>
+                                                    />
                                                 ))}
                                             </div>
                                         )}
@@ -202,4 +189,3 @@ export default function GrowOverview() {
         </div>
     );
 }
-

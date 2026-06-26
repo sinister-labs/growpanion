@@ -5,7 +5,7 @@ import { motion } from 'framer-motion';
 import { Button } from '@/components/ui/button';
 import { Image, Upload } from 'lucide-react';
 import { ImagesTabProps } from './types';
-import { NoRecordsIndicator } from './shared-components';
+import { isRenderableImage, NoRecordsIndicator } from './shared-components';
 
 const ImagesTab: React.FC<ImagesTabProps> = ({
     localPlant,
@@ -21,6 +21,10 @@ const ImagesTab: React.FC<ImagesTabProps> = ({
             images: localPlant.images?.filter((_, i) => i !== index) || []
         });
     };
+
+    const renderableImages = (localPlant.images || [])
+        .map((image, originalIndex) => ({ image, originalIndex }))
+        .filter(({ image }) => isRenderableImage(image));
 
     return (
         <motion.div
@@ -40,13 +44,14 @@ const ImagesTab: React.FC<ImagesTabProps> = ({
                 </p>
             </div>
 
-            {localPlant.images && localPlant.images.length > 0 ? (
+            {renderableImages.length > 0 ? (
                 <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 sm:gap-4 w-full">
-                    {localPlant.images.map((image, index) => (
+                    {renderableImages.map(({ image, originalIndex }, index) => (
                         <div
-                            key={index}
+                            key={`${originalIndex}-${image.slice(0, 32)}`}
                             className="relative overflow-hidden rounded-lg cursor-pointer"
                         >
+                            {/* eslint-disable-next-line @next/next/no-img-element -- User images are stored as dynamic data/blob URLs from IndexedDB. */}
                             <img
                                 src={image}
                                 alt={`Plant ${index + 1}`}
@@ -60,7 +65,7 @@ const ImagesTab: React.FC<ImagesTabProps> = ({
                                     className="mx-1"
                                     onClick={(e) => {
                                         e.stopPropagation();
-                                        handleDeleteImage(index);
+                                        handleDeleteImage(originalIndex);
                                     }}
                                 >
                                     Delete
@@ -79,4 +84,4 @@ const ImagesTab: React.FC<ImagesTabProps> = ({
     );
 };
 
-export default ImagesTab; 
+export default ImagesTab;

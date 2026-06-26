@@ -14,6 +14,7 @@ import DiaryFilters from './DiaryFilters';
 import DiaryPdfExport from './DiaryPdfExport';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { BookOpen } from 'lucide-react';
+import { calculateGrowTotalDays } from '@/lib/growth-utils';
 
 interface GrowDiaryProps {
   grow: Grow;
@@ -40,10 +41,8 @@ const GrowDiary: React.FC<GrowDiaryProps> = ({ grow, plants }) => {
 
   // Calculate summary stats
   const totalDays = useMemo(() => {
-    const start = new Date(grow.startDate);
-    const now = new Date();
-    return Math.ceil((now.getTime() - start.getTime()) / (1000 * 60 * 60 * 24));
-  }, [grow.startDate]);
+    return calculateGrowTotalDays(grow);
+  }, [grow]);
 
   return (
     <Card className="bg-gray-800/50 border-gray-700">
@@ -66,7 +65,7 @@ const GrowDiary: React.FC<GrowDiaryProps> = ({ grow, plants }) => {
 
       <CardContent className="space-y-6">
         {/* Stats Summary */}
-        <div className="grid grid-cols-2 sm:grid-cols-5 gap-3">
+        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
           {Object.entries(eventCounts).map(([type, count]) => (
             <div 
               key={type} 

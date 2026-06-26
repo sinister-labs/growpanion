@@ -22,7 +22,7 @@ import {
     SelectValue,
 } from '@/components/ui/select';
 import { useToast } from '@/components/ui/use-toast';
-import { Reminder, ReminderType, saveReminder, generateId } from '@/lib/db';
+import { Reminder, ReminderType, saveReminder, generateId, getNotificationSettings } from '@/lib/db';
 import { REMINDER_PRESETS, calculateNextDue } from '@/lib/notification-utils';
 
 const typeOptions: { value: ReminderType; label: string; icon: React.ReactNode }[] = [
@@ -87,8 +87,8 @@ export function ReminderDialog({ open, onClose, growId, reminder }: ReminderDial
             return;
         }
 
-        const interval = parseInt(intervalDays, 10);
-        if (isNaN(interval) || interval < 0) {
+        const interval = Number(intervalDays);
+        if (!Number.isInteger(interval) || interval < 0) {
             toast({
                 title: 'Invalid Interval',
                 description: 'Please enter a valid interval (0 or more days)',
@@ -101,6 +101,16 @@ export function ReminderDialog({ open, onClose, growId, reminder }: ReminderDial
 
         try {
             const now = new Date().toISOString();
+            const intervalChanged = reminder ? interval !== reminder.intervalDays : false;
+            const settings = await getNotificationSettings();
+            const preferredTime = settings?.defaultReminderTime;
+            const currentNextDue = reminder ? new Date(reminder.nextDue) : null;
+            const shouldRecalculateNextDue =
+                !reminder ||
+                intervalChanged ||
+                !currentNextDue ||
+                !Number.isFinite(currentNextDue.getTime()) ||
+                currentNextDue <= new Date();
             const reminderData: Reminder = {
                 id: reminder?.id || generateId(),
                 growId,
@@ -110,7 +120,9 @@ export function ReminderDialog({ open, onClose, growId, reminder }: ReminderDial
                 description: description.trim() || undefined,
                 intervalDays: interval,
                 lastTriggered: reminder?.lastTriggered,
-                nextDue: reminder?.nextDue || calculateNextDue(interval),
+                nextDue: shouldRecalculateNextDue
+                    ? calculateNextDue(interval, preferredTime)
+                    : reminder.nextDue,
                 enabled: reminder?.enabled ?? true,
                 createdAt: reminder?.createdAt || now,
                 updatedAt: now

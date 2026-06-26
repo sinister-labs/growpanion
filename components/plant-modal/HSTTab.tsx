@@ -26,6 +26,11 @@ const HSTTab: React.FC<TrainingTabProps> = ({
     handleTrainingAdd: handleHSTAdd,
     handleTrainingDelete: handleHSTDelete
 }) => {
+    const formatRecordDate = (date: string) => {
+        const recordDate = new Date(date);
+        return Number.isFinite(recordDate.getTime()) ? recordDate.toLocaleDateString() : 'Unknown date';
+    };
+
     const handleHSTChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         setNewHST({
             ...newHST,
@@ -119,7 +124,7 @@ const HSTTab: React.FC<TrainingTabProps> = ({
                                 className="flex flex-col bg-gray-800 p-3 rounded-lg border border-gray-700 w-full"
                             >
                                 <div className="flex justify-between items-center">
-                                    <span className="text-white">{new Date(record.date).toLocaleDateString()}</span>
+                                    <span className="text-white">{formatRecordDate(record.date)}</span>
                                     <div className="flex items-center gap-2">
                                         <div className="bg-green-600 text-white px-2 py-1 rounded-md text-sm">
                                             {record.method}
@@ -156,4 +161,4 @@ const HSTTab: React.FC<TrainingTabProps> = ({
     );
 };
 
-export default HSTTab; 
+export default HSTTab;

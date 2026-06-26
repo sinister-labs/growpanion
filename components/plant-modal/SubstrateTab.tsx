@@ -16,6 +16,16 @@ const SubstrateTab: React.FC<SubstrateTabProps> = ({
     handleSubstrateAdd,
     handleSubstrateDelete
 }) => {
+    const getRecordTime = (date: string) => {
+        const time = new Date(date).getTime();
+        return Number.isFinite(time) ? time : 0;
+    };
+
+    const formatRecordDate = (date: string) => {
+        const recordDate = new Date(date);
+        return Number.isFinite(recordDate.getTime()) ? recordDate.toLocaleDateString() : 'Unknown date';
+    };
+
     // Handler for input changes
     const handleSubstrateChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         const { name, value } = e.target;
@@ -60,7 +70,9 @@ const SubstrateTab: React.FC<SubstrateTabProps> = ({
                             <Input
                                 id="pot-size"
                                 name="potSize"
-                                type="  "
+                                type="number"
+                                min="0.1"
+                                step="0.1"
                                 value={newSubstrate.potSize}
                                 onChange={handleSubstrateChange}
                                 className="pr-8"
@@ -96,9 +108,10 @@ const SubstrateTab: React.FC<SubstrateTabProps> = ({
                 <h3 className="text-xl font-semibold text-green-400 mb-4">Substrate History</h3>
                 {localPlant.substrateRecords && localPlant.substrateRecords.length > 0 ? (
                     <div className="space-y-2">
-                        {[...localPlant.substrateRecords]
-                            .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
-                            .map((record, index) => (
+                        {localPlant.substrateRecords
+                            .map((record, originalIndex) => ({ record, originalIndex }))
+                            .sort((a, b) => getRecordTime(b.record.date) - getRecordTime(a.record.date))
+                            .map(({ record, originalIndex }, index) => (
                                 <motion.div
                                     key={index}
                                     initial={{ opacity: 0, y: 20 }}
@@ -109,7 +122,7 @@ const SubstrateTab: React.FC<SubstrateTabProps> = ({
                                     <div className="flex items-start justify-between">
                                         <div>
                                             <p className="font-medium text-white">
-                                                {new Date(record.date).toLocaleDateString()}
+                                                {formatRecordDate(record.date)}
                                             </p>
                                             <div className="mt-1 pl-2 border-l-2 border-gray-700">
                                                 <p className="text-sm flex gap-2 py-1">
@@ -132,7 +145,7 @@ const SubstrateTab: React.FC<SubstrateTabProps> = ({
                                                 variant="ghost"
                                                 size="icon"
                                                 className="h-8 w-8 text-red-500 hover:text-red-300 hover:bg-red-950/30"
-                                                onClick={() => handleSubstrateDelete(index)}
+                                                onClick={() => handleSubstrateDelete(originalIndex)}
                                             >
                                                 <Trash2 className="h-4 w-4" />
                                             </Button>
@@ -152,4 +165,4 @@ const SubstrateTab: React.FC<SubstrateTabProps> = ({
     );
 };
 
-export default SubstrateTab; 
+export default SubstrateTab;

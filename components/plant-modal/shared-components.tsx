@@ -5,6 +5,19 @@ import { motion } from 'framer-motion';
 import { NoRecordsIndicatorProps, FullscreenImageProps, TabType } from './types';
 import { X, Info as InfoIcon, Droplets, Scissors as ScissorsIcon, Anchor, FileText, Image as ImageIcon, Flower } from 'lucide-react';
 
+export const isRenderableImage = (image?: string | null) => {
+    return Boolean(
+        image &&
+        (
+            image.startsWith('data:image/') ||
+            image.startsWith('/') ||
+            image.startsWith('blob:') ||
+            image.startsWith('http://') ||
+            image.startsWith('https://')
+        )
+    );
+};
+
 export const NoRecordsIndicator = ({ icon: Icon, text }: NoRecordsIndicatorProps) => (
     <div className="flex flex-col items-center justify-center h-40 text-gray-500">
         <Icon className="w-12 h-12 mb-2" />
@@ -30,6 +43,7 @@ export function FullscreenImage({ fullscreenImage, setFullscreenImage }: Fullscr
             >
                 <X className="w-6 h-6" />
             </button>
+            {/* eslint-disable-next-line @next/next/no-img-element -- Fullscreen previews use dynamic user image data/blob URLs. */}
             <img
                 src={fullscreenImage || ''}
                 alt="Fullscreen plant"
@@ -70,4 +84,4 @@ export function getTabLabel(tab: TabType) {
         case "notes": return "Notes";
         case "images": return "Images";
     }
-} 
+}

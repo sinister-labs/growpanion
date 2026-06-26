@@ -118,6 +118,10 @@ export function validateFormData<T>(
       errors[field] = messages[0]; // Take first error for each field
     });
   }
+
+  if (Object.keys(errors).length === 0 && result.errors?.length) {
+    errors._form = result.errors[0];
+  }
   
   return {
     isValid: false,
@@ -168,12 +172,16 @@ export function sanitizeNumber(
   min: number = Number.MIN_SAFE_INTEGER,
   max: number = Number.MAX_SAFE_INTEGER
 ): number | null {
-  const num = typeof input === 'string' ? parseFloat(input) : Number(input);
-  
-  if (isNaN(num) || num < min || num > max) {
+  const num = typeof input === 'number'
+    ? input
+    : typeof input === 'string' && input.trim() !== ''
+      ? Number(input)
+      : NaN;
+
+  if (!Number.isFinite(num) || num < min || num > max) {
     return null;
   }
-  
+
   return num;
 }
 

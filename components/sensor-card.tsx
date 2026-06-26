@@ -5,7 +5,8 @@ import { cn } from '@/lib/utils';
 import { TuyaSensor } from '@/lib/db';
 import {
   formatSensorValueName,
-  formatSensorValue
+  formatSensorValue,
+  getLastUpdatedText
 } from '@/lib/sensor-utils';
 
 interface SensorCardProps {
@@ -60,22 +61,6 @@ export function SensorCard({ sensor, className }: SensorCardProps) {
     return <Gauge className={`${iconSize} text-purple-400`} />;
   };
 
-  /**
-   * Calculates a user-friendly text for the last update time
-   * @returns Formatted time text
-   */
-  const getLastUpdatedText = () => {
-    if (!sensor.lastUpdated) return '';
-
-    const now = new Date();
-    const diffMs = now.getTime() - sensor.lastUpdated.getTime();
-    const diffSec = Math.floor(diffMs / 1000);
-
-    if (diffSec < 60) return `vor ${diffSec} Seconds`;
-    if (diffSec < 3600) return `vor ${Math.floor(diffSec / 60)} Minutes`;
-    return `vor ${Math.floor(diffSec / 3600)} Hours`;
-  };
-
   return (
     <Card className={cn(
       "p-4 bg-gray-800 border-gray-700 text-white shadow-xl",
@@ -119,9 +104,9 @@ export function SensorCard({ sensor, className }: SensorCardProps) {
 
       <div className="mt-3 pt-3 border-t border-gray-700">
         <p className="text-xs text-gray-500">
-          Updated: {getLastUpdatedText()}
+          Updated: {getLastUpdatedText(sensor.lastUpdated)}
         </p>
       </div>
     </Card>
   );
-} 
+}

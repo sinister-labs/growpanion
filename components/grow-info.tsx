@@ -13,10 +13,10 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog"
 import { CalendarDays, TreesIcon as Plant } from "lucide-react"
-import { calculateDuration, formatDate } from "@/lib/utils"
+import { formatDate } from "@/lib/utils"
 import React, { ReactNode } from "react"
 import { CustomDropdown } from "@/components/ui/custom-dropdown"
-import { PHASE_ICONS, getDaysInPhase, getPhaseOptions } from "@/lib/growth-utils"
+import { PHASE_ICONS, getDaysInPhase, getGrowElapsedDays, getPhaseOptions } from "@/lib/growth-utils"
 
 export interface GrowInfoProps {
   grow: {
@@ -44,7 +44,7 @@ export function GrowInfo({ grow, onPhaseChange }: GrowInfoProps) {
   const [selectedPhase, setSelectedPhase] = useState(grow.currentPhase)
   const [showConfirmDialog, setShowConfirmDialog] = useState(false)
 
-  const currentDay = calculateDuration(grow.startDate)
+  const currentDay = getGrowElapsedDays(grow)
   const currentWeek = Math.ceil(currentDay / 7)
   const daysInCurrentPhase = getDaysInPhase(grow)
 
@@ -158,4 +158,3 @@ function InfoCard({ icon, title, value, subtitle }: InfoCardProps) {
     </div>
   )
 }
-

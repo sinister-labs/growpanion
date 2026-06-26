@@ -69,27 +69,78 @@ const WATTAGE_EFFICIENCY: Record<LightType, { min: number; max: number }> = {
   sun: { min: 1.5, max: 3.0 }, // Outdoor/greenhouse
 };
 
+const normalizeStrainType = (value: unknown): StrainType => (
+  value === 'auto' || value === 'photo' ? value : 'photo'
+);
+
+const normalizeMediumType = (value: unknown): MediumType => (
+  value === 'soil' || value === 'coco' || value === 'hydro' || value === 'dwc' ? value : 'soil'
+);
+
+const normalizeLightType = (value: unknown): LightType => (
+  value === 'hps' || value === 'led' || value === 'cmh' || value === 'cfl' || value === 'sun' ? value : 'led'
+);
+
+const normalizeExperienceLevel = (value: unknown): ExperienceLevel => (
+  value === 'beginner' || value === 'intermediate' || value === 'advanced' || value === 'expert'
+    ? value
+    : 'intermediate'
+);
+
+const clampFiniteNumber = (value: number, min: number, max: number, fallback: number): number => {
+  if (!Number.isFinite(value)) return fallback;
+  return Math.min(max, Math.max(min, value));
+};
+
+export function parsePositiveHarvestWeight(value: string): number | null {
+  const trimmedValue = value.trim();
+  if (!trimmedValue) {
+    return null;
+  }
+
+  const parsed = Number(trimmedValue);
+  return Number.isFinite(parsed) && parsed > 0 ? parsed : null;
+}
+
+export function calculateDryingLoss(wetWeight: number | null, dryWeight: number | null): number | null {
+  if (wetWeight === null || dryWeight === null) {
+    return null;
+  }
+
+  return Math.round(((wetWeight - dryWeight) / wetWeight) * 100);
+}
+
 /**
  * Estimates the yield based on grow parameters
  */
 export function estimateYield(input: YieldEstimationInput): YieldEstimation {
   const {
-    plantCount,
+    plantCount: rawPlantCount,
     strainType,
     medium,
     lightType,
-    lightWattage,
+    lightWattage: rawLightWattage,
     experienceLevel,
-    growSpaceSqM,
+    growSpaceSqM: rawGrowSpaceSqM,
   } = input;
 
+  const plantCount = Math.round(clampFiniteNumber(rawPlantCount, 1, 100, 1));
+  const lightWattage = clampFiniteNumber(rawLightWattage, 1, 2000, 1);
+  const safeStrainType = normalizeStrainType(strainType);
+  const safeMedium = normalizeMediumType(medium);
+  const safeLightType = normalizeLightType(lightType);
+  const safeExperienceLevel = normalizeExperienceLevel(experienceLevel);
+  const growSpaceSqM = rawGrowSpaceSqM && Number.isFinite(rawGrowSpaceSqM) && rawGrowSpaceSqM > 0
+    ? clampFiniteNumber(rawGrowSpaceSqM, 0.1, 100, 1)
+    : undefined;
+
   // Get base yield range
-  const baseRange = BASE_YIELD_RANGES[strainType];
+  const baseRange = BASE_YIELD_RANGES[safeStrainType];
 
   // Apply multipliers
-  const mediumMultiplier = MEDIUM_MULTIPLIERS[medium];
-  const lightMultiplier = LIGHT_MULTIPLIERS[lightType];
-  const expMultiplier = EXPERIENCE_MULTIPLIERS[experienceLevel];
+  const mediumMultiplier = MEDIUM_MULTIPLIERS[safeMedium];
+  const lightMultiplier = LIGHT_MULTIPLIERS[safeLightType];
+  const expMultiplier = EXPERIENCE_MULTIPLIERS[safeExperienceLevel];
 
   const totalMultiplier = mediumMultiplier * lightMultiplier * expMultiplier;
 
@@ -98,7 +149,7 @@ export function estimateYield(input: YieldEstimationInput): YieldEstimation {
   const maxYieldPerPlant = Math.round(baseRange.max * totalMultiplier);
 
   // Check wattage constraint (don't exceed what the light can support)
-  const wattageEfficiency = WATTAGE_EFFICIENCY[lightType];
+  const wattageEfficiency = WATTAGE_EFFICIENCY[safeLightType];
   const maxFromWattage = lightWattage * wattageEfficiency.max;
   const minFromWattage = lightWattage * wattageEfficiency.min;
 
@@ -159,9 +210,14 @@ export function compareYield(
   expected: YieldEstimation,
   actualYield: number
 ): YieldComparison {
-  const expectedAverage = expected.averageYield;
-  const difference = actualYield - expectedAverage;
-  const percentageDifference = Math.round((difference / expectedAverage) * 100);
+  const expectedAverage = Number.isFinite(expected.averageYield) && expected.averageYield > 0
+    ? expected.averageYield
+    : 0;
+  const safeActualYield = Number.isFinite(actualYield) && actualYield > 0 ? actualYield : 0;
+  const difference = safeActualYield - expectedAverage;
+  const percentageDifference = expectedAverage > 0
+    ? Math.round((difference / expectedAverage) * 100)
+    : 0;
 
   let rating: YieldComparison['rating'];
   let ratingLabel: string;
@@ -185,7 +241,7 @@ export function compareYield(
 
   return {
     expectedAverage,
-    actualYield,
+    actualYield: safeActualYield,
     difference,
     percentageDifference,
     rating,

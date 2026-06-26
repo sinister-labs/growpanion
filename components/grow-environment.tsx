@@ -9,13 +9,10 @@ import { useSensorData } from "@/hooks/useSensorData"
 import { Grow } from "@/lib/db"
 import { Loader2 } from "lucide-react"
 import {
-  calculateVPD,
-  getOptimalVpdRange,
-  getVpdStatus,
-  getVpdStatusClass,
-  getVpdStatusText,
   VpdStatus
 } from "@/lib/vpd-utils"
+import { getDaysInPhase } from "@/lib/growth-utils"
+import { buildEnvironmentData, DEFAULT_ENVIRONMENT_DATA, EnvironmentData } from "@/lib/environment-utils"
 
 interface GrowEnvironmentProps {
   grow?: Grow & {
@@ -25,129 +22,20 @@ interface GrowEnvironmentProps {
   onPhaseChange?: (phase: string) => void;
 }
 
-interface EnvironmentData {
-  title: string;
-  value: string;
-  icon: string;
-  unit: string;
-  status?: VpdStatus;
-  statusClass?: string;
-  statusText?: string;
-  optimalRange?: string;
-  phaseDescription?: string;
-}
-
 export default function GrowEnvironment({ grow }: GrowEnvironmentProps) {
   const { sensorData, isLoading: sensorsLoading, error: sensorsError } = useSensorData(60000)
 
-  const defaultEnvironmentData: EnvironmentData[] = [
-    { title: "Temperature", value: "25°C", icon: "temperature", unit: "°C" },
-    { title: "Humidity", value: "60%", icon: "humidity", unit: "%" },
-    { title: "VPD", value: "1.2 kPa", icon: "vpd", unit: "kPa" },
-    { title: "Carbon Filter", value: "Active", icon: "filter", unit: "" },
-    { title: "Fan", value: "On", icon: "fan", unit: "" }
-  ]
-
-  const [environmentData, setEnvironmentData] = useState<EnvironmentData[]>(defaultEnvironmentData)
+  const [environmentData, setEnvironmentData] = useState<EnvironmentData[]>(DEFAULT_ENVIRONMENT_DATA)
 
   useEffect(() => {
     if (!sensorData) return;
-
-    const updatedData: EnvironmentData[] = [];
-    let temperatureValue: number | null = null;
-    let humidityValue: number | null = null;
-    let vpdValue: number | null = null;
-
-    const currentDay = 0
-    const optimalVpdRange = getOptimalVpdRange(grow?.currentPhase, currentDay);
-
-    sensorData.forEach(sensor => {
-      if (!sensor.values || sensor.values.length === 0) return;
-
-      const sensorValue = sensor.values[0].value;
-      const unit = sensor.values[0].unit || '';
-
-      let sensorData: EnvironmentData | null = null;
-
-      if (sensor.type === 'Temperature') {
-        temperatureValue = typeof sensorValue === 'number' ? sensorValue : parseFloat(sensorValue.toString());
-        sensorData = {
-          title: sensor.name || 'Temperature',
-          value: `${temperatureValue}${unit || '°C'}`,
-          icon: 'temperature',
-          unit: unit || '°C'
-        };
-      } else if (sensor.type === 'Humidity') {
-        humidityValue = typeof sensorValue === 'number' ? sensorValue : parseFloat(sensorValue.toString());
-        sensorData = {
-          title: sensor.name || 'Humidity',
-          value: `${humidityValue}${unit || '%'}`,
-          icon: 'humidity',
-          unit: unit || '%'
-        };
-      } else if (sensor.type === 'Carbon Filter') {
-        sensorData = {
-          title: sensor.name || 'Carbon Filter',
-          value: sensorValue ? 'On' : 'Off',
-          icon: 'filter',
-          unit: ''
-        };
-      } else if (sensor.type === 'Fan') {
-        sensorData = {
-          title: sensor.name || 'Fan',
-          value: sensorValue ? 'On' : 'Off',
-          icon: 'fan',
-          unit: ''
-        };
-      } else if (sensor.type === 'Lamp') {
-        sensorData = {
-          title: sensor.name || 'Lamp',
-          value: sensorValue ? 'On' : 'Off',
-          icon: 'lamp',
-          unit: ''
-        };
-      } else {
-        // Other type of sensor, just show the raw value
-        sensorData = {
-          title: sensor.name || 'Sensor',
-          value: `${sensorValue}${unit || ''}`,
-          icon: 'light', // Fallback to light icon
-          unit: unit || ''
-        };
-      }
-
-      if (sensorData) {
-        updatedData.push(sensorData);
-      }
-    });
-
-    if (temperatureValue !== null && humidityValue !== null) {
-      vpdValue = calculateVPD(temperatureValue, humidityValue);
-
-      let vpdStatus: VpdStatus = 'unknown';
-      let statusClass = '';
-      let statusText = '';
-
-      if (optimalVpdRange) {
-        vpdStatus = getVpdStatus(vpdValue, optimalVpdRange);
-        statusClass = getVpdStatusClass(vpdStatus);
-        statusText = getVpdStatusText(vpdStatus, optimalVpdRange);
-      }
-
-      const vpdData: EnvironmentData = {
-        title: "VPD",
-        value: `${vpdValue} kPa`,
-        icon: "vpd",
-        unit: "kPa",
-        status: vpdStatus,
-        statusClass,
-        statusText,
-        optimalRange: optimalVpdRange ? `${optimalVpdRange.min}-${optimalVpdRange.max} kPa` : undefined,
-        phaseDescription: optimalVpdRange ? optimalVpdRange.description : undefined
-      };
-
-      updatedData.push(vpdData);
+    if (sensorData.length === 0) {
+      setEnvironmentData(DEFAULT_ENVIRONMENT_DATA);
+      return;
     }
+
+    const currentDay = grow ? getDaysInPhase(grow) : undefined
+    const updatedData = buildEnvironmentData(sensorData, grow?.currentPhase, currentDay);
 
     if (updatedData.length > 0) {
       setEnvironmentData(updatedData);
@@ -157,7 +45,7 @@ export default function GrowEnvironment({ grow }: GrowEnvironmentProps) {
   if (sensorsLoading) {
     return (
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-        {defaultEnvironmentData.map((item) => (
+        {DEFAULT_ENVIRONMENT_DATA.map((item) => (
           <Card key={item.title} className="bg-gray-800 bg-opacity-50 backdrop-filter backdrop-blur-lg border-gray-700 hover:border-green-400 transition-all duration-300 transform hover:scale-105 cursor-pointer">
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
               <CardTitle className="text-lg font-medium text-gray-200">{item.title}</CardTitle>
@@ -193,7 +81,7 @@ export default function GrowEnvironment({ grow }: GrowEnvironmentProps) {
       {environmentData.map((item) => (
         <Dialog key={item.title}>
           <DialogTrigger asChild>
-            <Card className={`bg-gray-800 bg-opacity-50 backdrop-filter backdrop-blur-lg border-gray-700 hover:border-green-400 transition-all duration-300 transform hover:scale-105 cursor-pointer ${item.title.includes('VPD') && item.statusClass ? `border-l-4 border-l-${item.statusClass.replace('text-', '')}` : ''}`}>
+            <Card className={`bg-gray-800 bg-opacity-50 backdrop-filter backdrop-blur-lg border-gray-700 hover:border-green-400 transition-all duration-300 transform hover:scale-105 cursor-pointer ${item.title.includes('VPD') && item.status ? getVpdBorderClass(item.status) : ''}`}>
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                 <CardTitle className="text-lg font-medium text-gray-200">{item.title}</CardTitle>
                 <EnvironmentIcon icon={item.icon} className={`w-8 h-8 ${item.title.includes('VPD') && item.statusClass ? item.statusClass : 'text-green-400'}`} />
@@ -238,3 +126,15 @@ export default function GrowEnvironment({ grow }: GrowEnvironmentProps) {
   )
 }
 
+function getVpdBorderClass(status: VpdStatus): string {
+  switch (status) {
+    case 'optimal':
+      return 'border-l-4 border-l-green-400';
+    case 'low':
+      return 'border-l-4 border-l-amber-400';
+    case 'high':
+      return 'border-l-4 border-l-red-400';
+    default:
+      return '';
+  }
+}

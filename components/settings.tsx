@@ -25,6 +25,13 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { useRouting } from '@/hooks/useRouting';
 import { ExportImportSection } from '@/components/export-import-dialog';
 import { NotificationSettings } from '@/components/notifications';
+import {
+    buildSensorValuesFromSelection,
+    normalizeDecimalPlaces,
+    normalizeSensorConfig,
+    normalizeSensorValues,
+    toggleSensorPropertySelection
+} from '@/lib/sensor-utils';
 
 const sensorTypes = [
     'Lamp',
@@ -53,6 +60,7 @@ export default function SettingsPage() {
     const [clientId, setClientId] = useState('');
     const [clientSecret, setClientSecret] = useState('');
     const [isSaving, setIsSaving] = useState(false);
+    const [isSensorSaving, setIsSensorSaving] = useState(false);
 
     const [sensors, setSensors] = useState<TuyaSensor[]>([]);
     const [isAddingSensor, setIsAddingSensor] = useState(false);
@@ -83,7 +91,7 @@ export default function SettingsPage() {
         if (settings) {
             setClientId(settings.tuyaClientId || '');
             setClientSecret(settings.tuyaClientSecret || '');
-            setSensors(settings.sensors || []);
+            setSensors(settings.sensors?.map(normalizeSensorConfig) || []);
         }
     }, [settings]);
 
@@ -222,24 +230,22 @@ export default function SettingsPage() {
 
     const handleApplySelectedProperties = () => {
         if (selectedProperties.length > 0) {
-            const updatedValues = selectedProperties.map(code => ({
-                code,
-                decimalPlaces: sensorPropertyDecimals[code]
-            }));
+            const updatedValues = buildSensorValuesFromSelection(selectedProperties, sensorPropertyDecimals);
 
             setValuesToAdd(updatedValues);
-            setNewSensorValues(selectedProperties.join(', '));
+            setNewSensorValues(updatedValues.map(value => value.code).join(', '));
         }
         setIsTestDialogOpen(false);
     };
 
-    const handleDialogDecimalChange = (propertyCode: string, decimalPlaces: number | undefined) => {
+    const handleDialogDecimalChange = (propertyCode: string, decimalPlaces: unknown) => {
+        const normalizedDecimalPlaces = normalizeDecimalPlaces(decimalPlaces);
         setSensorPropertyDecimals(prev => {
             const updated = { ...prev };
-            if (decimalPlaces === undefined) {
+            if (normalizedDecimalPlaces === undefined) {
                 delete updated[propertyCode];
             } else {
-                updated[propertyCode] = decimalPlaces;
+                updated[propertyCode] = normalizedDecimalPlaces;
             }
             return updated;
         });
@@ -260,32 +266,38 @@ export default function SettingsPage() {
         setNewSensorType('Temperature');
         setIsAddingSensor(false);
         setIsEditingSensor(null);
+        setSensorPropertyDecimals({});
         resetSensorTestData();
     };
 
     const addSensor = async () => {
-        if (!newSensorName || !newSensorTuyaId || valuesToAdd.length === 0 || !newSensorType) {
+        if (isSensorSaving) return;
+
+        const normalizedValues = normalizeSensorValues(valuesToAdd);
+
+        if (!newSensorName.trim() || !newSensorTuyaId.trim() || normalizedValues.length === 0 || !newSensorType) {
             return;
         }
 
         const newSensor: TuyaSensor = {
             id: uuidv4(),
-            name: newSensorName,
-            tuyaId: newSensorTuyaId,
+            name: newSensorName.trim(),
+            tuyaId: newSensorTuyaId.trim(),
             type: newSensorType,
-            values: valuesToAdd,
+            values: normalizedValues,
         };
 
         const updatedSensors = [...sensors, newSensor];
-        setSensors(updatedSensors);
-        resetSensorForm();
 
+        setIsSensorSaving(true);
         try {
             const success = await updateSettings({
                 sensors: updatedSensors
             });
 
             if (success) {
+                setSensors(updatedSensors);
+                resetSensorForm();
                 toast({
                     title: "Success!",
                     description: "Sensor successfully added and saved!",
@@ -295,7 +307,7 @@ export default function SettingsPage() {
                 toast({
                     variant: "destructive",
                     title: "Error",
-                    description: "Sensor added, but error saving."
+                    description: "Sensor could not be saved."
                 });
             }
         } catch (err) {
@@ -303,13 +315,19 @@ export default function SettingsPage() {
             toast({
                 variant: "destructive",
                 title: "Error",
-                description: "Sensor added, but error saving to database."
+                description: "Sensor could not be saved to database."
             });
+        } finally {
+            setIsSensorSaving(false);
         }
     };
 
     const saveSensorEdit = async () => {
-        if (!isEditingSensor || !newSensorName || !newSensorTuyaId || valuesToAdd.length === 0 || !newSensorType) {
+        if (isSensorSaving) return;
+
+        const normalizedValues = normalizeSensorValues(valuesToAdd);
+
+        if (!isEditingSensor || !newSensorName.trim() || !newSensorTuyaId.trim() || normalizedValues.length === 0 || !newSensorType) {
             return;
         }
 
@@ -317,23 +335,23 @@ export default function SettingsPage() {
             sensor.id === isEditingSensor
                 ? {
                     ...sensor,
-                    name: newSensorName,
-                    tuyaId: newSensorTuyaId,
-                    values: valuesToAdd,
+                    name: newSensorName.trim(),
+                    tuyaId: newSensorTuyaId.trim(),
+                    values: normalizedValues,
                     type: newSensorType
                 }
                 : sensor
         );
 
-        setSensors(updatedSensors);
-        resetSensorForm();
-
+        setIsSensorSaving(true);
         try {
             const success = await updateSettings({
                 sensors: updatedSensors
             });
 
             if (success) {
+                setSensors(updatedSensors);
+                resetSensorForm();
                 toast({
                     title: "Success!",
                     description: "Sensor successfully updated and saved!",
@@ -343,7 +361,7 @@ export default function SettingsPage() {
                 toast({
                     variant: "destructive",
                     title: "Error",
-                    description: "Sensor updated, but error saving."
+                    description: "Sensor could not be saved."
                 });
             }
         } catch (err) {
@@ -351,21 +369,26 @@ export default function SettingsPage() {
             toast({
                 variant: "destructive",
                 title: "Error",
-                description: "Sensor updated, but error saving to database."
+                description: "Sensor could not be saved to database."
             });
+        } finally {
+            setIsSensorSaving(false);
         }
     };
 
     const deleteSensor = async (id: string) => {
-        const updatedSensors = sensors.filter(sensor => sensor.id !== id);
-        setSensors(updatedSensors);
+        if (isSensorSaving) return;
 
+        const updatedSensors = sensors.filter(sensor => sensor.id !== id);
+
+        setIsSensorSaving(true);
         try {
             const success = await updateSettings({
                 sensors: updatedSensors
             });
 
             if (success) {
+                setSensors(updatedSensors);
                 toast({
                     title: "Success!",
                     description: "Sensor successfully deleted and changes saved!",
@@ -375,7 +398,7 @@ export default function SettingsPage() {
                 toast({
                     variant: "destructive",
                     title: "Error",
-                    description: "Sensor deleted, but error saving changes."
+                    description: "Sensor could not be deleted."
                 });
             }
         } catch (err) {
@@ -383,17 +406,22 @@ export default function SettingsPage() {
             toast({
                 variant: "destructive",
                 title: "Error",
-                description: "Sensor deleted, but error saving to database."
+                description: "Sensor could not be deleted from database."
             });
+        } finally {
+            setIsSensorSaving(false);
         }
     };
 
     const togglePropertySelection = (propertyCode: string) => {
-        if (selectedProperties.includes(propertyCode)) {
-            setSelectedProperties(selectedProperties.filter(code => code !== propertyCode));
-        } else {
-            setSelectedProperties([...selectedProperties, propertyCode]);
-        }
+        const nextSelection = toggleSensorPropertySelection(
+            selectedProperties,
+            sensorPropertyDecimals,
+            propertyCode
+        );
+
+        setSelectedProperties(nextSelection.selectedProperties);
+        setSensorPropertyDecimals(nextSelection.decimalPlacesByCode);
     };
 
     const getSensorTypeDisplay = (type: TuyaSensor['type']) => {
@@ -424,41 +452,40 @@ export default function SettingsPage() {
         if (text.trim() === '') {
             setValuesToAdd([]);
         } else {
-            const codes = text.split(',').map(val => val.trim());
+            const codes = text.split(',').map(val => val.trim()).filter(Boolean);
             const newValues = codes.map(code => {
                 const existing = valuesToAdd.find(v => v.code === code);
                 return existing || { code };
             });
-            setValuesToAdd(newValues);
+            setValuesToAdd(normalizeSensorValues(newValues));
         }
     };
 
-    const handleDecimalPlaceChange = (code: string, decimalPlaces: number | undefined) => {
+    const handleDecimalPlaceChange = (code: string, decimalPlaces: unknown) => {
+        const normalizedDecimalPlaces = normalizeDecimalPlaces(decimalPlaces);
         setValuesToAdd(current =>
             current.map(value =>
                 value.code === code
-                    ? { ...value, decimalPlaces }
+                    ? { ...value, decimalPlaces: normalizedDecimalPlaces }
                     : value
             )
         );
     };
 
     const startEditingSensor = (sensor: TuyaSensor) => {
-        setIsEditingSensor(sensor.id);
-        setNewSensorName(sensor.name);
-        setNewSensorTuyaId(sensor.tuyaId);
-        setNewSensorType(sensor.type || 'Temperature');
-        setValuesToAdd([...sensor.values]);
+        const normalizedSensor = normalizeSensorConfig(sensor);
 
-        // Backwards compatibility for old format
-        if (sensor.values.length > 0 && typeof sensor.values[0] === 'string') {
-            // eslint-disable-next-line @typescript-eslint/no-explicit-any
-            setNewSensorValues((sensor.values as any[]).join(', '));
-            // eslint-disable-next-line @typescript-eslint/no-explicit-any
-            setValuesToAdd((sensor.values as any[]).map(v => ({ code: v })));
-        } else {
-            setNewSensorValues(sensor.values.map(v => v.code).join(', '));
-        }
+        setIsEditingSensor(sensor.id);
+        setNewSensorName(normalizedSensor.name);
+        setNewSensorTuyaId(normalizedSensor.tuyaId);
+        setNewSensorType(normalizedSensor.type || 'Temperature');
+        setValuesToAdd([...normalizedSensor.values]);
+        setNewSensorValues(normalizedSensor.values.map(v => v.code).join(', '));
+        setSensorProperties([]);
+        setSelectedProperties([]);
+        setSensorPropertyDecimals({});
+        setActiveSensorTest(false);
+        setIsTestDialogOpen(false);
 
         setIsAddingSensor(false);
     };
@@ -469,7 +496,7 @@ export default function SettingsPage() {
     }));
 
     const decimalOptions: DropdownOption[] = [
-        { id: "0", label: "0" },
+        { id: "0", label: "None" },
         { id: "1", label: "1" },
         { id: "2", label: "2" },
         { id: "3", label: "3" }
@@ -594,9 +621,12 @@ export default function SettingsPage() {
                                         </CardDescription>
                                     </div>
                                     <Button
-                                        onClick={() => { setIsAddingSensor(true); setIsEditingSensor(null); }}
+                                        onClick={() => {
+                                            resetSensorForm();
+                                            setIsAddingSensor(true);
+                                        }}
                                         className="bg-green-700 hover:bg-green-600 text-white rounded-full transition-colors"
-                                        disabled={isAddingSensor}
+                                        disabled={isAddingSensor || isSensorSaving}
                                     >
                                         <Plus className="mr-2 h-4 w-4" />
                                         Add Sensor
@@ -682,9 +712,9 @@ export default function SettingsPage() {
                                                                 value={value.decimalPlaces?.toString() || '0'}
                                                                 onChange={(val) => handleDecimalPlaceChange(
                                                                     value.code,
-                                                                    val === '0' ? undefined : parseInt(val)
+                                                                    val
                                                                 )}
-                                                                placeholder="0"
+                                                                placeholder="None"
                                                                 width="w-16"
                                                                 buttonClassName="bg-gray-800 border-gray-700 text-white h-7"
                                                             />
@@ -700,6 +730,7 @@ export default function SettingsPage() {
                                     <div className="flex space-x-3 mt-4">
                                         <Button
                                             onClick={() => addSensor()}
+                                            disabled={isSensorSaving}
                                             className="bg-green-700 hover:bg-green-600 text-white rounded-full transition-colors"
                                         >
                                             <Plus className="mr-2 h-4 w-4" />
@@ -795,9 +826,9 @@ export default function SettingsPage() {
                                                                                 value={value.decimalPlaces?.toString() || '0'}
                                                                                 onChange={(val) => handleDecimalPlaceChange(
                                                                                     value.code,
-                                                                                    val === '0' ? undefined : parseInt(val)
+                                                                                    val
                                                                                 )}
-                                                                                placeholder="0"
+                                                                                placeholder="None"
                                                                                 width="w-16"
                                                                                 buttonClassName="bg-gray-800 border-gray-700 text-white h-7"
                                                                             />
@@ -813,6 +844,7 @@ export default function SettingsPage() {
                                                     <div className="flex space-x-3 mt-4">
                                                         <Button
                                                             onClick={() => saveSensorEdit()}
+                                                            disabled={isSensorSaving}
                                                             className="bg-green-700 hover:bg-green-600 text-white rounded-full transition-colors"
                                                         >
                                                             <Save className="mr-2 h-4 w-4" />
@@ -835,6 +867,7 @@ export default function SettingsPage() {
                                                         <div className="flex space-x-2">
                                                             <Button
                                                                 onClick={() => startEditingSensor(sensor)}
+                                                                disabled={isSensorSaving}
                                                                 size="sm"
                                                                 variant="outline"
                                                                 className="h-8 w-8 p-0 border-gray-600 hover:bg-gray-600/30 rounded-full transition-colors"
@@ -843,6 +876,7 @@ export default function SettingsPage() {
                                                             </Button>
                                                             <Button
                                                                 onClick={() => deleteSensor(sensor.id)}
+                                                                disabled={isSensorSaving}
                                                                 size="sm"
                                                                 variant="outline"
                                                                 className="h-8 w-8 p-0 border-red-700 hover:bg-red-900/30 rounded-full transition-colors"
@@ -955,9 +989,9 @@ export default function SettingsPage() {
                                                                     value={sensorPropertyDecimals[prop.code]?.toString() || '0'}
                                                                     onChange={(val) => handleDialogDecimalChange(
                                                                         prop.code,
-                                                                        val === '0' ? undefined : parseInt(val)
+                                                                        val
                                                                     )}
-                                                                    placeholder="0"
+                                                                    placeholder="None"
                                                                     width="w-16"
                                                                     buttonClassName="bg-gray-800 border-gray-700 text-white h-7"
                                                                 />
@@ -1048,4 +1082,4 @@ export default function SettingsPage() {
             </div>
         </div>
     );
-} 
+}

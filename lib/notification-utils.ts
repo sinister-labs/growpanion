@@ -20,7 +20,7 @@ import {
  * Check if browser supports notifications
  */
 export function isNotificationSupported(): boolean {
-    return typeof window !== 'undefined' && 'Notification' in window;
+    return typeof window !== 'undefined' && typeof Notification !== 'undefined' && 'Notification' in window;
 }
 
 /**
@@ -107,6 +107,14 @@ export function showReminderNotification(reminder: Reminder): Notification | nul
     });
 }
 
+export function shouldRunNotificationChecks(
+    settings: Pick<NotificationSettings, 'enabled'> | null | undefined,
+    permission: NotificationPermission,
+    supported = isNotificationSupported()
+): boolean {
+    return Boolean(supported && settings?.enabled && permission === 'granted');
+}
+
 // ============== REMINDER SCHEDULING ==============
 
 /**
@@ -117,15 +125,33 @@ export function showReminderNotification(reminder: Reminder): Notification | nul
 export function calculateNextDue(intervalDays: number, preferredTime?: string): string {
     const now = new Date();
     const next = new Date(now);
+    const normalizedInterval = Number.isFinite(intervalDays)
+        ? Math.max(0, Math.floor(intervalDays))
+        : 0;
+    let hasValidPreferredTime = false;
     
-    if (intervalDays > 0) {
-        next.setDate(next.getDate() + intervalDays);
+    if (normalizedInterval > 0) {
+        next.setDate(next.getDate() + normalizedInterval);
     }
     
     // Set preferred time if provided
     if (preferredTime) {
         const [hours, minutes] = preferredTime.split(':').map(Number);
-        next.setHours(hours, minutes, 0, 0);
+        if (
+            Number.isInteger(hours) &&
+            Number.isInteger(minutes) &&
+            hours >= 0 &&
+            hours <= 23 &&
+            minutes >= 0 &&
+            minutes <= 59
+        ) {
+            hasValidPreferredTime = true;
+            next.setHours(hours, minutes, 0, 0);
+        }
+    }
+
+    if (hasValidPreferredTime && next <= now) {
+        next.setDate(next.getDate() + 1);
     }
     
     return next.toISOString();
@@ -191,34 +217,48 @@ export async function createReminder(
 
 // ============== REMINDER CHECKING ==============
 
+let dueReminderCheckPromise: Promise<Reminder[]> | null = null;
+
 /**
  * Check for due reminders and show notifications
  * Should be called periodically (e.g., every minute or on app focus)
  */
 export async function checkDueReminders(): Promise<Reminder[]> {
-    const settings = await getNotificationSettings();
-    
-    // Don't check if notifications are disabled
-    if (!settings?.enabled || Notification.permission !== 'granted') {
-        return [];
+    if (dueReminderCheckPromise) {
+        return dueReminderCheckPromise;
     }
-    
-    const allReminders = await getAllReminders();
-    const now = new Date();
-    
-    const dueReminders = allReminders.filter(reminder => {
-        if (!reminder.enabled) return false;
-        const dueDate = new Date(reminder.nextDue);
-        return dueDate <= now;
-    });
-    
-    // Show notifications for due reminders
-    for (const reminder of dueReminders) {
-        showReminderNotification(reminder);
-        await triggerReminder(reminder);
+
+    dueReminderCheckPromise = (async () => {
+        const settings = await getNotificationSettings();
+
+        // Don't check if notifications are disabled
+        if (!shouldRunNotificationChecks(settings, getNotificationPermission())) {
+            return [];
+        }
+
+        const allReminders = await getAllReminders();
+        const now = new Date();
+
+        const dueReminders = allReminders.filter(reminder => {
+            if (!reminder.enabled) return false;
+            const dueDate = new Date(reminder.nextDue);
+            return Number.isFinite(dueDate.getTime()) && dueDate <= now;
+        });
+
+        // Show notifications for due reminders
+        for (const reminder of dueReminders) {
+            showReminderNotification(reminder);
+            await triggerReminder(reminder);
+        }
+
+        return dueReminders;
+    })();
+
+    try {
+        return await dueReminderCheckPromise;
+    } finally {
+        dueReminderCheckPromise = null;
     }
-    
-    return dueReminders;
 }
 
 // ============== REMINDER PRESETS ==============
@@ -271,6 +311,7 @@ export async function createReminderFromPreset(
 // ============== NOTIFICATION INITIALIZATION ==============
 
 let checkInterval: ReturnType<typeof setInterval> | null = null;
+let visibilityChangeHandler: (() => void) | null = null;
 
 /**
  * Initialize notification system with periodic checks
@@ -280,6 +321,10 @@ export function initializeNotifications(intervalMs = 60000): void {
     // Clear existing interval if any
     if (checkInterval) {
         clearInterval(checkInterval);
+    }
+    if (visibilityChangeHandler && typeof document !== 'undefined') {
+        document.removeEventListener('visibilitychange', visibilityChangeHandler);
+        visibilityChangeHandler = null;
     }
     
     // Check immediately on init
@@ -292,11 +337,12 @@ export function initializeNotifications(intervalMs = 60000): void {
     
     // Also check on visibility change (when user returns to tab)
     if (typeof document !== 'undefined') {
-        document.addEventListener('visibilitychange', () => {
+        visibilityChangeHandler = () => {
             if (document.visibilityState === 'visible') {
                 checkDueReminders().catch(console.error);
             }
-        });
+        };
+        document.addEventListener('visibilitychange', visibilityChangeHandler);
     }
 }
 
@@ -307,6 +353,10 @@ export function stopNotifications(): void {
     if (checkInterval) {
         clearInterval(checkInterval);
         checkInterval = null;
+    }
+    if (visibilityChangeHandler && typeof document !== 'undefined') {
+        document.removeEventListener('visibilitychange', visibilityChangeHandler);
+        visibilityChangeHandler = null;
     }
 }
 

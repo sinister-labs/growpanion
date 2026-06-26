@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -16,6 +16,7 @@ import {
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
 import { Strain, getAllStrains, saveStrain, deleteStrain } from '@/lib/db';
+import { filterStrains } from '@/lib/strain-utils';
 import StrainCard from './StrainCard';
 import StrainForm from './StrainForm';
 import { Cannabis, Plus, Search, Loader2 } from 'lucide-react';
@@ -36,40 +37,52 @@ const StrainLibrary: React.FC<StrainLibraryProps> = ({
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [editingStrain, setEditingStrain] = useState<Strain | undefined>();
   const [deletingStrainId, setDeletingStrainId] = useState<string | null>(null);
+  const [isDeleting, setIsDeleting] = useState(false);
+  const loadRequestId = useRef(0);
+  const isMounted = useRef(false);
   const { toast } = useToast();
 
-  // Load strains
-  useEffect(() => {
-    loadStrains();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
-
-  const loadStrains = async () => {
+  const loadStrains = useCallback(async () => {
+    const requestId = ++loadRequestId.current;
     try {
       setIsLoading(true);
       const allStrains = await getAllStrains();
+      if (!isMounted.current || requestId !== loadRequestId.current) {
+        return;
+      }
+
       setStrains(allStrains);
     } catch {
+      if (!isMounted.current || requestId !== loadRequestId.current) {
+        return;
+      }
+
       toast({
         variant: 'destructive',
         title: 'Error',
         description: 'Failed to load strains',
       });
     } finally {
-      setIsLoading(false);
+      if (isMounted.current && requestId === loadRequestId.current) {
+        setIsLoading(false);
+      }
     }
-  };
+  }, [toast]);
+
+  // Load strains
+  useEffect(() => {
+    isMounted.current = true;
+    loadStrains();
+
+    return () => {
+      isMounted.current = false;
+      loadRequestId.current += 1;
+    };
+  }, [loadStrains]);
 
   // Filter strains
   const filteredStrains = useMemo(() => {
-    if (!searchQuery) return strains;
-    
-    const query = searchQuery.toLowerCase();
-    return strains.filter(strain =>
-      strain.name.toLowerCase().includes(query) ||
-      strain.breeder.toLowerCase().includes(query) ||
-      strain.genetics.toLowerCase().includes(query)
-    );
+    return filterStrains(strains, searchQuery);
   }, [strains, searchQuery]);
 
   // Handle save
@@ -77,6 +90,10 @@ const StrainLibrary: React.FC<StrainLibraryProps> = ({
     try {
       await saveStrain(strain);
       await loadStrains();
+      if (!isMounted.current) {
+        return;
+      }
+
       setIsFormOpen(false);
       setEditingStrain(undefined);
       toast({
@@ -84,22 +101,29 @@ const StrainLibrary: React.FC<StrainLibraryProps> = ({
         title: editingStrain ? 'Strain Updated' : 'Strain Added',
         description: `"${strain.name}" has been saved to your library.`,
       });
-    } catch {
+    } catch (error) {
       toast({
         variant: 'destructive',
         title: 'Error',
         description: 'Failed to save strain',
       });
+      throw error;
     }
   };
 
   // Handle delete
   const handleDelete = async () => {
     if (!deletingStrainId) return;
+    const strainId = deletingStrainId;
     
+    setIsDeleting(true);
     try {
-      await deleteStrain(deletingStrainId);
+      await deleteStrain(strainId);
       await loadStrains();
+      if (!isMounted.current) {
+        return;
+      }
+
       setDeletingStrainId(null);
       toast({
         variant: 'success',
@@ -112,6 +136,10 @@ const StrainLibrary: React.FC<StrainLibraryProps> = ({
         title: 'Error',
         description: 'Failed to delete strain',
       });
+    } finally {
+      if (isMounted.current) {
+        setIsDeleting(false);
+      }
     }
   };
 
@@ -239,7 +267,11 @@ const StrainLibrary: React.FC<StrainLibraryProps> = ({
       {/* Delete Confirmation */}
       <AlertDialog 
         open={!!deletingStrainId} 
-        onOpenChange={(open) => !open && setDeletingStrainId(null)}
+        onOpenChange={(open) => {
+          if (!open && !isDeleting) {
+            setDeletingStrainId(null);
+          }
+        }}
       >
         <AlertDialogContent className="bg-gray-800 text-white border-gray-700">
           <AlertDialogHeader>
@@ -254,10 +286,14 @@ const StrainLibrary: React.FC<StrainLibraryProps> = ({
               Cancel
             </AlertDialogCancel>
             <AlertDialogAction
-              onClick={handleDelete}
+              disabled={isDeleting}
+              onClick={(event) => {
+                event.preventDefault();
+                void handleDelete();
+              }}
               className="bg-red-600 text-white hover:bg-red-700"
             >
-              Delete
+              {isDeleting ? 'Deleting...' : 'Delete'}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

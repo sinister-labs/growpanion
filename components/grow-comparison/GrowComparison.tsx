@@ -1,13 +1,14 @@
 "use client";
 
-import React, { useState, useMemo } from 'react';
+import React, { useCallback, useEffect, useState, useMemo, useRef } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { CustomDropdown } from '@/components/ui/custom-dropdown';
 import { Grow, PlantDB, getPlantsForGrow } from '@/lib/db';
 import { useGrows } from '@/hooks/useGrows';
 import ComparisonCard from './ComparisonCard';
-import { Scale, Calendar, Timer, Thermometer, Award, ArrowLeftRight, Loader2 } from 'lucide-react';
+import { Scale, Calendar, Timer, Thermometer, Award, ArrowLeftRight, Loader2, AlertCircle } from 'lucide-react';
+import { calculateGrowTotalDays, calculatePhaseDurations } from '@/lib/growth-utils';
 
 interface GrowComparisonProps {
   initialGrow1Id?: string;
@@ -20,6 +21,11 @@ interface GrowWithPlants extends Grow {
   phaseDurations: Record<string, number>;
 }
 
+const formatStartDate = (startDate: string): string => {
+  const date = new Date(startDate);
+  return Number.isFinite(date.getTime()) ? date.toLocaleDateString() : 'Unknown start';
+};
+
 const GrowComparison: React.FC<GrowComparisonProps> = ({
   initialGrow1Id,
   initialGrow2Id,
@@ -29,100 +35,131 @@ const GrowComparison: React.FC<GrowComparisonProps> = ({
   const [grow2Id, setGrow2Id] = useState<string | undefined>(initialGrow2Id);
   const [grow1Data, setGrow1Data] = useState<GrowWithPlants | null>(null);
   const [grow2Data, setGrow2Data] = useState<GrowWithPlants | null>(null);
-  const [loadingPlants, setLoadingPlants] = useState(false);
+  const [loadingGrow1, setLoadingGrow1] = useState(false);
+  const [loadingGrow2, setLoadingGrow2] = useState(false);
+  const [loadError, setLoadError] = useState<string | null>(null);
+  const grow1RequestId = useRef(0);
+  const grow2RequestId = useRef(0);
+  const isMounted = useRef(false);
+  const loadingPlants = loadingGrow1 || loadingGrow2;
 
   // Dropdown options
   const growOptions = useMemo(() => {
     return grows.map(grow => ({
       id: grow.id,
       label: grow.name,
-      description: `${grow.currentPhase} • Started ${new Date(grow.startDate).toLocaleDateString()}`,
+      description: `${grow.currentPhase} • Started ${formatStartDate(grow.startDate)}`,
     }));
   }, [grows]);
 
-  // Calculate phase durations
-  const calculatePhaseDurations = (grow: Grow): Record<string, number> => {
-    const durations: Record<string, number> = {};
-    
-    for (let i = 0; i < grow.phaseHistory.length; i++) {
-      const phase = grow.phaseHistory[i];
-      const startDate = new Date(phase.startDate);
-      const endDate = i < grow.phaseHistory.length - 1
-        ? new Date(grow.phaseHistory[i + 1].startDate)
-        : new Date();
-      
-      durations[phase.phase] = Math.ceil((endDate.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24));
-    }
-    
-    return durations;
-  };
-
-  // Calculate total days
-  const calculateTotalDays = (grow: Grow): number => {
-    const start = new Date(grow.startDate);
-    const end = grow.currentPhase === 'Done' 
-      ? new Date(grow.phaseHistory[grow.phaseHistory.length - 1]?.startDate || new Date())
-      : new Date();
-    return Math.ceil((end.getTime() - start.getTime()) / (1000 * 60 * 60 * 24));
-  };
-
   // Load grow data with plants
-  const loadGrowData = async (growId: string): Promise<GrowWithPlants | null> => {
+  const loadGrowData = useCallback(async (growId: string): Promise<GrowWithPlants | null> => {
     const grow = grows.find(g => g.id === growId);
     if (!grow) return null;
 
-    try {
-      const plants = await getPlantsForGrow(growId);
-      return {
-        ...grow,
-        plants,
-        totalDays: calculateTotalDays(grow),
-        phaseDurations: calculatePhaseDurations(grow),
-      };
-    } catch (error) {
-      console.error('Error loading plants:', error);
-      return {
-        ...grow,
-        plants: [],
-        totalDays: calculateTotalDays(grow),
-        phaseDurations: calculatePhaseDurations(grow),
-      };
-    }
-  };
+    const plants = await getPlantsForGrow(growId);
+    return {
+      ...grow,
+      plants,
+      totalDays: calculateGrowTotalDays(grow),
+      phaseDurations: calculatePhaseDurations(grow),
+    };
+  }, [grows]);
 
   // Handle grow selection
-  const handleGrow1Change = async (id: string) => {
+  const handleGrow1Change = useCallback(async (id: string) => {
+    const requestId = ++grow1RequestId.current;
     setGrow1Id(id);
     if (id) {
-      setLoadingPlants(true);
-      const data = await loadGrowData(id);
-      setGrow1Data(data);
-      setLoadingPlants(false);
+      setLoadingGrow1(true);
+      setLoadError(null);
+      try {
+        const data = await loadGrowData(id);
+        if (!isMounted.current || requestId !== grow1RequestId.current) {
+          return;
+        }
+        setGrow1Data(data);
+      } catch (error) {
+        if (!isMounted.current || requestId !== grow1RequestId.current) {
+          return;
+        }
+        console.error('Error loading plants:', error);
+        setGrow1Data(null);
+        setLoadError(error instanceof Error ? error.message : 'Could not load plants for the selected grow');
+      } finally {
+        if (isMounted.current && requestId === grow1RequestId.current) {
+          setLoadingGrow1(false);
+        }
+      }
     } else {
       setGrow1Data(null);
+      setLoadingGrow1(false);
     }
-  };
+  }, [loadGrowData]);
 
-  const handleGrow2Change = async (id: string) => {
+  const handleGrow2Change = useCallback(async (id: string) => {
+    const requestId = ++grow2RequestId.current;
     setGrow2Id(id);
     if (id) {
-      setLoadingPlants(true);
-      const data = await loadGrowData(id);
-      setGrow2Data(data);
-      setLoadingPlants(false);
+      setLoadingGrow2(true);
+      setLoadError(null);
+      try {
+        const data = await loadGrowData(id);
+        if (!isMounted.current || requestId !== grow2RequestId.current) {
+          return;
+        }
+        setGrow2Data(data);
+      } catch (error) {
+        if (!isMounted.current || requestId !== grow2RequestId.current) {
+          return;
+        }
+        console.error('Error loading plants:', error);
+        setGrow2Data(null);
+        setLoadError(error instanceof Error ? error.message : 'Could not load plants for the selected grow');
+      } finally {
+        if (isMounted.current && requestId === grow2RequestId.current) {
+          setLoadingGrow2(false);
+        }
+      }
     } else {
       setGrow2Data(null);
+      setLoadingGrow2(false);
     }
-  };
+  }, [loadGrowData]);
+
+  useEffect(() => {
+    isMounted.current = true;
+
+    return () => {
+      isMounted.current = false;
+      grow1RequestId.current += 1;
+      grow2RequestId.current += 1;
+    };
+  }, []);
+
+  useEffect(() => {
+    if (isLoading || grows.length === 0) return;
+
+    if (grow1Id && !grow1Data) {
+      handleGrow1Change(grow1Id);
+    }
+    if (grow2Id && !grow2Data) {
+      handleGrow2Change(grow2Id);
+    }
+  }, [grow1Id, grow1Data, grow2Id, grow2Data, grows.length, handleGrow1Change, handleGrow2Change, isLoading]);
 
   // Swap grows
   const handleSwap = () => {
+    grow1RequestId.current += 1;
+    grow2RequestId.current += 1;
     const temp1 = grow1Id;
     const tempData1 = grow1Data;
     setGrow1Id(grow2Id);
     setGrow1Data(grow2Data);
     setGrow2Id(temp1);
     setGrow2Data(tempData1);
+    setLoadingGrow1(false);
+    setLoadingGrow2(false);
   };
 
   if (isLoading) {
@@ -187,6 +224,16 @@ const GrowComparison: React.FC<GrowComparisonProps> = ({
           </div>
         </div>
 
+        {loadError && (
+          <div className="flex items-start gap-3 rounded-lg border border-red-800 bg-red-900/20 p-4 text-red-200">
+            <AlertCircle className="mt-0.5 h-5 w-5 flex-shrink-0 text-red-400" />
+            <div>
+              <p className="font-medium text-white">Comparison data could not be loaded</p>
+              <p className="text-sm">{loadError}</p>
+            </div>
+          </div>
+        )}
+
         {/* Grow Headers */}
         {grow1Data && grow2Data && (
           <>
@@ -237,29 +284,29 @@ const GrowComparison: React.FC<GrowComparisonProps> = ({
                 metrics={
                   ['Seedling', 'Vegetative', 'Flowering'].map(phase => ({
                     label: phase,
-                    value1: grow1Data.phaseDurations[phase] || '-',
-                    value2: grow2Data.phaseDurations[phase] || '-',
+                    value1: grow1Data.phaseDurations[phase] ?? '-',
+                    value2: grow2Data.phaseDurations[phase] ?? '-',
                     unit: 'd',
                   }))
                 }
               />
 
-              {(grow1Data.expectedYield || grow2Data.expectedYield) && (
+              {(grow1Data.expectedYield != null || grow2Data.expectedYield != null || grow1Data.actualYield != null || grow2Data.actualYield != null) && (
                 <ComparisonCard
                   title="Yield"
                   icon={<Award className="h-4 w-4" />}
                   metrics={[
                     {
                       label: 'Expected',
-                      value1: grow1Data.expectedYield || '-',
-                      value2: grow2Data.expectedYield || '-',
+                      value1: grow1Data.expectedYield ?? '-',
+                      value2: grow2Data.expectedYield ?? '-',
                       unit: 'g',
                       higherIsBetter: true,
                     },
                     {
                       label: 'Actual',
-                      value1: grow1Data.actualYield || '-',
-                      value2: grow2Data.actualYield || '-',
+                      value1: grow1Data.actualYield ?? '-',
+                      value2: grow2Data.actualYield ?? '-',
                       unit: 'g',
                       higherIsBetter: true,
                     },
@@ -274,14 +321,14 @@ const GrowComparison: React.FC<GrowComparisonProps> = ({
                   metrics={[
                     {
                       label: 'Temperature',
-                      value1: grow1Data.environmentSettings?.temperature || '-',
-                      value2: grow2Data.environmentSettings?.temperature || '-',
+                      value1: grow1Data.environmentSettings?.temperature ?? '-',
+                      value2: grow2Data.environmentSettings?.temperature ?? '-',
                       unit: '°C',
                     },
                     {
                       label: 'Humidity',
-                      value1: grow1Data.environmentSettings?.humidity || '-',
-                      value2: grow2Data.environmentSettings?.humidity || '-',
+                      value1: grow1Data.environmentSettings?.humidity ?? '-',
+                      value2: grow2Data.environmentSettings?.humidity ?? '-',
                       unit: '%',
                     },
                   ]}

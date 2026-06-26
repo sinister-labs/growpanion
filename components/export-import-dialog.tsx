@@ -1,7 +1,7 @@
 "use client";
 
-import { useState, useCallback } from 'react';
-import { useDropzone } from 'react-dropzone';
+import { useRef, useState, useCallback } from 'react';
+import { useDropzone, type FileRejection } from 'react-dropzone';
 import {
     Download,
     Upload,
@@ -17,6 +17,7 @@ import {
     FileText,
     Database,
     Leaf,
+    Bell,
     FlaskConical,
     Settings,
     X
@@ -58,6 +59,7 @@ import {
 } from '@/lib/export-import';
 
 type ExportImportStep = 'idle' | 'exporting' | 'export-complete' | 'file-selected' | 'password-required' | 'preview' | 'importing' | 'import-complete';
+const MAX_IMPORT_FILE_BYTES = 20 * 1024 * 1024;
 
 export function ExportImportSection() {
     const { toast } = useToast();
@@ -84,17 +86,51 @@ export function ExportImportSection() {
     const [importProgressMessage, setImportProgressMessage] = useState('');
     const [importResult, setImportResult] = useState<ImportResult | null>(null);
     const [importError, setImportError] = useState<string>('');
+    const fileReadRequestId = useRef(0);
+    const decryptRequestId = useRef(0);
+    const importRequestId = useRef(0);
 
     // File dropzone
-    const onDrop = useCallback(async (acceptedFiles: File[]) => {
+    const onDrop = useCallback(async (acceptedFiles: File[], fileRejections: FileRejection[]) => {
+        if (fileRejections.length > 0) {
+            const rejection = fileRejections[0];
+            const tooLarge = rejection.errors.some(error => error.code === 'file-too-large');
+            const tooManyFiles = rejection.errors.some(error => error.code === 'too-many-files');
+
+            setImportError(
+                tooLarge
+                    ? 'Backup file is too large. Please use a file smaller than 20 MB.'
+                    : tooManyFiles
+                        ? 'Please select only one backup file.'
+                        : 'Unsupported file. Please use a valid .json or .growpanion backup.'
+            );
+            setImportStep('idle');
+            return;
+        }
+
         if (acceptedFiles.length === 0) return;
         
+        const requestId = ++fileReadRequestId.current;
         const file = acceptedFiles[0];
+        decryptRequestId.current++;
+        importRequestId.current++;
         setImportFile(file);
         setImportError('');
+        setImportPreviewData(null);
+        setImportResult(null);
+        setImportProgress(0);
+        setImportProgressMessage('');
+
+        if (file.size > MAX_IMPORT_FILE_BYTES) {
+            setImportError('Backup file is too large. Please use a file smaller than 20 MB.');
+            setImportStep('idle');
+            return;
+        }
         
         try {
             const content = await readFileAsText(file);
+            if (requestId !== fileReadRequestId.current) return;
+
             setImportFileContent(content);
             
             const fileType = detectFileType(file.name, content);
@@ -121,6 +157,8 @@ export function ExportImportSection() {
                 }
             }
         } catch {
+            if (requestId !== fileReadRequestId.current) return;
+
             setImportError('Failed to read file');
             setImportStep('idle');
         }
@@ -132,7 +170,8 @@ export function ExportImportSection() {
             'application/json': ['.json'],
             'application/octet-stream': ['.growpanion']
         },
-        maxFiles: 1
+        maxFiles: 1,
+        maxSize: MAX_IMPORT_FILE_BYTES
     });
 
     // Export handlers
@@ -193,6 +232,8 @@ export function ExportImportSection() {
 
     // Import handlers
     const handleDecryptAndPreview = async () => {
+        const requestId = ++decryptRequestId.current;
+
         if (!importPassword) {
             setImportError('Please enter the password');
             return;
@@ -200,10 +241,14 @@ export function ExportImportSection() {
 
         try {
             const parsed = await parseImportFile(importFileContent, importPassword);
+            if (requestId !== decryptRequestId.current) return;
+
             setImportPreviewData(parsed.data);
             setImportError('');
             setImportStep('preview');
         } catch (error) {
+            if (requestId !== decryptRequestId.current) return;
+
             if (error instanceof Error) {
                 setImportError(getErrorMessage(error.message));
             }
@@ -211,20 +256,26 @@ export function ExportImportSection() {
     };
 
     const handleImport = async () => {
-        if (!importPreviewData) return;
+        if (!importPreviewData || importStep === 'importing') return;
 
+        const requestId = ++importRequestId.current;
         setImportStep('importing');
         setImportProgress(0);
+        setImportProgressMessage('Preparing import...');
+        setImportError('');
         
         try {
             const result = await importData(
                 importPreviewData,
                 conflictStrategy,
                 (progress, message) => {
+                    if (requestId !== importRequestId.current) return;
+
                     setImportProgress(progress);
                     setImportProgressMessage(message);
                 }
             );
+            if (requestId !== importRequestId.current) return;
             
             setImportResult(result);
             setImportStep('import-complete');
@@ -233,7 +284,7 @@ export function ExportImportSection() {
                 toast({
                     variant: "success",
                     title: "Import successful!",
-                    description: `Imported ${result.imported.grows} grows, ${result.imported.plants} plants, ${result.imported.fertilizerMixes} mixes.`
+                    description: `Imported ${result.imported.grows} grows, ${result.imported.plants} plants, ${result.imported.fertilizerMixes} mixes, ${result.imported.strains} strains, ${result.imported.reminders} reminders.`
                 });
             } else {
                 toast({
@@ -243,12 +294,17 @@ export function ExportImportSection() {
                 });
             }
         } catch (error) {
+            if (requestId !== importRequestId.current) return;
+
             setImportError(error instanceof Error ? error.message : 'Import failed');
             setImportStep('preview');
         }
     };
 
     const resetImportState = () => {
+        fileReadRequestId.current++;
+        decryptRequestId.current++;
+        importRequestId.current++;
         setImportStep('idle');
         setImportFile(null);
         setImportFileContent('');
@@ -321,6 +377,8 @@ export function ExportImportSection() {
 
                 {/* Export Dialog */}
                 <Dialog open={exportDialogOpen} onOpenChange={(open) => {
+                    if (!open && isExporting) return;
+
                     setExportDialogOpen(open);
                     if (!open) resetExportState();
                 }}>
@@ -435,6 +493,7 @@ export function ExportImportSection() {
                             <Button
                                 variant="outline"
                                 onClick={() => setExportDialogOpen(false)}
+                                disabled={isExporting}
                                 className="border-gray-600 hover:bg-gray-600/30 text-gray-300 rounded-full"
                             >
                                 Cancel
@@ -462,6 +521,8 @@ export function ExportImportSection() {
 
                 {/* Import Dialog */}
                 <Dialog open={importDialogOpen} onOpenChange={(open) => {
+                    if (!open && importStep === 'importing') return;
+
                     setImportDialogOpen(open);
                     if (!open) resetImportState();
                 }}>
@@ -617,9 +678,23 @@ export function ExportImportSection() {
                                             </div>
                                         </div>
                                         <div className="p-3 bg-gray-700/50 rounded-xl flex items-center gap-3">
+                                            <Leaf className="h-5 w-5 text-emerald-400" />
+                                            <div>
+                                                <p className="text-lg font-semibold text-white">{summary.strains}</p>
+                                                <p className="text-xs text-gray-400">Strains</p>
+                                            </div>
+                                        </div>
+                                        <div className="p-3 bg-gray-700/50 rounded-xl flex items-center gap-3">
+                                            <Bell className="h-5 w-5 text-amber-400" />
+                                            <div>
+                                                <p className="text-lg font-semibold text-white">{summary.reminders}</p>
+                                                <p className="text-xs text-gray-400">Reminders</p>
+                                            </div>
+                                        </div>
+                                        <div className="p-3 bg-gray-700/50 rounded-xl flex items-center gap-3">
                                             <Settings className="h-5 w-5 text-purple-400" />
                                             <div>
-                                                <p className="text-lg font-semibold text-white">{summary.hasSettings ? 'Yes' : 'No'}</p>
+                                                <p className="text-lg font-semibold text-white">{summary.hasSettings || summary.hasNotificationSettings ? 'Yes' : 'No'}</p>
                                                 <p className="text-xs text-gray-400">Settings</p>
                                             </div>
                                         </div>
@@ -702,12 +777,12 @@ export function ExportImportSection() {
                                             <AlertCircle className="h-16 w-16 mx-auto mb-4 text-amber-400" />
                                         )}
                                         <p className="text-xl font-semibold text-white mb-2">
-                                            {importResult.success ? 'Import Complete!' : 'Import Completed with Warnings'}
+                                            {importResult.success ? 'Import Complete!' : 'Import Failed'}
                                         </p>
                                     </div>
 
                                     {/* Results summary */}
-                                    <div className="grid grid-cols-3 gap-3">
+                                    <div className="grid grid-cols-2 sm:grid-cols-5 gap-3">
                                         <div className="p-3 bg-green-900/30 border border-green-800 rounded-xl text-center">
                                             <p className="text-2xl font-bold text-green-400">{importResult.imported.grows}</p>
                                             <p className="text-xs text-green-300">Grows imported</p>
@@ -720,12 +795,20 @@ export function ExportImportSection() {
                                             <p className="text-2xl font-bold text-green-400">{importResult.imported.fertilizerMixes}</p>
                                             <p className="text-xs text-green-300">Mixes imported</p>
                                         </div>
+                                        <div className="p-3 bg-green-900/30 border border-green-800 rounded-xl text-center">
+                                            <p className="text-2xl font-bold text-green-400">{importResult.imported.strains}</p>
+                                            <p className="text-xs text-green-300">Strains imported</p>
+                                        </div>
+                                        <div className="p-3 bg-green-900/30 border border-green-800 rounded-xl text-center">
+                                            <p className="text-2xl font-bold text-green-400">{importResult.imported.reminders}</p>
+                                            <p className="text-xs text-green-300">Reminders imported</p>
+                                        </div>
                                     </div>
 
-                                    {(importResult.skipped.grows > 0 || importResult.skipped.plants > 0 || importResult.skipped.fertilizerMixes > 0) && (
+                                    {(importResult.skipped.grows > 0 || importResult.skipped.plants > 0 || importResult.skipped.fertilizerMixes > 0 || importResult.skipped.strains > 0 || importResult.skipped.reminders > 0) && (
                                         <div className="p-3 bg-gray-700/50 rounded-xl">
                                             <p className="text-sm text-gray-400">
-                                                Skipped: {importResult.skipped.grows} grows, {importResult.skipped.plants} plants, {importResult.skipped.fertilizerMixes} mixes
+                                                Skipped: {importResult.skipped.grows} grows, {importResult.skipped.plants} plants, {importResult.skipped.fertilizerMixes} mixes, {importResult.skipped.strains} strains, {importResult.skipped.reminders} reminders
                                             </p>
                                         </div>
                                     )}
@@ -743,13 +826,14 @@ export function ExportImportSection() {
                                         onClick={() => {
                                             setImportDialogOpen(false);
                                             resetImportState();
-                                            // Trigger page reload to show new data
-                                            window.location.reload();
+                                            if (importResult.success) {
+                                                window.location.reload();
+                                            }
                                         }}
                                         className="w-full bg-green-700 hover:bg-green-600 text-white rounded-full"
                                     >
                                         <CheckCircle2 className="mr-2 h-4 w-4" />
-                                        Done
+                                        {importResult.success ? 'Done' : 'Close'}
                                     </Button>
                                 </div>
                             )}

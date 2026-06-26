@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef, createContext, useContext } from 'react';
 import {
     Grow,
     getAllGrows,
@@ -9,16 +9,22 @@ import {
 } from '@/lib/db';
 import { isGrowActive as isGrowActiveUtil } from '@/lib/growth-utils';
 
+type GrowsContextType = ReturnType<typeof useGrowsProvider>;
+
+export const GrowsContext = createContext<GrowsContextType | undefined>(undefined);
+
 /**
- * Hook for managing grows (growing cycles)
+ * Provider state for managing grows (growing cycles).
  * Provides functions for loading, adding, updating and deleting grows
- * as well as managing the active grow
+ * as well as managing the active grow.
  */
-export function useGrows() {
+export function useGrowsProvider() {
     const [grows, setGrows] = useState<Grow[]>([]);
     const [activeGrowId, setActiveGrowId] = useState<string | null>(null);
     const [isLoading, setIsLoading] = useState<boolean>(true);
     const [error, setError] = useState<Error | null>(null);
+    const loadRequestId = useRef(0);
+    const isMounted = useRef(false);
 
     /**
      * Checks if a grow is active (not completed)
@@ -48,30 +54,42 @@ export function useGrows() {
      * Loads all grows from the database and manages the active grow
      */
     const loadGrows = useCallback(async () => {
+        const requestId = ++loadRequestId.current;
+
         setIsLoading(true);
         setError(null);
 
         try {
             await populateDBWithDemoDataIfEmpty();
             const loadedGrows = await getAllGrows();
+            if (!isMounted.current || requestId !== loadRequestId.current) return;
+
             setGrows(loadedGrows);
 
             if (!activeGrowId) {
                 setActiveGrowId(selectActiveGrow(loadedGrows));
             } else {
                 const currentActiveGrow = loadedGrows.find(g => g.id === activeGrowId);
-                if (currentActiveGrow && !isGrowActive(currentActiveGrow)) {
+                if (!currentActiveGrow) {
+                    setActiveGrowId(selectActiveGrow(loadedGrows));
+                } else if (!isGrowActive(currentActiveGrow)) {
                     const activeGrows = loadedGrows.filter(isGrowActive);
                     if (activeGrows.length > 0) {
                         setActiveGrowId(activeGrows[0].id);
+                    } else {
+                        setActiveGrowId(currentActiveGrow.id);
                     }
                 }
             }
         } catch (err) {
+            if (!isMounted.current || requestId !== loadRequestId.current) return;
+
             console.error('Error loading grows:', err);
             setError(err instanceof Error ? err : new Error('Unknown error loading grows'));
         } finally {
-            setIsLoading(false);
+            if (isMounted.current && requestId === loadRequestId.current) {
+                setIsLoading(false);
+            }
         }
     }, [activeGrowId, isGrowActive, selectActiveGrow]);
 
@@ -86,8 +104,11 @@ export function useGrows() {
             };
 
             await saveGrow(newGrow);
-            setGrows(prev => [...prev, newGrow]);
+            if (!isMounted.current) {
+                return newGrow;
+            }
 
+            setGrows(prev => [...prev, newGrow]);
             setActiveGrowId(newGrow.id);
 
             return newGrow;
@@ -103,6 +124,10 @@ export function useGrows() {
     const updateGrow = useCallback(async (updatedGrow: Grow) => {
         try {
             await saveGrow(updatedGrow);
+            if (!isMounted.current) {
+                return updatedGrow;
+            }
+
             setGrows(prev =>
                 prev.map(grow => grow.id === updatedGrow.id ? updatedGrow : grow)
             );
@@ -126,6 +151,10 @@ export function useGrows() {
     const removeGrow = useCallback(async (id: string) => {
         try {
             await deleteGrow(id);
+            if (!isMounted.current) {
+                return;
+            }
+
             setGrows(prev => prev.filter(grow => grow.id !== id));
 
             if (activeGrowId === id) {
@@ -169,7 +198,13 @@ export function useGrows() {
     }, [grows, isGrowActive]);
 
     useEffect(() => {
+        isMounted.current = true;
         loadGrows();
+
+        return () => {
+            isMounted.current = false;
+            loadRequestId.current += 1;
+        };
     }, [loadGrows]);
 
     return {
@@ -186,4 +221,13 @@ export function useGrows() {
         getActiveGrows,
         isGrowActive
     };
-} 
+}
+
+export function useGrows() {
+    const context = useContext(GrowsContext);
+    if (!context) {
+        throw new Error('useGrows must be used within a GrowsContext.Provider');
+    }
+
+    return context;
+}

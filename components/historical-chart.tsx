@@ -13,6 +13,7 @@ import {
 } from 'recharts';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { TrendingUp } from 'lucide-react';
+import { calculateVPD } from '@/lib/vpd-utils';
 
 export interface ChartDataPoint {
   time: string;
@@ -33,7 +34,7 @@ export interface HistoricalChartProps {
 }
 
 // Demo data generator for when no data is available
-const generateDemoData = (): ChartDataPoint[] => {
+export const generateDemoData = (): ChartDataPoint[] => {
   const now = Date.now();
   const data: ChartDataPoint[] = [];
   
@@ -64,13 +65,6 @@ const generateDemoData = (): ChartDataPoint[] => {
   }
   
   return data;
-};
-
-// VPD calculation helper
-const calculateVPD = (tempC: number, humidity: number): number => {
-  const svp = 0.6108 * Math.exp((17.27 * tempC) / (tempC + 237.3));
-  const vpd = svp * (1 - humidity / 100);
-  return Math.round(vpd * 100) / 100;
 };
 
 // Custom tooltip component

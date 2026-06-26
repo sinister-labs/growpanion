@@ -3,8 +3,18 @@
  * Handles data collection, serialization, and import with conflict resolution
  */
 
-import { db, Grow, PlantDB, FertilizerMixDB, Settings } from '@/lib/db';
+import { db, Grow, PlantDB, FertilizerMixDB, Settings, Strain, Reminder, NotificationSettings } from '@/lib/db';
 import { encrypt, decrypt, isEncryptedFormat } from '@/lib/crypto-utils';
+import {
+    FertilizerMixDBSchema,
+    GrowSchema,
+    NotificationSettingsSchema,
+    PlantDBSchema,
+    ReminderSchema,
+    SettingsSchema,
+    StrainSchema
+} from '@/lib/validation-schemas';
+import { normalizeSensorConfig } from '@/lib/sensor-utils';
 
 // Current export schema version
 export const EXPORT_SCHEMA_VERSION = '1.0';
@@ -24,6 +34,9 @@ export interface ExportData {
         plants: PlantDB[];
         fertilizerMixes: FertilizerMixDB[];
         settings: Settings | null;
+        strains?: Strain[];
+        reminders?: Reminder[];
+        notificationSettings?: NotificationSettings | null;
     };
 }
 
@@ -50,24 +63,63 @@ export interface ImportResult {
         plants: number;
         fertilizerMixes: number;
         settings: boolean;
+        strains: number;
+        reminders: number;
+        notificationSettings: boolean;
     };
     skipped: {
         grows: number;
         plants: number;
         fertilizerMixes: number;
+        strains: number;
+        reminders: number;
     };
     errors: string[];
 }
+
+const normalizeImportSettings = (settings: Settings): Settings => ({
+    ...settings,
+    id: 'global',
+    sensors: settings.sensors?.map(normalizeSensorConfig)
+});
+
+const normalizeExportDataForImport = (exportData: ExportData): ExportData => ({
+    metadata: {
+        ...exportData.metadata,
+        version: exportData.metadata.version.trim(),
+        appVersion: typeof exportData.metadata.appVersion === 'string'
+            ? exportData.metadata.appVersion.trim()
+            : APP_VERSION,
+        exportedAt: exportData.metadata.exportedAt.trim(),
+        description: typeof exportData.metadata.description === 'string'
+            ? exportData.metadata.description.trim()
+            : undefined,
+    },
+    data: {
+        grows: exportData.data.grows.map(grow => GrowSchema.parse(grow)),
+        plants: exportData.data.plants.map(plant => PlantDBSchema.parse(plant)),
+        fertilizerMixes: exportData.data.fertilizerMixes.map(mix => FertilizerMixDBSchema.parse(mix)),
+        settings: exportData.data.settings ? normalizeImportSettings(SettingsSchema.parse(exportData.data.settings)) : null,
+        strains: exportData.data.strains?.map(strain => StrainSchema.parse(strain)),
+        reminders: exportData.data.reminders?.map(reminder => ReminderSchema.parse(reminder)),
+        notificationSettings: exportData.data.notificationSettings
+            ? NotificationSettingsSchema.parse(exportData.data.notificationSettings)
+            : null,
+    },
+});
 
 /**
  * Collects all data from the database for export
  */
 export async function collectExportData(description?: string): Promise<ExportData> {
-    const [grows, plants, fertilizerMixes, settings] = await Promise.all([
+    const [grows, plants, fertilizerMixes, settings, strains, reminders, notificationSettings] = await Promise.all([
         db.grows.toArray(),
         db.plants.toArray(),
         db.fertilizerMixes.toArray(),
-        db.settings.get('global')
+        db.settings.get('global'),
+        db.strains.toArray(),
+        db.reminders.toArray(),
+        db.notificationSettings.get('notification-settings')
     ]);
 
     return {
@@ -82,7 +134,10 @@ export async function collectExportData(description?: string): Promise<ExportDat
             grows,
             plants,
             fertilizerMixes,
-            settings: settings || null
+            settings: settings || null,
+            strains,
+            reminders,
+            notificationSettings: notificationSettings || null
         }
     };
 }
@@ -181,30 +236,244 @@ export async function parseImportFile(
  */
 export function validateExportSchema(data: unknown): { valid: boolean; errors: string[] } {
     const errors: string[] = [];
+    const isObjectRecord = (value: unknown): value is Record<string, unknown> =>
+        value !== null && typeof value === 'object' && !Array.isArray(value);
+    const hasString = (record: Record<string, unknown>, key: string) =>
+        typeof record[key] === 'string' && record[key].trim().length > 0;
+    const getTrimmedString = (record: Record<string, unknown>, key: string) =>
+        typeof record[key] === 'string' ? record[key].trim() : undefined;
+    const hasArray = (record: Record<string, unknown>, key: string) =>
+        Array.isArray(record[key]);
+    const hasNumber = (record: Record<string, unknown>, key: string) =>
+        typeof record[key] === 'number' && Number.isFinite(record[key]);
+    const hasBoolean = (record: Record<string, unknown>, key: string) =>
+        typeof record[key] === 'boolean';
+    const addDuplicateErrors = (ids: string[], sectionName: string) => {
+        const seen = new Set<string>();
+        const duplicateIds = new Set<string>();
 
-    if (!data || typeof data !== 'object') {
+        ids.forEach(id => {
+            if (seen.has(id)) {
+                duplicateIds.add(id);
+            }
+            seen.add(id);
+        });
+
+        duplicateIds.forEach(id => errors.push(`Duplicate ${sectionName} id: ${id}`));
+    };
+    const validateRecords = (
+        value: unknown,
+        sectionName: string,
+        validateRecord: (record: Record<string, unknown>, index: number) => void
+    ) => {
+        if (!Array.isArray(value)) return;
+
+        value.forEach((item, index) => {
+            if (!isObjectRecord(item)) {
+                errors.push(`Invalid ${sectionName}[${index}]`);
+                return;
+            }
+
+            validateRecord(item, index);
+        });
+    };
+
+    if (!isObjectRecord(data)) {
         return { valid: false, errors: ['Data must be an object'] };
     }
 
-    const obj = data as Record<string, unknown>;
+    const obj = data;
 
     // Check metadata
-    if (!obj.metadata || typeof obj.metadata !== 'object') {
+    if (!isObjectRecord(obj.metadata)) {
         errors.push('Missing or invalid metadata');
     } else {
-        const meta = obj.metadata as Record<string, unknown>;
-        if (typeof meta.version !== 'string') errors.push('Missing metadata.version');
-        if (typeof meta.exportedAt !== 'string') errors.push('Missing metadata.exportedAt');
+        const meta = obj.metadata;
+        if (!hasString(meta, 'version')) errors.push('Missing metadata.version');
+        if (!hasString(meta, 'exportedAt')) errors.push('Missing metadata.exportedAt');
+        if (!hasBoolean(meta, 'encrypted')) errors.push('Missing or invalid metadata.encrypted');
     }
 
     // Check data structure
-    if (!obj.data || typeof obj.data !== 'object') {
+    if (!isObjectRecord(obj.data)) {
         errors.push('Missing or invalid data section');
     } else {
-        const dataSection = obj.data as Record<string, unknown>;
+        const dataSection = obj.data;
         if (!Array.isArray(dataSection.grows)) errors.push('Missing or invalid data.grows');
         if (!Array.isArray(dataSection.plants)) errors.push('Missing or invalid data.plants');
         if (!Array.isArray(dataSection.fertilizerMixes)) errors.push('Missing or invalid data.fertilizerMixes');
+        if (dataSection.settings !== undefined && dataSection.settings !== null && !isObjectRecord(dataSection.settings)) {
+            errors.push('Invalid data.settings');
+        }
+        if (dataSection.strains !== undefined && !Array.isArray(dataSection.strains)) {
+            errors.push('Invalid data.strains');
+        }
+        if (dataSection.reminders !== undefined && !Array.isArray(dataSection.reminders)) {
+            errors.push('Invalid data.reminders');
+        }
+        if (
+            dataSection.notificationSettings !== undefined &&
+            dataSection.notificationSettings !== null &&
+            !isObjectRecord(dataSection.notificationSettings)
+        ) {
+            errors.push('Invalid data.notificationSettings');
+        }
+
+        const growIds: string[] = [];
+        const validGrowIds = new Set<string>();
+        const plantIds: string[] = [];
+        const validPlantIds = new Set<string>();
+        const plantGrowIds = new Map<string, string>();
+        const mixIds: string[] = [];
+        const validMixIds = new Set<string>();
+        const mixGrowIds = new Map<string, string>();
+        const strainIds: string[] = [];
+        const reminderIds: string[] = [];
+        const plantRecords: Record<string, unknown>[] = [];
+
+        validateRecords(dataSection.grows, 'data.grows', (grow, index) => {
+            const growId = getTrimmedString(grow, 'id');
+            if (!hasString(grow, 'id')) errors.push(`Missing data.grows[${index}].id`);
+            else if (growId) {
+                growIds.push(growId);
+                validGrowIds.add(growId);
+            }
+            if (!hasString(grow, 'name')) errors.push(`Missing data.grows[${index}].name`);
+            if (!hasString(grow, 'startDate')) errors.push(`Missing data.grows[${index}].startDate`);
+            if (!hasString(grow, 'currentPhase')) errors.push(`Missing data.grows[${index}].currentPhase`);
+            if (!hasArray(grow, 'phaseHistory')) errors.push(`Missing or invalid data.grows[${index}].phaseHistory`);
+            if (!GrowSchema.safeParse(grow).success) errors.push(`Invalid data.grows[${index}] schema`);
+        });
+
+        validateRecords(dataSection.plants, 'data.plants', (plant, index) => {
+            plantRecords.push(plant);
+            const plantId = getTrimmedString(plant, 'id');
+            const plantGrowId = getTrimmedString(plant, 'growId');
+            if (!hasString(plant, 'id')) errors.push(`Missing data.plants[${index}].id`);
+            else if (plantId) {
+                plantIds.push(plantId);
+                validPlantIds.add(plantId);
+            }
+            if (!hasString(plant, 'growId')) errors.push(`Missing data.plants[${index}].growId`);
+            else if (plantGrowId) {
+                plantGrowIds.set(plantId ?? `__invalid_${index}`, plantGrowId);
+                if (!validGrowIds.has(plantGrowId)) errors.push(`Invalid data.plants[${index}].growId reference`);
+            }
+            if (!hasString(plant, 'name')) errors.push(`Missing data.plants[${index}].name`);
+            if (!PlantDBSchema.safeParse(plant).success) errors.push(`Invalid data.plants[${index}] schema`);
+        });
+
+        validateRecords(dataSection.fertilizerMixes, 'data.fertilizerMixes', (mix, index) => {
+            const mixId = getTrimmedString(mix, 'id');
+            const mixGrowId = getTrimmedString(mix, 'growId');
+            if (!hasString(mix, 'id')) errors.push(`Missing data.fertilizerMixes[${index}].id`);
+            else if (mixId) {
+                mixIds.push(mixId);
+                validMixIds.add(mixId);
+            }
+            if (!hasString(mix, 'growId')) errors.push(`Missing data.fertilizerMixes[${index}].growId`);
+            else if (mixGrowId) {
+                if (mixId) {
+                    mixGrowIds.set(mixId, mixGrowId);
+                }
+                if (!validGrowIds.has(mixGrowId)) errors.push(`Invalid data.fertilizerMixes[${index}].growId reference`);
+            }
+            if (!hasString(mix, 'name')) errors.push(`Missing data.fertilizerMixes[${index}].name`);
+            if (!hasString(mix, 'waterAmount')) errors.push(`Missing data.fertilizerMixes[${index}].waterAmount`);
+            if (!hasArray(mix, 'fertilizers')) errors.push(`Missing or invalid data.fertilizerMixes[${index}].fertilizers`);
+            if (!FertilizerMixDBSchema.safeParse(mix).success) errors.push(`Invalid data.fertilizerMixes[${index}] schema`);
+        });
+
+        plantRecords.forEach((plant, plantIndex) => {
+            if (!Array.isArray(plant.waterings)) return;
+
+            plant.waterings.forEach((watering, wateringIndex) => {
+                if (!isObjectRecord(watering) || typeof watering.mixId !== 'string' || watering.mixId.trim() === '') {
+                    return;
+                }
+
+                const mixId = watering.mixId.trim();
+                const plantGrowId = getTrimmedString(plant, 'growId');
+
+                if (!validMixIds.has(mixId)) {
+                    errors.push(`Invalid data.plants[${plantIndex}].waterings[${wateringIndex}].mixId reference`);
+                    return;
+                }
+
+                if (plantGrowId && mixGrowIds.get(mixId) !== plantGrowId) {
+                    errors.push(`Invalid data.plants[${plantIndex}].waterings[${wateringIndex}].mixId grow reference`);
+                }
+            });
+        });
+
+        validateRecords(dataSection.strains, 'data.strains', (strain, index) => {
+            const strainId = getTrimmedString(strain, 'id');
+            if (!hasString(strain, 'id')) errors.push(`Missing data.strains[${index}].id`);
+            else if (strainId) strainIds.push(strainId);
+            if (!hasString(strain, 'name')) errors.push(`Missing data.strains[${index}].name`);
+            if (!hasString(strain, 'breeder')) errors.push(`Missing data.strains[${index}].breeder`);
+            if (!hasString(strain, 'genetics')) errors.push(`Missing data.strains[${index}].genetics`);
+            if (!StrainSchema.safeParse(strain).success) errors.push(`Invalid data.strains[${index}] schema`);
+        });
+
+        validateRecords(dataSection.reminders, 'data.reminders', (reminder, index) => {
+            const reminderGrowId = getTrimmedString(reminder, 'growId');
+            const reminderPlantId = getTrimmedString(reminder, 'plantId');
+            const reminderId = getTrimmedString(reminder, 'id');
+            if (!hasString(reminder, 'id')) errors.push(`Missing data.reminders[${index}].id`);
+            else if (reminderId) reminderIds.push(reminderId);
+            if (!hasString(reminder, 'growId')) errors.push(`Missing data.reminders[${index}].growId`);
+            else if (reminderGrowId && !validGrowIds.has(reminderGrowId)) errors.push(`Invalid data.reminders[${index}].growId reference`);
+            if (reminderPlantId) {
+                if (!validPlantIds.has(reminderPlantId)) {
+                    errors.push(`Invalid data.reminders[${index}].plantId reference`);
+                } else if (reminderGrowId && plantGrowIds.get(reminderPlantId) !== reminderGrowId) {
+                    errors.push(`Invalid data.reminders[${index}].plantId grow reference`);
+                }
+            }
+            if (!hasString(reminder, 'type')) errors.push(`Missing data.reminders[${index}].type`);
+            if (!hasString(reminder, 'title')) errors.push(`Missing data.reminders[${index}].title`);
+            if (!hasNumber(reminder, 'intervalDays')) errors.push(`Missing or invalid data.reminders[${index}].intervalDays`);
+            if (!hasString(reminder, 'nextDue')) errors.push(`Missing data.reminders[${index}].nextDue`);
+            if (!hasBoolean(reminder, 'enabled')) errors.push(`Missing or invalid data.reminders[${index}].enabled`);
+            if (!hasString(reminder, 'createdAt')) errors.push(`Missing data.reminders[${index}].createdAt`);
+            if (!hasString(reminder, 'updatedAt')) errors.push(`Missing data.reminders[${index}].updatedAt`);
+            if (!ReminderSchema.safeParse(reminder).success) errors.push(`Invalid data.reminders[${index}] schema`);
+        });
+
+        addDuplicateErrors(growIds, 'data.grows');
+        addDuplicateErrors(plantIds, 'data.plants');
+        addDuplicateErrors(mixIds, 'data.fertilizerMixes');
+        addDuplicateErrors(strainIds, 'data.strains');
+        addDuplicateErrors(reminderIds, 'data.reminders');
+
+        if (isObjectRecord(dataSection.settings) && dataSection.settings.id !== 'global') {
+            errors.push('Invalid data.settings.id');
+        }
+        if (isObjectRecord(dataSection.settings) && !SettingsSchema.safeParse(dataSection.settings).success) {
+            errors.push('Invalid data.settings schema');
+        }
+
+        if (isObjectRecord(dataSection.notificationSettings)) {
+            if (dataSection.notificationSettings.id !== 'notification-settings') {
+                errors.push('Invalid data.notificationSettings.id');
+            }
+            if (!hasBoolean(dataSection.notificationSettings, 'enabled')) {
+                errors.push('Missing or invalid data.notificationSettings.enabled');
+            }
+            if (!hasString(dataSection.notificationSettings, 'permission')) {
+                errors.push('Missing data.notificationSettings.permission');
+            }
+            if (!hasString(dataSection.notificationSettings, 'defaultReminderTime')) {
+                errors.push('Missing data.notificationSettings.defaultReminderTime');
+            }
+            if (!hasBoolean(dataSection.notificationSettings, 'soundEnabled')) {
+                errors.push('Missing or invalid data.notificationSettings.soundEnabled');
+            }
+            if (!NotificationSettingsSchema.safeParse(dataSection.notificationSettings).success) {
+                errors.push('Invalid data.notificationSettings schema');
+            }
+        }
     }
 
     return {
@@ -223,23 +492,49 @@ export async function importData(
 ): Promise<ImportResult> {
     const result: ImportResult = {
         success: true,
-        imported: { grows: 0, plants: 0, fertilizerMixes: 0, settings: false },
-        skipped: { grows: 0, plants: 0, fertilizerMixes: 0 },
+        imported: { grows: 0, plants: 0, fertilizerMixes: 0, settings: false, strains: 0, reminders: 0, notificationSettings: false },
+        skipped: { grows: 0, plants: 0, fertilizerMixes: 0, strains: 0, reminders: 0 },
         errors: []
     };
 
+    const validation = validateExportSchema(exportData);
+    if (!validation.valid) {
+        return {
+            ...result,
+            success: false,
+            errors: validation.errors
+        };
+    }
+
     try {
-        const { data } = exportData;
-        const totalItems = data.grows.length + data.plants.length + data.fertilizerMixes.length + (data.settings ? 1 : 0);
+        const { data } = normalizeExportDataForImport(exportData);
+        const strains = data.strains ?? [];
+        const reminders = data.reminders ?? [];
+        const totalItems =
+            data.grows.length +
+            data.plants.length +
+            data.fertilizerMixes.length +
+            strains.length +
+            reminders.length +
+            (data.settings ? 1 : 0) +
+            (data.notificationSettings ? 1 : 0);
         let processedItems = 0;
 
         const updateProgress = (message: string) => {
             processedItems++;
-            progressCallback?.(Math.round((processedItems / totalItems) * 100), message);
+            progressCallback?.(totalItems > 0 ? Math.round((processedItems / totalItems) * 100) : 100, message);
         };
 
         // Use transaction for atomic operations
-        await db.transaction('rw', [db.grows, db.plants, db.fertilizerMixes, db.settings], async () => {
+        await db.transaction('rw', [
+            db.grows,
+            db.plants,
+            db.fertilizerMixes,
+            db.settings,
+            db.strains,
+            db.reminders,
+            db.notificationSettings
+        ], async () => {
             // Handle based on strategy
             if (strategy === 'replace') {
                 // Clear all existing data first
@@ -248,7 +543,10 @@ export async function importData(
                     db.grows.clear(),
                     db.plants.clear(),
                     db.fertilizerMixes.clear(),
-                    db.settings.clear()
+                    db.settings.clear(),
+                    db.strains.clear(),
+                    db.reminders.clear(),
+                    db.notificationSettings.clear()
                 ]);
             }
 
@@ -309,11 +607,12 @@ export async function importData(
 
             // Import settings
             if (data.settings) {
+                const importSettings = normalizeImportSettings(data.settings);
                 progressCallback?.(90, 'Importing settings...');
                 if (strategy === 'skip') {
                     const existingSettings = await db.settings.get('global');
                     if (!existingSettings) {
-                        await db.settings.put(data.settings);
+                        await db.settings.put(importSettings);
                         result.imported.settings = true;
                     }
                 } else {
@@ -321,28 +620,84 @@ export async function importData(
                     if (strategy === 'merge') {
                         const existingSettings = await db.settings.get('global');
                         if (existingSettings) {
+                            const normalizedExistingSettings = normalizeImportSettings(existingSettings);
                             const mergedSettings = {
-                                ...existingSettings,
-                                ...data.settings,
+                                ...normalizedExistingSettings,
+                                ...importSettings,
                                 id: 'global',
                                 // Merge sensors arrays
                                 sensors: [
-                                    ...(existingSettings.sensors || []),
-                                    ...(data.settings.sensors || []).filter(
-                                        newSensor => !(existingSettings.sensors || []).some(s => s.id === newSensor.id)
+                                    ...(normalizedExistingSettings.sensors || []),
+                                    ...(importSettings.sensors || []).filter(
+                                        newSensor => !(normalizedExistingSettings.sensors || []).some(s => s.id === newSensor.id)
                                     )
                                 ]
                             };
                             await db.settings.put(mergedSettings);
                         } else {
-                            await db.settings.put(data.settings);
+                            await db.settings.put(importSettings);
                         }
                     } else {
-                        await db.settings.put(data.settings);
+                        await db.settings.put(importSettings);
                     }
                     result.imported.settings = true;
                 }
                 updateProgress('Imported settings');
+            }
+
+            // Import strains
+            progressCallback?.(92, 'Importing strains...');
+            for (const strain of strains) {
+                const exists = await db.strains.get(strain.id);
+                if (exists) {
+                    if (strategy === 'skip') {
+                        result.skipped.strains++;
+                    } else {
+                        await db.strains.put(strain);
+                        result.imported.strains++;
+                    }
+                } else {
+                    await db.strains.put(strain);
+                    result.imported.strains++;
+                }
+                updateProgress(`Imported strain: ${strain.name}`);
+            }
+
+            // Import reminders
+            progressCallback?.(95, 'Importing reminders...');
+            for (const reminder of reminders) {
+                const exists = await db.reminders.get(reminder.id);
+                if (exists) {
+                    if (strategy === 'skip') {
+                        result.skipped.reminders++;
+                    } else {
+                        await db.reminders.put(reminder);
+                        result.imported.reminders++;
+                    }
+                } else {
+                    await db.reminders.put(reminder);
+                    result.imported.reminders++;
+                }
+                updateProgress(`Imported reminder: ${reminder.title}`);
+            }
+
+            // Import notification settings
+            if (data.notificationSettings) {
+                progressCallback?.(98, 'Importing notification settings...');
+                if (strategy === 'skip') {
+                    const existingNotificationSettings = await db.notificationSettings.get('notification-settings');
+                    if (!existingNotificationSettings) {
+                        await db.notificationSettings.put(data.notificationSettings);
+                        result.imported.notificationSettings = true;
+                    }
+                } else {
+                    await db.notificationSettings.put({
+                        ...data.notificationSettings,
+                        id: 'notification-settings'
+                    });
+                    result.imported.notificationSettings = true;
+                }
+                updateProgress('Imported notification settings');
             }
         });
 
@@ -371,10 +726,12 @@ export function readFileAsText(file: File): Promise<string> {
  * Detects if a file is encrypted based on extension or content
  */
 export function detectFileType(filename: string, content: string): 'encrypted' | 'plain' | 'unknown' {
-    if (filename.endsWith(ENCRYPTED_EXTENSION)) {
+    const normalizedFilename = filename.toLowerCase();
+
+    if (normalizedFilename.endsWith(ENCRYPTED_EXTENSION)) {
         return 'encrypted';
     }
-    if (filename.endsWith(PLAIN_EXTENSION)) {
+    if (normalizedFilename.endsWith(PLAIN_EXTENSION)) {
         // Could still be encrypted content with wrong extension
         if (isEncryptedFormat(content)) {
             return 'encrypted';
@@ -400,7 +757,10 @@ export function getExportSummary(data: ExportData): {
     grows: number;
     plants: number;
     fertilizerMixes: number;
+    strains: number;
+    reminders: number;
     hasSettings: boolean;
+    hasNotificationSettings: boolean;
     exportDate: string;
     version: string;
 } {
@@ -408,7 +768,10 @@ export function getExportSummary(data: ExportData): {
         grows: data.data.grows.length,
         plants: data.data.plants.length,
         fertilizerMixes: data.data.fertilizerMixes.length,
-        hasSettings: data.data.settings !== null,
+        strains: data.data.strains?.length ?? 0,
+        reminders: data.data.reminders?.length ?? 0,
+        hasSettings: data.data.settings != null,
+        hasNotificationSettings: data.data.notificationSettings != null,
         exportDate: data.metadata.exportedAt,
         version: data.metadata.version
     };

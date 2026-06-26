@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useRef, useState, useEffect } from "react"
 import { useGrows } from "@/hooks/useGrows"
 import { usePlants } from "@/hooks/usePlants"
 import { Button } from "@/components/ui/button"
@@ -15,6 +15,7 @@ import { getGrowById } from "@/lib/db"
 import { useToast } from "@/hooks/use-toast"
 import { Grow } from "@/lib/db"
 import { useRouting } from "@/hooks/useRouting"
+import { createPhaseHistoryEntry, getGrowElapsedDays } from "@/lib/growth-utils"
 
 interface GrowDetailClientProps {
     growId: string;
@@ -30,36 +31,69 @@ export default function GrowDetailClient(props: GrowDetailClientProps) {
     const [grow, setGrow] = useState<Grow | null>(null);
     const [isLoading, setIsLoading] = useState(true);
     const [error, setError] = useState<Error | null>(null);
+    const [activeTab, setActiveTab] = useState('plants');
+    const loadRequestId = useRef(0);
+    const isMounted = useRef(false);
 
     useEffect(() => {
+        isMounted.current = true;
+
+        return () => {
+            isMounted.current = false;
+        };
+    }, []);
+
+    useEffect(() => {
+        const requestId = ++loadRequestId.current;
+        setIsLoading(true);
+        setError(null);
+        setGrow(null);
+
+        if (!growId) {
+            setIsLoading(false);
+            return;
+        }
+
         const loadGrow = async () => {
             try {
                 const grow = await getGrowById(growId);
+                if (!isMounted.current || requestId !== loadRequestId.current) return;
+
                 if (grow) {
                     setGrow(grow);
                 }
             } catch (err) {
+                if (!isMounted.current || requestId !== loadRequestId.current) return;
+
                 console.error("Error loading grow:", err);
                 setError(err instanceof Error ? err : new Error("Unknown error"));
             } finally {
-                setIsLoading(false);
+                if (isMounted.current && requestId === loadRequestId.current) {
+                    setIsLoading(false);
+                }
             }
         };
 
         loadGrow();
+
+        return () => {
+            loadRequestId.current = requestId + 1;
+        };
     }, [growId]);
 
     const handlePhaseChange = (newPhase: string) => {
         if (!grow) return;
+        if (grow.currentPhase === newPhase) return;
 
         const updatedGrow = {
             ...grow,
             currentPhase: newPhase,
-            phaseHistory: [...grow.phaseHistory, { phase: newPhase, startDate: new Date().toISOString() }],
+            phaseHistory: [...grow.phaseHistory, createPhaseHistoryEntry(newPhase, new Date().toISOString())],
         };
 
         updateGrow(updatedGrow)
             .then(() => {
+                if (!isMounted.current) return;
                 setGrow(updatedGrow);
                 toast({
                     variant: "success",
@@ -68,6 +102,7 @@ export default function GrowDetailClient(props: GrowDetailClientProps) {
                 });
             })
             .catch((error) => {
+                if (!isMounted.current) return;
                 toast({
                     variant: "destructive",
                     title: "Error",
@@ -121,6 +156,7 @@ export default function GrowDetailClient(props: GrowDetailClientProps) {
     }
 
     const safeGrow: Grow = grow;
+    const displayedDuration = getGrowElapsedDays(safeGrow);
 
     return (
         <div className="space-y-8 mt-6">
@@ -151,7 +187,7 @@ export default function GrowDetailClient(props: GrowDetailClientProps) {
                             {safeGrow.currentPhase}
                         </span>
                         <span className="text-gray-400 text-sm">
-                            Duration: {Math.floor((new Date().getTime() - new Date(safeGrow.startDate).getTime()) / (1000 * 60 * 60 * 24))} Days
+                            Duration: {displayedDuration} Days
                         </span>
                     </div>
                 </div>
@@ -179,7 +215,7 @@ export default function GrowDetailClient(props: GrowDetailClientProps) {
             />
 
             <div className="relative">
-                <Tabs defaultValue="plants" className="w-full">
+                <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
                     <TabsList className="grid grid-cols-4 bg-gray-800 rounded-full">
                         <TabsTrigger
                             value="plants"
@@ -213,7 +249,10 @@ export default function GrowDetailClient(props: GrowDetailClientProps) {
                             value="plants"
                             className="absolute top-0 left-0 w-full transition-opacity duration-300 opacity-100"
                         >
-                            <PlantList growId={growId} />
+                            <PlantList
+                                growId={growId}
+                                onManageFertilizerMixes={() => setActiveTab('mixes')}
+                            />
                         </TabsContent>
                         <TabsContent
                             value="diary"
@@ -238,4 +277,4 @@ export default function GrowDetailClient(props: GrowDetailClientProps) {
             </div>
         </div>
     );
-} 
+}

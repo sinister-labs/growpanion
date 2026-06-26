@@ -12,23 +12,27 @@ import { DropdownMenuItem } from "@/components/ui/dropdown-menu"
 import { CustomDropdown } from "@/components/ui/custom-dropdown"
 import { useToast } from "@/hooks/use-toast"
 import { useRouting } from "@/hooks/useRouting"
+import { calculateDuration } from "@/lib/utils"
+import { createPhaseHistoryEntry, getDashboardActiveGrow } from "@/lib/growth-utils"
 
 export default function DashboardContent() {
-    const { grows, activeGrowId, getActiveGrow, getActiveGrows, isLoading, error, updateGrow, setActiveGrow } = useGrows();
-    const { plants } = usePlants(activeGrowId);
-    const activeGrow = getActiveGrow();
+    const { grows, activeGrowId, getActiveGrows, isLoading, error, updateGrow, setActiveGrow } = useGrows();
     const activeGrows = getActiveGrows();
+    const activeGrow = getDashboardActiveGrow(grows, activeGrowId);
+    const dashboardGrowId = activeGrow?.id ?? null;
+    const { plants } = usePlants(dashboardGrowId);
     const { toast } = useToast();
     const { navigateTo } = useRouting();
 
     // Callback für Phasenänderungen im aktiven Grow
     const handlePhaseChange = (newPhase: string) => {
         if (!activeGrow) return;
+        if (activeGrow.currentPhase === newPhase) return;
 
         const updatedGrow = {
             ...activeGrow,
             currentPhase: newPhase,
-            phaseHistory: [...activeGrow.phaseHistory, { phase: newPhase, startDate: new Date().toISOString() }],
+            phaseHistory: [...activeGrow.phaseHistory, createPhaseHistoryEntry(newPhase, new Date().toISOString())],
         };
 
         updateGrow(updatedGrow)
@@ -108,9 +112,9 @@ export default function DashboardContent() {
                                 options={activeGrows.map((grow) => ({
                                     id: grow.id,
                                     label: grow.name,
-                                    description: `${grow.currentPhase} • ${Math.floor((new Date().getTime() - new Date(grow.startDate).getTime()) / (1000 * 60 * 60 * 24))} Tage`
+                                    description: `${grow.currentPhase} • ${calculateDuration(grow.startDate)} Tage`
                                 }))}
-                                value={activeGrowId || ""}
+                                value={dashboardGrowId || ""}
                                 onChange={(value) => {
                                     setActiveGrow(value);
                                     toast({
@@ -156,7 +160,7 @@ export default function DashboardContent() {
                         onPhaseChange={handlePhaseChange}
                     />
 
-                    <PlantList growId={activeGrowId} />
+                    <PlantList growId={dashboardGrowId} />
                 </>
             ) : (
                 <div className="bg-gray-800 p-8 rounded-2xl border border-gray-700 text-center">
@@ -177,4 +181,4 @@ export default function DashboardContent() {
             )}
         </div>
     );
-} 
+}

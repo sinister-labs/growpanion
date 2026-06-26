@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { Settings, getSettings, saveSettings } from '@/lib/db';
 import { TuyaApiClient, TuyaSensorDataResult } from '@/lib/tuya-api';
 
@@ -17,27 +17,45 @@ export function useSettings() {
     message?: string;
     data?: TuyaSensorDataResult;
   }>({ isChecking: false });
+  const loadRequestId = useRef(0);
+  const connectionRequestId = useRef(0);
+  const sensorRequestId = useRef(0);
+  const isMounted = useRef(true);
 
   const loadSettings = useCallback(async () => {
+    const requestId = ++loadRequestId.current;
+
     setIsLoading(true);
     try {
       const loadedSettings = await getSettings();
+      if (!isMounted.current || requestId !== loadRequestId.current) return;
+
       setSettings(loadedSettings || { id: 'global' });
       setError(null);
     } catch (err) {
+      if (!isMounted.current || requestId !== loadRequestId.current) return;
+
       console.error('Error loading settings:', err);
       setError(err instanceof Error ? err : new Error('Unknown error loading settings'));
     } finally {
-      setIsLoading(false);
+      if (isMounted.current && requestId === loadRequestId.current) {
+        setIsLoading(false);
+      }
     }
   }, []);
 
   const updateSettings = useCallback(async (newSettings: Partial<Settings>) => {
     try {
       await saveSettings(newSettings);
-      setSettings(prev => prev ? { ...prev, ...newSettings } : { id: 'global', ...newSettings });
+      const savedSettings = await getSettings();
+      if (!isMounted.current) return true;
+
+      setSettings(savedSettings || { id: 'global' });
+      setError(null);
       return true;
     } catch (err) {
+      if (!isMounted.current) return false;
+
       console.error('Error saving settings:', err);
       setError(err instanceof Error ? err : new Error('Unknown error saving settings'));
       return false;
@@ -45,13 +63,16 @@ export function useSettings() {
   }, []);
 
   const testTuyaConnection = useCallback(async (clientId?: string, clientSecret?: string) => {
+    const requestId = ++connectionRequestId.current;
     setConnectionStatus({ isChecking: true });
 
     try {
-      const useClientId = clientId || settings?.tuyaClientId;
-      const useClientSecret = clientSecret || settings?.tuyaClientSecret;
+      const useClientId = clientId?.trim() || settings?.tuyaClientId;
+      const useClientSecret = clientSecret?.trim() || settings?.tuyaClientSecret;
 
       if (!useClientId || !useClientSecret) {
+        if (!isMounted.current || requestId !== connectionRequestId.current) return false;
+
         setConnectionStatus({
           isChecking: false,
           success: false,
@@ -66,6 +87,8 @@ export function useSettings() {
       });
 
       const result = await tuyaClient.testConnection();
+      if (!isMounted.current || requestId !== connectionRequestId.current) return result.success;
+
       setConnectionStatus({
         isChecking: false,
         success: result.success,
@@ -74,6 +97,8 @@ export function useSettings() {
 
       return result.success;
     } catch (err) {
+      if (!isMounted.current || requestId !== connectionRequestId.current) return false;
+
       console.error('Error testing Tuya connection:', err);
       const errorMessage = err instanceof Error ? err.message : 'Unbekannter Fehler';
       setConnectionStatus({
@@ -86,10 +111,13 @@ export function useSettings() {
   }, [settings]);
 
   const testSensor = useCallback(async (deviceId: string) => {
+    const requestId = ++sensorRequestId.current;
     setSensorTestStatus({ isChecking: true });
 
     try {
       if (!settings?.tuyaClientId || !settings?.tuyaClientSecret) {
+        if (!isMounted.current || requestId !== sensorRequestId.current) return null;
+
         setSensorTestStatus({
           isChecking: false,
           success: false,
@@ -98,7 +126,10 @@ export function useSettings() {
         return null;
       }
 
-      if (!deviceId) {
+      const tuyaDeviceId = deviceId.trim();
+      if (!tuyaDeviceId) {
+        if (!isMounted.current || requestId !== sensorRequestId.current) return null;
+
         setSensorTestStatus({
           isChecking: false,
           success: false,
@@ -112,7 +143,8 @@ export function useSettings() {
         clientSecret: settings.tuyaClientSecret
       });
 
-      const response = await tuyaClient.getSensorData(deviceId);
+      const response = await tuyaClient.getSensorData(tuyaDeviceId);
+      if (!isMounted.current || requestId !== sensorRequestId.current) return response.success && response.result ? response.result : null;
 
       if (response.success && response.result) {
         setSensorTestStatus({
@@ -131,6 +163,8 @@ export function useSettings() {
         return null;
       }
     } catch (err) {
+      if (!isMounted.current || requestId !== sensorRequestId.current) return null;
+
       console.error('Error testing sensor:', err);
       const errorMessage = err instanceof Error ? err.message : 'Unbekannter Fehler';
       setSensorTestStatus({
@@ -143,7 +177,15 @@ export function useSettings() {
   }, [settings]);
 
   useEffect(() => {
+    isMounted.current = true;
     loadSettings();
+
+    return () => {
+      isMounted.current = false;
+      loadRequestId.current++;
+      connectionRequestId.current++;
+      sensorRequestId.current++;
+    };
   }, [loadSettings]);
 
   return {
@@ -157,4 +199,4 @@ export function useSettings() {
     testTuyaConnection,
     testSensor
   };
-} 
+}

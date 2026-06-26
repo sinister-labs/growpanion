@@ -1,36 +1,39 @@
 "use client";
 
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { motion } from 'framer-motion';
 import { EditorContent, EditorRoot } from 'novel';
+import { Editor, JSONContent } from '@tiptap/core';
 import { StarterKit } from '@tiptap/starter-kit';
 import { TabComponentProps, Plant } from './types';
 
-// Generic JSON content type for the editor
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-type JSONContent = Record<string, any>;
+const createEmptyDocument = (): JSONContent => ({
+    type: 'doc',
+    content: [
+        {
+            type: 'paragraph',
+            content: []
+        }
+    ]
+});
+
+const getInitialContent = (notes: Plant['notes']): JSONContent => {
+    if (typeof notes === 'object' && notes !== null) {
+        return notes as JSONContent;
+    }
+
+    return createEmptyDocument();
+};
 
 const NotesTab: React.FC<TabComponentProps> = ({ localPlant, setLocalPlant }) => {
     // Initialisiere den Content-State mit den vorhandenen Notizen oder einem leeren Dokument
-    const [content, setContent] = useState<JSONContent>(() => {
-        if (typeof localPlant.notes === 'object' && localPlant.notes !== null) {
-            return localPlant.notes as JSONContent;
-        }
+    const [content, setContent] = useState<JSONContent>(() => getInitialContent(localPlant.notes));
 
-        // Create an empty document with the correct structure
-        return {
-            type: 'doc',
-            content: [
-                {
-                    type: 'paragraph',
-                    content: []
-                }
-            ]
-        };
-    });
+    useEffect(() => {
+        setContent(getInitialContent(localPlant.notes));
+    }, [localPlant.id, localPlant.notes]);
 
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const handleUpdate = ({ editor }: { editor: any }) => {
+    const handleUpdate = ({ editor }: { editor: Editor }) => {
         const json = editor.getJSON();
         setContent(json);
 
@@ -68,4 +71,4 @@ const NotesTab: React.FC<TabComponentProps> = ({ localPlant, setLocalPlant }) =>
     );
 };
 
-export default NotesTab; 
+export default NotesTab;

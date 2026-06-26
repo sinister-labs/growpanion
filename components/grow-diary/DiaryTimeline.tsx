@@ -1,7 +1,13 @@
 "use client";
 
 import React from 'react';
-import { DiaryEvent, getEventTypeColor, groupEventsByDate } from '@/lib/diary-utils';
+import {
+  DiaryEvent,
+  formatDiaryDate,
+  formatDiaryTime,
+  getEventTypeColor,
+  groupEventsByDate
+} from '@/lib/diary-utils';
 import { Badge } from '@/components/ui/badge';
 import { Card } from '@/components/ui/card';
 
@@ -33,7 +39,7 @@ const DiaryTimeline: React.FC<DiaryTimelineProps> = ({ events }) => {
 
       {sortedDates.map((dateKey) => {
         const dayEvents = groupedEvents.get(dateKey) || [];
-        const formattedDate = new Date(dateKey).toLocaleDateString('en-US', {
+        const formattedDate = formatDiaryDate(dateKey, {
           weekday: 'short',
           year: 'numeric',
           month: 'short',
@@ -77,10 +83,7 @@ const DiaryTimeline: React.FC<DiaryTimelineProps> = ({ events }) => {
                       </div>
                     </div>
                     <span className="text-xs text-gray-500">
-                      {new Date(event.date).toLocaleTimeString('en-US', {
-                        hour: '2-digit',
-                        minute: '2-digit',
-                      })}
+                      {formatDiaryTime(event.date)}
                     </span>
                   </div>
                   
@@ -90,7 +93,7 @@ const DiaryTimeline: React.FC<DiaryTimelineProps> = ({ events }) => {
                   {event.details && Object.keys(event.details).length > 0 && (
                     <div className="mt-3 pt-3 border-t border-gray-700 flex flex-wrap gap-2">
                       {Object.entries(event.details).map(([key, value]) => {
-                        if (!value || key === 'notes') return null;
+                        if ((value === undefined || value === '') || key === 'notes') return null;
                         return (
                           <span
                             key={key}

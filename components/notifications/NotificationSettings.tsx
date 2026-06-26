@@ -18,83 +18,160 @@ import {
     requestNotificationPermission,
     getNotificationPermission,
     initializeNotifications,
-    stopNotifications
+    stopNotifications,
+    showNotification
 } from '@/lib/notification-utils';
+
+const TIME_PATTERN = /^([01]\d|2[0-3]):[0-5]\d$/;
 
 export function NotificationSettings() {
     const { toast } = useToast();
     const [settings, setSettings] = useState<NotificationSettingsType | null>(null);
     const [isLoading, setIsLoading] = useState(true);
     const [isSupported, setIsSupported] = useState(false);
+    const [isSaving, setIsSaving] = useState(false);
 
     useEffect(() => {
         const loadSettings = async () => {
-            setIsSupported(isNotificationSupported());
-            const current = await getNotificationSettings();
-            if (current) {
-                setSettings(current);
-            } else {
-                // Initialize with defaults
-                const defaults: NotificationSettingsType = {
-                    id: 'notification-settings',
-                    enabled: false,
-                    permission: getNotificationPermission(),
-                    defaultReminderTime: '09:00',
-                    soundEnabled: true
-                };
-                setSettings(defaults);
-            }
-            setIsLoading(false);
-        };
-        loadSettings();
-    }, []);
-
-    const handleEnableNotifications = async () => {
-        if (!settings) return;
-
-        if (settings.permission !== 'granted') {
-            const permission = await requestNotificationPermission();
-            if (permission !== 'granted') {
+            try {
+                setIsSupported(isNotificationSupported());
+                const current = await getNotificationSettings();
+                if (current) {
+                    setSettings(current);
+                } else {
+                    // Initialize with defaults
+                    const defaults: NotificationSettingsType = {
+                        id: 'notification-settings',
+                        enabled: false,
+                        permission: getNotificationPermission(),
+                        defaultReminderTime: '09:00',
+                        soundEnabled: true
+                    };
+                    setSettings(defaults);
+                }
+            } catch (error) {
+                console.error('Failed to load notification settings:', error);
                 toast({
-                    title: 'Permission Denied',
-                    description: 'Please enable notifications in your browser settings.',
+                    title: 'Error',
+                    description: 'Failed to load notification settings',
                     variant: 'destructive'
                 });
-                return;
+            } finally {
+                setIsLoading(false);
             }
-            setSettings(prev => prev ? { ...prev, permission } : null);
+        };
+        loadSettings();
+    }, [toast]);
+
+    const handleEnableNotifications = async () => {
+        if (!settings || isSaving) return;
+
+        setIsSaving(true);
+        let shouldStartNotifications = false;
+        let shouldStopNotifications = false;
+
+        try {
+            let permission = settings.permission;
+            if (permission !== 'granted') {
+                permission = await requestNotificationPermission();
+                if (permission !== 'granted') {
+                    toast({
+                        title: 'Permission Denied',
+                        description: 'Please enable notifications in your browser settings.',
+                        variant: 'destructive'
+                    });
+                    return;
+                }
+            }
+
+            const newEnabled = !settings.enabled;
+            await saveNotificationSettings({ enabled: newEnabled, permission });
+            setSettings(prev => prev ? { ...prev, enabled: newEnabled, permission } : null);
+
+            shouldStartNotifications = newEnabled;
+            shouldStopNotifications = !newEnabled;
+            toast({
+                title: newEnabled ? 'Notifications Enabled' : 'Notifications Disabled',
+                description: newEnabled
+                    ? 'You will now receive reminders for your grows.'
+                    : 'You will no longer receive reminders.'
+            });
+        } catch (error) {
+            console.error('Failed to update notification settings:', error);
+            toast({
+                title: 'Error',
+                description: 'Failed to update notification settings',
+                variant: 'destructive'
+            });
+        } finally {
+            setIsSaving(false);
         }
 
-        const newEnabled = !settings.enabled;
-        await saveNotificationSettings({ enabled: newEnabled });
-        setSettings(prev => prev ? { ...prev, enabled: newEnabled } : null);
-
-        if (newEnabled) {
+        if (shouldStartNotifications) {
             initializeNotifications();
-            toast({
-                title: 'Notifications Enabled',
-                description: 'You will now receive reminders for your grows.'
-            });
-        } else {
+        } else if (shouldStopNotifications) {
             stopNotifications();
-            toast({
-                title: 'Notifications Disabled',
-                description: 'You will no longer receive reminders.'
-            });
         }
     };
 
     const handleSoundToggle = async () => {
-        if (!settings) return;
+        if (!settings || isSaving) return;
         const newSoundEnabled = !settings.soundEnabled;
-        await saveNotificationSettings({ soundEnabled: newSoundEnabled });
-        setSettings(prev => prev ? { ...prev, soundEnabled: newSoundEnabled } : null);
+        setIsSaving(true);
+        try {
+            await saveNotificationSettings({ soundEnabled: newSoundEnabled });
+            setSettings(prev => prev ? { ...prev, soundEnabled: newSoundEnabled } : null);
+        } catch (error) {
+            console.error('Failed to update notification sound setting:', error);
+            toast({
+                title: 'Error',
+                description: 'Failed to update notification sound setting',
+                variant: 'destructive'
+            });
+        } finally {
+            setIsSaving(false);
+        }
     };
 
     const handleTimeChange = async (time: string) => {
-        if (!settings) return;
-        await saveNotificationSettings({ defaultReminderTime: time });
-        setSettings(prev => prev ? { ...prev, defaultReminderTime: time } : null);
+        if (!settings || isSaving) return;
+        if (!TIME_PATTERN.test(time)) {
+            toast({
+                title: 'Invalid Time',
+                description: 'Please choose a valid time between 00:00 and 23:59.',
+                variant: 'destructive'
+            });
+            return;
+        }
+
+        setIsSaving(true);
+        try {
+            await saveNotificationSettings({ defaultReminderTime: time });
+            setSettings(prev => prev ? { ...prev, defaultReminderTime: time } : null);
+        } catch (error) {
+            console.error('Failed to update default reminder time:', error);
+            toast({
+                title: 'Error',
+                description: 'Failed to update default reminder time',
+                variant: 'destructive'
+            });
+        } finally {
+            setIsSaving(false);
+        }
+    };
+
+    const handleTestNotification = () => {
+        const notification = showNotification('🌱 Test Notification', {
+            body: 'Notifications are working correctly!'
+        });
+
+        if (!notification) {
+            toast({
+                title: 'Error',
+                description: 'Failed to send test notification',
+                variant: 'destructive'
+            });
+        }
     };
 
     if (isLoading) {
@@ -155,6 +232,7 @@ export function NotificationSettings() {
                         id="notifications-enabled"
                         checked={settings?.enabled || false}
                         onCheckedChange={handleEnableNotifications}
+                        disabled={isSaving}
                     />
                 </div>
 
@@ -181,7 +259,7 @@ export function NotificationSettings() {
                         id="sound-enabled"
                         checked={settings?.soundEnabled || false}
                         onCheckedChange={handleSoundToggle}
-                        disabled={!settings?.enabled}
+                        disabled={!settings?.enabled || isSaving}
                     />
                 </div>
 
@@ -196,7 +274,7 @@ export function NotificationSettings() {
                         type="time"
                         value={settings?.defaultReminderTime || '09:00'}
                         onChange={(e) => handleTimeChange(e.target.value)}
-                        disabled={!settings?.enabled}
+                        disabled={!settings?.enabled || isSaving}
                         className="w-32"
                     />
                     <p className="text-xs text-muted-foreground">
@@ -209,12 +287,8 @@ export function NotificationSettings() {
                     <Button
                         variant="outline"
                         size="sm"
-                        onClick={() => {
-                            new Notification('🌱 Test Notification', {
-                                body: 'Notifications are working correctly!',
-                                icon: '/icon-192x192.png'
-                            });
-                        }}
+                        onClick={handleTestNotification}
+                        disabled={isSaving}
                     >
                         Send Test Notification
                     </Button>

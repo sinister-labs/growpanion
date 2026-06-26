@@ -6,17 +6,53 @@ import { z } from 'zod';
  */
 
 // Base validation schemas
-export const IdSchema = z.string().min(1, 'ID is required');
+export const IdSchema = z.string().trim().min(1, 'ID is required');
 
-export const NonEmptyStringSchema = z.string().min(1, 'This field is required');
+export const NonEmptyStringSchema = z.string().trim().min(1, 'This field is required');
 
 export const PositiveNumberSchema = z.number().positive('Must be a positive number');
 
-export const OptionalStringSchema = z.string().optional();
+export const OptionalStringSchema = z.string().trim().optional();
+
+const PositiveNumberStringSchema = (fieldName: string) =>
+  NonEmptyStringSchema
+    .max(50, `${fieldName} must be less than 50 characters`)
+    .refine(
+      (val) => {
+        const numberValue = Number(val.trim());
+        return Number.isFinite(numberValue) && numberValue > 0;
+      },
+      { message: `${fieldName} must be a positive number` }
+    );
+
+function isValidDateString(value: string): boolean {
+  const trimmedValue = value.trim();
+  const parsedTime = Date.parse(trimmedValue);
+
+  if (!Number.isFinite(parsedTime)) {
+    return false;
+  }
+
+  const datePrefix = /^(\d{4})-(\d{2})-(\d{2})/.exec(trimmedValue);
+  if (!datePrefix) {
+    return true;
+  }
+
+  const year = Number(datePrefix[1]);
+  const month = Number(datePrefix[2]);
+  const day = Number(datePrefix[3]);
+  const normalizedDate = new Date(Date.UTC(year, month - 1, day));
+
+  return (
+    normalizedDate.getUTCFullYear() === year &&
+    normalizedDate.getUTCMonth() === month - 1 &&
+    normalizedDate.getUTCDate() === day
+  );
+}
 
 // Date validation
 export const DateStringSchema = z.string().refine(
-  (val) => !isNaN(Date.parse(val)),
+  isValidDateString,
   { message: 'Invalid date format' }
 );
 
@@ -59,7 +95,7 @@ export const PlantSchema = z.object({
   ]).optional(),
   waterings: z.array(z.object({
     date: DateStringSchema,
-    amount: NonEmptyStringSchema,
+    amount: PositiveNumberStringSchema('Amount'),
     mixId: OptionalStringSchema
   })).optional(),
   hstRecords: z.array(z.object({
@@ -79,10 +115,27 @@ export const PlantSchema = z.object({
     potSize: NonEmptyStringSchema,
     notes: OptionalStringSchema
   })).optional(),
-  images: z.array(z.string()).optional()
+  images: z.array(z.string()).optional(),
+  harvest: z.object({
+    date: DateStringSchema,
+    yieldWetGrams: z.number().positive().optional(),
+    yieldDryGrams: z.number().positive().optional(),
+    notes: OptionalStringSchema
+  }).refine(
+    harvest => (
+      harvest.yieldWetGrams === undefined ||
+      harvest.yieldDryGrams === undefined ||
+      harvest.yieldDryGrams <= harvest.yieldWetGrams
+    ),
+    { message: 'Dry yield cannot be greater than wet yield' }
+  ).optional(),
+  isHarvested: z.boolean().optional()
 });
 
 export const CreatePlantSchema = PlantSchema.omit({ id: true });
+export const PlantDBSchema = PlantSchema.extend({
+  growId: IdSchema
+});
 
 // Grow validation schemas
 export const GrowSchema = z.object({
@@ -99,7 +152,9 @@ export const GrowSchema = z.object({
     temperature: z.number().min(10).max(50).optional(),
     humidity: z.number().min(0).max(100).optional(),
     lightSchedule: OptionalStringSchema
-  }).optional()
+  }).optional(),
+  expectedYield: z.number().nonnegative().optional(),
+  actualYield: z.number().nonnegative().optional()
 });
 
 export const CreateGrowSchema = GrowSchema.omit({ id: true });
@@ -107,17 +162,38 @@ export const CreateGrowSchema = GrowSchema.omit({ id: true });
 // Fertilizer validation schemas
 export const FertilizerSchema = z.object({
   name: NonEmptyStringSchema.max(100, 'Fertilizer name must be less than 100 characters'),
-  amount: NonEmptyStringSchema.max(50, 'Amount must be less than 50 characters')
+  amount: PositiveNumberStringSchema('Amount')
 });
 
 export const FertilizerMixSchema = z.object({
   id: IdSchema,
   name: NonEmptyStringSchema.max(100, 'Mix name must be less than 100 characters'),
-  waterAmount: NonEmptyStringSchema.max(50, 'Water amount must be less than 50 characters'),
-  fertilizers: z.array(FertilizerSchema).min(1, 'At least one fertilizer is required')
+  waterAmount: PositiveNumberStringSchema('Water amount'),
+  fertilizers: z.array(FertilizerSchema).min(1, 'At least one fertilizer is required'),
+  description: z.string().max(500, 'Description must be less than 500 characters').optional()
 });
 
 export const CreateFertilizerMixSchema = FertilizerMixSchema.omit({ id: true });
+export const FertilizerMixDBSchema = FertilizerMixSchema.extend({
+  growId: IdSchema
+});
+
+// Strain validation schemas
+export const StrainSchema = z.object({
+  id: IdSchema,
+  name: NonEmptyStringSchema.max(100, 'Strain name must be less than 100 characters'),
+  breeder: NonEmptyStringSchema.max(100, 'Breeder must be less than 100 characters'),
+  genetics: z.enum(['Indica', 'Sativa', 'Hybrid']),
+  indicaPercent: z.number().min(0).max(100).optional(),
+  sativaPercent: z.number().min(0).max(100).optional(),
+  thcPercent: z.number().min(0).max(40).optional(),
+  cbdPercent: z.number().min(0).max(30).optional(),
+  floweringWeeks: z.number().min(4).max(16).optional(),
+  difficulty: z.enum(['easy', 'medium', 'hard']).optional(),
+  description: z.string().max(1000, 'Description must be less than 1000 characters').optional(),
+  createdAt: OptionalStringSchema,
+  updatedAt: OptionalStringSchema
+});
 
 // Settings validation schemas
 export const TuyaCredentialsSchema = z.object({
@@ -127,7 +203,7 @@ export const TuyaCredentialsSchema = z.object({
 
 export const SensorValueSchema = z.object({
   code: NonEmptyStringSchema,
-  decimalPlaces: z.number().int().min(0).max(5).optional()
+  decimalPlaces: z.number().int().min(1).max(3).optional()
 });
 
 export const TuyaSensorSchema = z.object({
@@ -149,9 +225,38 @@ export const SettingsSchema = z.object({
 // API validation schemas
 export const ProxyRequestSchema = z.object({
   url: z.string().url('Invalid URL format'),
-  method: z.enum(['GET', 'POST']),
+  method: z.enum(['GET', 'POST']).default('GET'),
   headers: z.record(z.string()).optional(),
   body: z.any().optional()
+});
+
+// Reminder validation schemas
+export const ReminderTypeSchema = z.enum(['watering', 'feeding', 'photo', 'training', 'custom']);
+
+export const ReminderSchema = z.object({
+  id: IdSchema,
+  growId: IdSchema,
+  plantId: OptionalStringSchema,
+  type: ReminderTypeSchema,
+  title: NonEmptyStringSchema.max(100, 'Reminder title must be less than 100 characters'),
+  description: z.string().max(500, 'Description must be less than 500 characters').optional(),
+  intervalDays: z.number().int().min(0, 'Interval days cannot be negative'),
+  lastTriggered: OptionalStringSchema,
+  nextDue: DateStringSchema,
+  enabled: z.boolean(),
+  createdAt: DateStringSchema,
+  updatedAt: DateStringSchema
+});
+
+export const NotificationPermissionSchema = z.enum(['default', 'denied', 'granted']);
+export const TimeStringSchema = z.string().regex(/^([01]\d|2[0-3]):[0-5]\d$/, 'Invalid time format');
+
+export const NotificationSettingsSchema = z.object({
+  id: z.literal('notification-settings'),
+  enabled: z.boolean(),
+  permission: NotificationPermissionSchema,
+  defaultReminderTime: TimeStringSchema,
+  soundEnabled: z.boolean()
 });
 
 // Training record validation
@@ -164,7 +269,7 @@ export const TrainingRecordSchema = z.object({
 // Watering record validation
 export const WateringRecordSchema = z.object({
   date: DateStringSchema,
-  amount: NonEmptyStringSchema.max(50, 'Amount must be less than 50 characters'),
+  amount: PositiveNumberStringSchema('Amount'),
   mixId: OptionalStringSchema
 });
 
@@ -180,12 +285,17 @@ export const SubstrateRecordSchema = z.object({
 // Helper types for TypeScript
 export type Plant = z.infer<typeof PlantSchema>;
 export type CreatePlant = z.infer<typeof CreatePlantSchema>;
+export type PlantDB = z.infer<typeof PlantDBSchema>;
 export type Grow = z.infer<typeof GrowSchema>;
 export type CreateGrow = z.infer<typeof CreateGrowSchema>;
 export type FertilizerMix = z.infer<typeof FertilizerMixSchema>;
 export type CreateFertilizerMix = z.infer<typeof CreateFertilizerMixSchema>;
+export type FertilizerMixDB = z.infer<typeof FertilizerMixDBSchema>;
 export type Settings = z.infer<typeof SettingsSchema>;
 export type TuyaSensor = z.infer<typeof TuyaSensorSchema>;
 export type TrainingRecord = z.infer<typeof TrainingRecordSchema>;
 export type WateringRecord = z.infer<typeof WateringRecordSchema>;
 export type SubstrateRecord = z.infer<typeof SubstrateRecordSchema>;
+export type Strain = z.infer<typeof StrainSchema>;
+export type Reminder = z.infer<typeof ReminderSchema>;
+export type NotificationSettings = z.infer<typeof NotificationSettingsSchema>;

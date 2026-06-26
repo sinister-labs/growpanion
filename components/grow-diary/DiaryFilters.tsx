@@ -2,8 +2,8 @@
 
 import React from 'react';
 import { Button } from '@/components/ui/button';
-import { DiaryEventType, getEventTypeLabel, getEventTypeColor } from '@/lib/diary-utils';
-import { Droplets, Scissors, Anchor, Leaf, Layers } from 'lucide-react';
+import { DIARY_EVENT_TYPES, DiaryEventType, getEventTypeLabel, getEventTypeColor } from '@/lib/diary-utils';
+import { Droplets, Scissors, Anchor, Leaf, Layers, Scale } from 'lucide-react';
 
 interface DiaryFiltersProps {
   activeFilters: DiaryEventType[];
@@ -17,6 +17,7 @@ const EVENT_TYPE_ICONS: Record<DiaryEventType, React.ElementType> = {
   hst: Scissors,
   lst: Anchor,
   substrate: Layers,
+  harvest: Scale,
 };
 
 const DiaryFilters: React.FC<DiaryFiltersProps> = ({
@@ -24,7 +25,7 @@ const DiaryFilters: React.FC<DiaryFiltersProps> = ({
   onFilterChange,
   eventCounts,
 }) => {
-  const eventTypes: DiaryEventType[] = ['phase', 'watering', 'hst', 'lst', 'substrate'];
+  const eventTypes = DIARY_EVENT_TYPES;
 
   const toggleFilter = (type: DiaryEventType) => {
     if (activeFilters.includes(type)) {
