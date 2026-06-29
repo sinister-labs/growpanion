@@ -39,10 +39,10 @@ const SubstrateTab: React.FC<SubstrateTabProps> = ({
         <div className="flex flex-col h-full">
             {/* Fixed input section */}
             <div className="flex-none mb-6">
-                <h3 className="text-xl font-semibold text-green-400 mb-4">Add Substrate</h3>
+                <h3 className="text-xl font-semibold text-primary mb-4">Add Substrate</h3>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-4">
                     <div>
-                        <Label className="text-white">Date</Label>
+                        <Label className="text-foreground">Date</Label>
                         <Input
                             id="substrate-date"
                             name="date"
@@ -52,7 +52,7 @@ const SubstrateTab: React.FC<SubstrateTabProps> = ({
                         />
                     </div>
                     <div>
-                        <Label className="text-white">Substrate Type</Label>
+                        <Label className="text-foreground">Substrate Type</Label>
                         <Input
                             id="substrate-type"
                             name="substrateType"
@@ -65,7 +65,7 @@ const SubstrateTab: React.FC<SubstrateTabProps> = ({
 
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-4">
                     <div>
-                        <Label className="text-white">Pot Size</Label>
+                        <Label className="text-foreground">Pot Size</Label>
                         <div className="relative">
                             <Input
                                 id="pot-size"
@@ -77,18 +77,18 @@ const SubstrateTab: React.FC<SubstrateTabProps> = ({
                                 onChange={handleSubstrateChange}
                                 className="pr-8"
                             />
-                            <span className="absolute inset-y-0 right-0 flex items-center pr-4 text-gray-400 pointer-events-none border-l-2 pl-2 border-gray-700 bg-gray-700 rounded-r-full">
+                            <span className="absolute inset-y-0 right-0 flex items-center pr-4 text-muted-foreground pointer-events-none border-l border-white/10 bg-white/[0.045] pl-2 rounded-r-full">
                                 L
                             </span>
                         </div>
                     </div>
                     <div>
-                        <Label className="text-white">Notes (optional)</Label>
+                        <Label className="text-foreground">Notes (optional)</Label>
                         <Input
                             id="substrate-notes"
                             name="notes"
                             type="text"
-                            placeholder="Additional information"
+                            placeholder="Additional information…"
                             value={newSubstrate.notes || ''}
                             onChange={handleSubstrateChange}
                         />
@@ -97,7 +97,7 @@ const SubstrateTab: React.FC<SubstrateTabProps> = ({
 
                 <Button
                     onClick={handleSubstrateAdd}
-                    className="bg-green-600 hover:bg-green-700 w-full"
+                    className="bg-primary hover:bg-primary/90 w-full"
                 >
                     Add Substrate Record
                 </Button>
@@ -105,7 +105,7 @@ const SubstrateTab: React.FC<SubstrateTabProps> = ({
 
             {/* Scrollable history section */}
             <div className="flex-grow overflow-y-auto">
-                <h3 className="text-xl font-semibold text-green-400 mb-4">Substrate History</h3>
+                <h3 className="text-xl font-semibold text-primary mb-4">Substrate History</h3>
                 {localPlant.substrateRecords && localPlant.substrateRecords.length > 0 ? (
                     <div className="space-y-2">
                         {localPlant.substrateRecords
@@ -117,34 +117,35 @@ const SubstrateTab: React.FC<SubstrateTabProps> = ({
                                     initial={{ opacity: 0, y: 20 }}
                                     animate={{ opacity: 1, y: 0 }}
                                     transition={{ duration: 0.3, delay: index * 0.1 }}
-                                    className="p-3 bg-gray-800 rounded-lg border border-gray-700"
+                                    className="rounded-[1rem] border border-white/10 bg-white/[0.045] p-3 shadow-sm"
                                 >
                                     <div className="flex items-start justify-between">
                                         <div>
-                                            <p className="font-medium text-white">
+                                            <p className="font-medium text-foreground">
                                                 {formatRecordDate(record.date)}
                                             </p>
-                                            <div className="mt-1 pl-2 border-l-2 border-gray-700">
+                                            <div className="mt-1 border-l border-white/10 pl-2">
                                                 <p className="text-sm flex gap-2 py-1">
-                                                    <span className="text-gray-400">Substrate:</span>
-                                                    <span className="text-white">{record.substrateType}</span>
+                                                    <span className="text-muted-foreground">Substrate:</span>
+                                                    <span className="text-foreground">{record.substrateType}</span>
                                                 </p>
                                                 {record.notes && (
                                                     <div className="mt-1 text-sm">
-                                                        <span className="block text-gray-500">Notes:</span>
-                                                        <span className="text-gray-400">{record.notes}</span>
+                                                        <span className="block text-muted-foreground">Notes:</span>
+                                                        <span className="text-muted-foreground">{record.notes}</span>
                                                     </div>
                                                 )}
                                             </div>
                                         </div>
                                         <div className="flex flex-col gap-2">
-                                            <div className="bg-green-600 text-white px-2 py-1 rounded-md text-sm">
+                                            <div className="rounded-full bg-primary px-2 py-1 text-sm text-primary-foreground">
                                                 {record.potSize}L
                                             </div>
                                             <Button
                                                 variant="ghost"
                                                 size="icon"
-                                                className="h-8 w-8 text-red-500 hover:text-red-300 hover:bg-red-950/30"
+                                                aria-label="Delete substrate record"
+                                                className="h-9 w-9 rounded-[0.85rem] text-destructive hover:bg-red-500/10 hover:text-red-200"
                                                 onClick={() => handleSubstrateDelete(originalIndex)}
                                             >
                                                 <Trash2 className="h-4 w-4" />

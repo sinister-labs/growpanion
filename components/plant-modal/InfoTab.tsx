@@ -1,19 +1,55 @@
 "use client";
 
-import React, { useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { motion } from 'framer-motion';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-import { TabComponentProps } from './types';
+import { Plant, TabComponentProps } from './types';
 import { CustomDropdown, DropdownOption } from '@/components/ui/custom-dropdown';
 import { StrainLibrary } from '@/components/strain-library';
-import type { Strain } from '@/lib/db';
+import {
+    getAllGenetics,
+    getAllGeneticsOverrides,
+    populateDBWithDemoDataIfEmpty,
+    type Genetics,
+    type Strain
+} from '@/lib/db';
 import { Cannabis } from 'lucide-react';
+import { applyGeneticsOverrides, mergeDefaultGenetics } from '@/lib/genetics-registry';
 
 const InfoTab: React.FC<TabComponentProps> = ({ localPlant, setLocalPlant }) => {
     const [isStrainSelectorOpen, setIsStrainSelectorOpen] = useState(false);
+    const [genetics, setGenetics] = useState<Genetics[]>([]);
+    const geneticsOptions: DropdownOption[] = useMemo(() => genetics.map(entry => ({
+        id: entry.id,
+        label: entry.name,
+        description: entry.breeder || 'Unknown breeder',
+    })), [genetics]);
+
+    useEffect(() => {
+        let cancelled = false;
+
+        async function loadGenetics() {
+            try {
+                await populateDBWithDemoDataIfEmpty();
+                const [storedGenetics, storedOverrides] = await Promise.all([
+                    getAllGenetics(),
+                    getAllGeneticsOverrides(),
+                ]);
+                const data = applyGeneticsOverrides(mergeDefaultGenetics(storedGenetics), storedOverrides);
+                if (!cancelled) setGenetics(data);
+            } catch {
+                if (!cancelled) setGenetics([]);
+            }
+        }
+
+        void loadGenetics();
+        return () => {
+            cancelled = true;
+        };
+    }, []);
 
     const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         setLocalPlant({ ...localPlant, [e.target.name]: e.target.value });
@@ -26,6 +62,20 @@ const InfoTab: React.FC<TabComponentProps> = ({ localPlant, setLocalPlant }) => 
             manufacturer: strain.breeder,
         }));
         setIsStrainSelectorOpen(false);
+    };
+
+    const handleGeneticsSelect = (geneticsId: string) => {
+        const selected = genetics.find(entry => entry.id === geneticsId);
+        if (!selected) return;
+
+        setLocalPlant((currentPlant) => ({
+            ...currentPlant,
+            geneticsId: selected.id,
+            phenotypeId: currentPlant.geneticsId === selected.id ? currentPlant.phenotypeId : undefined,
+            genetic: selected.name,
+            manufacturer: selected.breeder || 'Unknown breeder',
+            label: currentPlant.label || 'Phenotype A',
+        }));
     };
 
     // Dropdown options for plant type
@@ -51,7 +101,7 @@ const InfoTab: React.FC<TabComponentProps> = ({ localPlant, setLocalPlant }) => 
         >
 
             <div className="mb-4">
-                <Label className="text-white">
+                <Label className="text-foreground">
                     Name
                 </Label>
                 <Input
@@ -66,15 +116,32 @@ const InfoTab: React.FC<TabComponentProps> = ({ localPlant, setLocalPlant }) => 
                     type="button"
                     variant="outline"
                     onClick={() => setIsStrainSelectorOpen(true)}
-                    className="border-green-600/50 text-green-400 hover:bg-green-600/20"
+                    className="border-primary/35 text-primary hover:bg-primary/10"
                 >
                     <Cannabis className="h-4 w-4 mr-2" />
                     Select Strain
                 </Button>
             </div>
+            <div className="mb-4">
+                <Label className="text-foreground">
+                    Genetics Registry
+                </Label>
+                <CustomDropdown
+                    options={geneticsOptions}
+                    value={localPlant.geneticsId || ''}
+                    onChange={handleGeneticsSelect}
+                    placeholder="Select registry genetics…"
+                    width="w-full"
+                    buttonClassName="border-white/10 bg-white/[0.045] text-foreground"
+                    disabled={geneticsOptions.length === 0}
+                />
+                {localPlant.phenotypeId && (
+                    <p className="mt-2 text-xs text-muted-foreground">Phenotype ID: {localPlant.phenotypeId}</p>
+                )}
+            </div>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-4">
                 <div>
-                    <Label className="text-white">
+                    <Label className="text-foreground">
                         Genetic
                     </Label>
                     <Input
@@ -85,7 +152,7 @@ const InfoTab: React.FC<TabComponentProps> = ({ localPlant, setLocalPlant }) => 
                     />
                 </div>
                 <div>
-                    <Label className="text-white">
+                    <Label className="text-foreground">
                         Manufacturer
                     </Label>
                     <Input
@@ -96,35 +163,89 @@ const InfoTab: React.FC<TabComponentProps> = ({ localPlant, setLocalPlant }) => 
                     />
                 </div>
                 <div>
-                    <Label className="text-white">
+                    <Label className="text-foreground">
                         Type
                     </Label>
                     <CustomDropdown
                         options={typeOptions}
                         value={localPlant.type || ''}
                         onChange={(value) => setLocalPlant({ ...localPlant, type: value as "regular" | "autoflowering" | "feminized" })}
-                        placeholder="Typ auswählen"
+                        placeholder="Select type…"
                         width="w-full"
-                        buttonClassName="bg-gray-800 border-gray-700 text-white"
+                        buttonClassName="border-white/10 bg-white/[0.045] text-foreground"
                     />
                 </div>
                 <div>
-                    <Label className="text-white">
+                    <Label className="text-foreground">
                         Propagation Method
                     </Label>
                     <CustomDropdown
                         options={propagationOptions}
                         value={localPlant.propagationMethod || ''}
                         onChange={(value) => setLocalPlant({ ...localPlant, propagationMethod: value as "clone" | "seed" })}
-                        placeholder="Vermehrungsmethode auswählen"
+                        placeholder="Select propagation…"
                         width="w-full"
-                        buttonClassName="bg-gray-800 border-gray-700 text-white"
+                        buttonClassName="border-white/10 bg-white/[0.045] text-foreground"
+                    />
+                </div>
+                <div>
+                    <Label className="text-foreground">
+                        Label
+                    </Label>
+                    <Input
+                        id="label"
+                        name="label"
+                        value={localPlant.label || ''}
+                        onChange={handleInputChange}
+                    />
+                </div>
+                <div>
+                    <Label className="text-foreground">
+                        Current Phase
+                    </Label>
+                    <CustomDropdown
+                        options={[
+                            { id: 'Seedling', label: 'Seedling' },
+                            { id: 'Vegetative', label: 'Vegetative' },
+                            { id: 'Flowering', label: 'Flowering' },
+                            { id: 'Flushing', label: 'Flushing' },
+                            { id: 'Drying', label: 'Drying' },
+                            { id: 'Curing', label: 'Curing' },
+                            { id: 'Done', label: 'Done' },
+                        ]}
+                        value={localPlant.currentPhase || ''}
+                        onChange={(value) => setLocalPlant({ ...localPlant, currentPhase: value as Plant['currentPhase'] })}
+                        placeholder="Select phase…"
+                        width="w-full"
+                        buttonClassName="border-white/10 bg-white/[0.045] text-foreground"
+                    />
+                </div>
+                <div>
+                    <Label className="text-foreground">
+                        Location
+                    </Label>
+                    <Input
+                        id="location"
+                        name="location"
+                        value={localPlant.location || ''}
+                        onChange={handleInputChange}
+                    />
+                </div>
+                <div>
+                    <Label className="text-foreground">
+                        Tent
+                    </Label>
+                    <Input
+                        id="tent"
+                        name="tent"
+                        value={localPlant.tent || ''}
+                        onChange={handleInputChange}
                     />
                 </div>
 
             </div>
             <div className="mb-4">
-                <Label className="text-white">
+                <Label className="text-foreground">
                     Yield
                 </Label>
                 <div className="relative">
@@ -134,17 +255,17 @@ const InfoTab: React.FC<TabComponentProps> = ({ localPlant, setLocalPlant }) => 
                         type="number"
                         value={localPlant.yield || ''}
                         onChange={handleInputChange}
-                        className="bg-gray-800 border-gray-700 text-white"
+                        className="border-white/10 bg-white/[0.045] text-foreground"
                     />
-                    <span className="absolute inset-y-0 right-0 flex items-center pr-3 text-gray-400 pointer-events-none border-l-2 pl-2 border-gray-700 bg-gray-700 rounded-r-full">
+                    <span className="absolute inset-y-0 right-0 flex items-center pr-3 text-muted-foreground pointer-events-none border-l border-white/10 bg-white/[0.045] pl-2 rounded-r-full">
                         g
                     </span>
                 </div>
             </div>
             <Dialog open={isStrainSelectorOpen} onOpenChange={setIsStrainSelectorOpen}>
-                <DialogContent className="bg-gray-900 border-gray-700 text-white max-w-5xl max-h-[85vh] overflow-y-auto">
+                <DialogContent className="infotainment-overlay max-h-[85vh] max-w-5xl overflow-y-auto border-white/10 text-foreground">
                     <DialogHeader>
-                        <DialogTitle className="text-green-400">Select Strain</DialogTitle>
+                        <DialogTitle className="text-primary">Select Strain</DialogTitle>
                     </DialogHeader>
                     <StrainLibrary selectionMode onSelectStrain={handleStrainSelect} />
                 </DialogContent>

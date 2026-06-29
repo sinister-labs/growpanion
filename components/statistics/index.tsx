@@ -9,12 +9,13 @@ import {
   TrendingUp, 
   Scale, 
   Leaf, 
-  Home,
-  ArrowLeft,
+  ClipboardList,
+  ChevronRight,
   Loader2,
   Award,
   Calendar,
-  AlertCircle
+  AlertCircle,
+  Sprout
 } from 'lucide-react';
 import { useRouting } from '@/hooks/useRouting';
 import { getAllGrows, getAllPlants, Grow, PlantDB } from '@/lib/db';
@@ -85,38 +86,22 @@ export default function Statistics() {
   if (isLoading) {
     return (
       <div className="flex min-h-[50vh] items-center justify-center">
-        <Loader2 className="w-8 h-8 animate-spin text-green-500" />
+        <Loader2 className="h-8 w-8 animate-spin text-primary" />
       </div>
     );
   }
 
   if (error) {
     return (
-      <div className="space-y-8 mt-6">
-        <div className="flex items-center gap-2 mb-1">
-          <Button
-            variant="link"
-            className="text-gray-400 hover:text-white p-0 h-auto flex items-center gap-1"
-            onClick={() => navigateTo('dashboard')}
-          >
-            <Home className="h-4 w-4" />
-            <span>Dashboard</span>
-          </Button>
-          <span className="text-gray-600">/</span>
-          <h1 className="font-semibold text-white flex items-center gap-2">
-            <BarChart3 className="h-5 w-5 text-green-400" />
-            Yield Statistics
-          </h1>
-        </div>
-
-        <Card className="bg-red-900/20 border-red-800">
+      <div className="mt-2 space-y-7">
+        <Card className="border-destructive/35 bg-destructive/10">
           <CardContent className="py-10 text-center">
-            <AlertCircle className="h-12 w-12 mx-auto mb-4 text-red-400" />
-            <h2 className="text-xl font-semibold text-white mb-2">Statistics could not be loaded</h2>
-            <p className="text-red-200 mb-6">{error}</p>
+            <AlertCircle className="mx-auto mb-4 h-12 w-12 text-destructive" />
+            <h2 className="mb-2 text-xl font-semibold text-foreground">Statistics could not be loaded</h2>
+            <p className="mb-6 text-destructive">{error}</p>
             <Button
               variant="outline"
-              className="border-red-700 text-red-200 hover:bg-red-900/30"
+              className="border-destructive/45 text-destructive hover:bg-destructive/10"
               onClick={loadData}
             >
               Try again
@@ -128,162 +113,153 @@ export default function Statistics() {
   }
 
   return (
-    <div className="space-y-8 mt-6">
-      {/* Header */}
-      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-        <div>
-          <div className="flex items-center gap-2 mb-1">
-            <Button
-              variant="link"
-              className="text-gray-400 hover:text-white p-0 h-auto flex items-center gap-1"
-              onClick={() => navigateTo('dashboard')}
-            >
-              <Home className="h-4 w-4" />
-              <span>Dashboard</span>
-            </Button>
-            <span className="text-gray-600">/</span>
-            <h1 className="font-semibold text-white flex items-center gap-2">
-              <BarChart3 className="h-5 w-5 text-green-400" />
-              Yield Statistics
-            </h1>
-          </div>
-          <p className="text-gray-400 text-sm mt-2">
-            Track and analyze your harvest yields across strains and grows
-          </p>
-        </div>
-
-        <Button
-          variant="outline"
-          className="border-gray-700 text-gray-400 hover:text-white rounded-full"
-          onClick={() => navigateTo('dashboard')}
-        >
-          <ArrowLeft className="mr-2 h-4 w-4" />
-          Back
-        </Button>
-      </div>
-
-      {/* No Data State */}
+    <div className="mt-2 space-y-5">
       {!summary && (
-        <Card className="bg-gray-800/50 border-gray-700">
-          <CardContent className="py-16 text-center">
-            <Scale className="h-16 w-16 mx-auto mb-4 text-gray-600" />
-            <h3 className="text-xl font-semibold text-white mb-2">No Harvest Data Yet</h3>
-            <p className="text-gray-400 mb-6 max-w-md mx-auto">
-              Start recording your harvests to see yield statistics. Go to a plant and click the 
-              harvest button to record your first yield.
-            </p>
+        <section className="grid gap-4 xl:grid-cols-[1.15fr_0.85fr]">
+          <div className="infotainment-panel overflow-hidden p-0">
+            <div className="border-b border-white/10 p-4">
+              <div className="os-section-title">
+                <Scale className="h-4 w-4" />
+                Analysis console
+              </div>
+              <h2 className="mt-2 text-2xl font-semibold text-foreground">No harvest signal yet</h2>
+              <p className="mt-1 max-w-xl text-sm text-muted-foreground">
+                Statistics unlock after the first plant harvest is recorded. Until then, the console shows the data path that will feed yield, strain and grow analysis.
+              </p>
+            </div>
+
+            <div className="grid gap-2 p-4 sm:grid-cols-3">
+              <StatPrepCard label="Harvested plants" value="0" helper="Need dry yield" />
+              <StatPrepCard label="Yield records" value="0" helper="Awaiting input" />
+              <StatPrepCard label="Analysis tabs" value="3" helper="Ready to populate" />
+            </div>
+
+            <div className="grid gap-2 px-4 pb-4 md:grid-cols-3">
+              {[
+                ['Open a grow', 'Choose the grow workspace where the harvested plant lives.', Sprout],
+                ['Record harvest', 'Open the plant and save wet or dry yield data.', ClipboardList],
+                ['Return to stats', 'Compare strains, grows and the harvest timeline.', BarChart3],
+              ].map(([title, detail, Icon]) => (
+                <div key={title as string} className="os-card p-3">
+                  {typeof Icon !== 'string' && <Icon className="h-5 w-5 text-primary" />}
+                  <div className="mt-2 text-sm font-semibold text-foreground">{title as string}</div>
+                  <p className="mt-1 line-clamp-2 text-xs leading-relaxed text-muted-foreground">{detail as string}</p>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          <aside className="infotainment-panel p-4">
+            <div>
+              <div className="flex items-center gap-2 text-sm font-semibold text-primary">
+                <Leaf className="h-4 w-4" />
+                Next action
+              </div>
+              <h3 className="mt-2 text-xl font-semibold text-foreground">Go to grows</h3>
+              <p className="mt-1 text-sm text-muted-foreground">
+                Create or open a grow, add plants, then record harvest values from the plant detail panel.
+              </p>
+            </div>
             <Button
               onClick={() => navigateTo('grows')}
-              className="bg-green-600 hover:bg-green-700"
+              className="mt-4 h-12 w-full rounded-2xl"
             >
-              <Leaf className="mr-2 h-4 w-4" />
-              Go to Grows
+              Open grow workspace
+              <ChevronRight className="ml-2 h-4 w-4" />
             </Button>
-          </CardContent>
-        </Card>
+          </aside>
+        </section>
       )}
 
-      {/* Summary Cards */}
       {summary && (
         <>
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-            <Card className="bg-gray-800/50 border-gray-700">
+          <div className="grid grid-cols-2 gap-4 md:grid-cols-4">
+            <Card>
               <CardContent className="pt-6 text-center">
-                <div className="text-3xl font-bold text-green-400">
+                <div className="text-3xl font-semibold text-primary">
                   {summary.totalDryYield}g
                 </div>
-                <div className="text-sm text-gray-400 mt-1">Total Yield</div>
+                <div className="mt-1 text-sm text-muted-foreground">Total Yield</div>
               </CardContent>
             </Card>
 
-            <Card className="bg-gray-800/50 border-gray-700">
+            <Card>
               <CardContent className="pt-6 text-center">
-                <div className="text-3xl font-bold text-white">
+                <div className="text-3xl font-semibold text-foreground">
                   {summary.avgYieldPerPlant}g
                 </div>
-                <div className="text-sm text-gray-400 mt-1">Avg per Plant</div>
+                <div className="mt-1 text-sm text-muted-foreground">Avg per Plant</div>
               </CardContent>
             </Card>
 
-            <Card className="bg-gray-800/50 border-gray-700">
+            <Card>
               <CardContent className="pt-6 text-center">
-                <div className="text-3xl font-bold text-white">
+                <div className="text-3xl font-semibold text-foreground">
                   {summary.totalPlants}
                 </div>
-                <div className="text-sm text-gray-400 mt-1">Plants Harvested</div>
+                <div className="mt-1 text-sm text-muted-foreground">Plants Harvested</div>
               </CardContent>
             </Card>
 
-            <Card className="bg-gray-800/50 border-gray-700">
+            <Card>
               <CardContent className="pt-6 text-center">
-                <div className="text-3xl font-bold text-white">
+                <div className="text-3xl font-semibold text-foreground">
                   {summary.uniqueStrains}
                 </div>
-                <div className="text-sm text-gray-400 mt-1">Unique Strains</div>
+                <div className="mt-1 text-sm text-muted-foreground">Unique Strains</div>
               </CardContent>
             </Card>
           </div>
 
-          {/* Best/Worst Cards */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <Card className="bg-green-600/10 border-green-600/30">
-              <CardContent className="pt-6 flex items-center gap-4">
-                <div className="p-3 bg-green-600/20 rounded-lg">
-                  <Award className="h-6 w-6 text-green-400" />
+          <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+            <Card className="border-primary/35 bg-primary/10">
+              <CardContent className="flex items-center gap-4 pt-6">
+                <div className="rounded-2xl bg-primary/[0.12] p-3">
+                  <Award className="h-6 w-6 text-primary" />
                 </div>
                 <div>
-                  <div className="text-2xl font-bold text-green-400">
+                  <div className="text-2xl font-semibold text-primary">
                     {summary.maxYield}g
                   </div>
-                  <div className="text-sm text-gray-400">Best Single Plant Yield</div>
+                  <div className="text-sm text-muted-foreground">Best Single Plant Yield</div>
                 </div>
               </CardContent>
             </Card>
 
-            <Card className="bg-gray-800/50 border-gray-700">
-              <CardContent className="pt-6 flex items-center gap-4">
-                <div className="p-3 bg-gray-700 rounded-lg">
-                  <TrendingUp className="h-6 w-6 text-gray-400" />
+            <Card>
+              <CardContent className="flex items-center gap-4 pt-6">
+                <div className="rounded-xl border border-emerald-300/[0.18] bg-emerald-300/10 p-3 text-emerald-200">
+                  <TrendingUp className="h-6 w-6" />
                 </div>
                 <div>
-                  <div className="text-2xl font-bold text-white">
+                  <div className="text-2xl font-semibold text-foreground">
                     {summary.minYield}g - {summary.maxYield}g
                   </div>
-                  <div className="text-sm text-gray-400">Yield Range</div>
+                  <div className="text-sm text-muted-foreground">Yield Range</div>
                 </div>
               </CardContent>
             </Card>
           </div>
 
-          {/* Detailed Statistics Tabs */}
-          <Card className="bg-gray-800/50 border-gray-700">
+          <Card>
             <CardHeader>
-              <CardTitle className="text-white flex items-center gap-2">
-                <BarChart3 className="h-5 w-5 text-green-400" />
+              <CardTitle className="flex items-center gap-2 text-foreground">
+                <BarChart3 className="h-5 w-5 text-primary" />
                 Detailed Analysis
               </CardTitle>
             </CardHeader>
             <CardContent>
               <Tabs defaultValue="strains" className="w-full">
-                <TabsList className="grid grid-cols-3 bg-gray-800 rounded-full mb-6">
-                  <TabsTrigger
-                    value="strains"
-                    className="data-[state=active]:bg-green-500 data-[state=active]:text-gray-800 rounded-full"
-                  >
+                <TabsList className="mb-6 grid w-full grid-cols-1 gap-1 sm:grid-cols-3">
+                  <TabsTrigger value="strains">
                     <Leaf className="h-4 w-4 mr-2" />
                     By Strain
                   </TabsTrigger>
-                  <TabsTrigger
-                    value="grows"
-                    className="data-[state=active]:bg-green-500 data-[state=active]:text-gray-800 rounded-full"
-                  >
+                  <TabsTrigger value="grows">
                     <Scale className="h-4 w-4 mr-2" />
                     By Grow
                   </TabsTrigger>
-                  <TabsTrigger
-                    value="history"
-                    className="data-[state=active]:bg-green-500 data-[state=active]:text-gray-800 rounded-full"
-                  >
+                  <TabsTrigger value="history">
                     <Calendar className="h-4 w-4 mr-2" />
                     History
                   </TabsTrigger>
@@ -305,6 +281,16 @@ export default function Statistics() {
           </Card>
         </>
       )}
+    </div>
+  );
+}
+
+function StatPrepCard({ label, value, helper }: { label: string; value: string; helper: string }) {
+  return (
+    <div className="os-stat-card p-3">
+      <div className="text-xs text-muted-foreground">{label}</div>
+      <div className="mt-1 text-2xl font-semibold tabular-nums text-foreground">{value}</div>
+      <div className="mt-0.5 text-xs text-muted-foreground">{helper}</div>
     </div>
   );
 }

@@ -7,19 +7,19 @@ import { NavigationProgress } from "@/components/navigation-progress"
 import { NotificationInitializer } from "@/components/notification-initializer"
 
 export const metadata: Metadata = {
-  title: 'GrowPanion - Your Plant Companion App',
-  description: 'Track and manage your plants with GrowPanion'
+  title: 'GrowPanion',
+  description: 'Track and manage indoor grows.'
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="de" suppressHydrationWarning>
-      <body className="bg-black min-h-screen font-sans">
-        <ThemeProvider attribute="class" defaultTheme="dark">
+      <body className="min-h-screen bg-background font-sans text-foreground">
+        <ThemeProvider attribute="class" defaultTheme="light" enableSystem={false}>
           <DatabaseInitializer>
             <NotificationInitializer />
             <NavigationProgress />
-            <main className="min-h-screen bg-gradient-to-br from-gray-900 to-black">
+            <main className="min-h-screen bg-transparent">
               {children}
             </main>
             <Toaster />

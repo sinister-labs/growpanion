@@ -34,12 +34,12 @@ const ImagesTab: React.FC<ImagesTabProps> = ({
             transition={{ duration: 0.3 }}
             className="h-full overflow-y-auto"
         >
-            <div {...getRootProps()} className={`border-2 border-dashed p-6 mb-6 rounded-lg cursor-pointer flex flex-col items-center justify-center ${isDragActive ? 'border-green-500 bg-green-500 bg-opacity-10' : 'border-gray-700 hover:border-gray-600'}`}>
+            <div {...getRootProps()} className={`mb-6 flex cursor-pointer flex-col items-center justify-center rounded-[1rem] border-2 border-dashed p-6 transition-colors focus-within:ring-2 focus-within:ring-ring ${isDragActive ? 'border-emerald-300 bg-emerald-300/10' : 'border-white/[0.12] bg-white/[0.035] hover:border-emerald-300/[0.25] hover:bg-emerald-300/10'}`}>
                 <input {...getInputProps()} />
-                <Upload className="w-12 h-12 text-gray-500 mb-2" />
-                <p className="text-center text-gray-500">
+                <Upload className="w-12 h-12 text-muted-foreground mb-2" />
+                <p className="text-center text-muted-foreground">
                     {isDragActive ?
-                        'Drop images here ...' :
+                        'Drop images here…' :
                         'Drop images here or click to select'}
                 </p>
             </div>
@@ -49,7 +49,7 @@ const ImagesTab: React.FC<ImagesTabProps> = ({
                     {renderableImages.map(({ image, originalIndex }, index) => (
                         <div
                             key={`${originalIndex}-${image.slice(0, 32)}`}
-                            className="relative overflow-hidden rounded-lg cursor-pointer"
+                            className="relative cursor-pointer overflow-hidden rounded-[1rem] border border-white/10 bg-white/[0.045] shadow-sm"
                         >
                             {/* eslint-disable-next-line @next/next/no-img-element -- User images are stored as dynamic data/blob URLs from IndexedDB. */}
                             <img
@@ -58,11 +58,11 @@ const ImagesTab: React.FC<ImagesTabProps> = ({
                                 className="w-full h-40 object-cover"
                                 onClick={() => setFullscreenImage(image)}
                             />
-                            <div className="absolute inset-0 bg-black bg-opacity-0 hover:bg-opacity-40 transition-opacity flex items-center justify-center opacity-0 hover:opacity-100">
+                            <div className="absolute inset-0 flex items-center justify-center bg-slate-950/0 opacity-0 transition-opacity hover:bg-slate-950/35 hover:opacity-100">
                                 <Button
                                     variant="destructive"
                                     size="sm"
-                                    className="mx-1"
+                                    className="mx-1 rounded-2xl"
                                     onClick={(e) => {
                                         e.stopPropagation();
                                         handleDeleteImage(originalIndex);

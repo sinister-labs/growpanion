@@ -29,11 +29,11 @@ interface DLICalculatorProps {
 
 function getRatingColor(rating: DLIRating): string {
   switch (rating) {
-    case 'too_low': return 'text-red-400 bg-red-600/20';
-    case 'low': return 'text-yellow-400 bg-yellow-600/20';
-    case 'optimal': return 'text-green-400 bg-green-600/20';
-    case 'high': return 'text-blue-400 bg-blue-600/20';
-    case 'too_high': return 'text-red-400 bg-red-600/20';
+    case 'too_low': return 'border border-destructive/35 bg-destructive/10 text-destructive';
+    case 'low': return 'border border-[#00DF81]/45 bg-[#00DF81]/16 text-[#AACBC4]';
+    case 'optimal': return 'border border-primary/35 bg-primary/10 text-primary';
+    case 'high': return 'border border-[#2FA98C]/45 bg-[#2FA98C]/18 text-[#00DF81]';
+    case 'too_high': return 'border border-destructive/35 bg-destructive/10 text-destructive';
   }
 }
 
@@ -93,28 +93,26 @@ const DLICalculator: React.FC<DLICalculatorProps> = ({
   }));
 
   return (
-    <Card className="bg-gray-800/50 border-gray-700">
-      <CardHeader className="pb-4">
-        <div className="flex items-center gap-3">
-          <div className="p-2 bg-yellow-600/20 rounded-lg">
-            <Sun className="h-5 w-5 text-yellow-400" />
+    <Card>
+      <CardHeader className="p-3 pb-2 sm:p-4 sm:pb-2">
+        <div className="flex items-center gap-2">
+          <div className="rounded-2xl bg-[#00DF81]/16 p-1.5">
+            <Sun className="h-4 w-4 text-[#00DF81]" />
           </div>
           <div>
-            <CardTitle className="text-lg text-white">DLI Calculator</CardTitle>
-            <p className="text-sm text-gray-400">
+            <CardTitle className="text-base text-foreground">DLI Calculator</CardTitle>
+            <p className="text-xs text-muted-foreground">
               Calculate Daily Light Integral for optimal growth
             </p>
           </div>
         </div>
       </CardHeader>
 
-      <CardContent className="space-y-6">
-        {/* Input Form */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-          {/* Growth Phase */}
+      <CardContent className="space-y-3 p-3 pt-0 sm:p-4 sm:pt-0">
+        <div className="grid grid-cols-1 gap-2.5 sm:grid-cols-2">
           <div className="sm:col-span-2">
-            <Label className="text-white flex items-center gap-2">
-              <Leaf className="h-4 w-4 text-green-400" />
+            <Label className="flex items-center gap-2">
+              <Leaf className="h-4 w-4 text-primary" />
               Growth Phase
             </Label>
             <CustomDropdown
@@ -123,14 +121,13 @@ const DLICalculator: React.FC<DLICalculatorProps> = ({
               onChange={(v) => setPhase(normalizeGrowLightPhase(v))}
               placeholder="Select phase"
               width="w-full"
-              buttonClassName="bg-gray-700 border-gray-600 mt-1"
+              buttonClassName="mt-1"
             />
           </div>
 
-          {/* PPFD Input */}
           <div>
-            <Label className="text-white flex items-center gap-2">
-              <Zap className="h-4 w-4 text-yellow-400" />
+            <Label className="flex items-center gap-2">
+              <Zap className="h-4 w-4 text-[#00DF81]" />
               PPFD (µmol/m²/s)
             </Label>
             <Input
@@ -142,15 +139,14 @@ const DLICalculator: React.FC<DLICalculatorProps> = ({
               className="mt-1"
               placeholder="e.g., 600"
             />
-            <p className="text-xs text-gray-500 mt-1">
+            <p className="mt-1 text-xs text-muted-foreground">
               Typical range: 400-1000 µmol/m²/s
             </p>
           </div>
 
-          {/* Light Schedule */}
           <div>
-            <Label className="text-white flex items-center gap-2">
-              <Clock className="h-4 w-4 text-blue-400" />
+            <Label className="flex items-center gap-2">
+              <Clock className="h-4 w-4 text-[#2FA98C]" />
               Light Schedule
             </Label>
             <CustomDropdown
@@ -159,14 +155,13 @@ const DLICalculator: React.FC<DLICalculatorProps> = ({
               onChange={setSelectedSchedule}
               placeholder="Select schedule"
               width="w-full"
-              buttonClassName="bg-gray-700 border-gray-600 mt-1"
+              buttonClassName="mt-1"
             />
           </div>
 
-          {/* Custom Hours (if custom selected) */}
           {selectedSchedule === 'custom' && (
             <div className="sm:col-span-2">
-              <Label className="text-white">Custom Light Hours</Label>
+              <Label>Custom Light Hours</Label>
               <Input
                 type="number"
                 min={1}
@@ -180,63 +175,62 @@ const DLICalculator: React.FC<DLICalculatorProps> = ({
           )}
         </div>
 
-        {/* Results */}
-        <div className="bg-gray-900/50 rounded-xl p-6 space-y-4">
-          <h3 className="text-lg font-semibold text-yellow-400 flex items-center gap-2">
-            <Sun className="h-5 w-5" />
+        <div className="space-y-2 rounded-[1rem] border border-white/10 bg-white/[0.045] p-3">
+          <h3 className="flex items-center gap-2 text-base font-semibold text-[#00DF81]">
+            <Sun className="h-4 w-4" />
             DLI Result
           </h3>
 
-          {/* Main DLI Display */}
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-            <div className="text-center p-4 bg-yellow-600/20 rounded-lg border border-yellow-600/30">
-              <div className="text-3xl font-bold text-yellow-400">
+          <div className="grid grid-cols-1 gap-2 sm:grid-cols-3">
+            <div className="rounded-2xl border border-primary/35 bg-primary/10 p-2.5 text-center">
+              <div className="text-2xl font-semibold text-primary">
                 {result.dli.toFixed(1)}
               </div>
-              <div className="text-xs text-gray-400">mol/m²/day</div>
+              <div className="text-xs text-muted-foreground">mol/m²/day</div>
             </div>
 
-            <div className="text-center p-4 bg-gray-800/50 rounded-lg">
-              <div className="text-2xl font-bold text-white">
+            <div className="infotainment-surface p-2.5 text-center">
+              <div className="text-xl font-semibold text-foreground">
                 {ppfd}
               </div>
-              <div className="text-xs text-gray-400">PPFD µmol/m²/s</div>
+              <div className="text-xs text-muted-foreground">PPFD µmol/m²/s</div>
             </div>
 
-            <div className="text-center p-4 bg-gray-800/50 rounded-lg">
-              <div className="text-2xl font-bold text-white">
+            <div className="infotainment-surface p-2.5 text-center">
+              <div className="text-xl font-semibold text-foreground">
                 {photoperiod}h
               </div>
-              <div className="text-xs text-gray-400">Light per day</div>
+              <div className="text-xs text-muted-foreground">Light per day</div>
             </div>
           </div>
 
-          {/* Rating */}
-          <div className={`p-4 rounded-lg ${getRatingColor(result.rating)}`}>
-            <div className="flex items-center gap-2 mb-2">
-              <RatingIcon className="h-5 w-5" />
+          <div className={`rounded-2xl p-2.5 ${getRatingColor(result.rating)}`}>
+            <div className="mb-1 flex items-center gap-2">
+              <RatingIcon className="h-4 w-4" />
               <span className="font-semibold">{result.ratingLabel}</span>
             </div>
             <p className="text-sm opacity-90">{result.suggestion}</p>
           </div>
 
-          {/* Optimal PPFD suggestion */}
-          <div className="bg-gray-800/50 rounded-lg p-4 text-sm">
-            <p className="text-gray-400">
-              <span className="text-white font-medium">Tip:</span> For optimal {DLI_RECOMMENDATIONS[phase].label.toLowerCase()} DLI ({DLI_RECOMMENDATIONS[phase].optimal} mol/m²/day) with {photoperiod}h light, 
-              aim for <span className="text-yellow-400 font-bold">{optimalPPFD} PPFD</span>.
+          <div className="infotainment-surface p-2.5 text-sm">
+            <p className="text-muted-foreground">
+              <span className="font-semibold text-foreground">Tip:</span> For optimal {DLI_RECOMMENDATIONS[phase].label.toLowerCase()} DLI ({DLI_RECOMMENDATIONS[phase].optimal} mol/m²/day) with {photoperiod}h light, 
+              aim for <span className="font-semibold text-primary">{optimalPPFD} PPFD</span>.
             </p>
           </div>
 
-          {/* Reference Table */}
-          <div className="pt-4 border-t border-gray-700">
-            <p className="text-xs text-gray-400 mb-2">DLI Reference (mol/m²/day):</p>
-            <div className="grid grid-cols-3 gap-2 text-xs">
+          <details className="group border-t border-white/10 pt-2">
+            <summary className="flex cursor-pointer list-none items-center justify-between text-xs font-medium text-muted-foreground [&::-webkit-details-marker]:hidden">
+              DLI reference ranges
+              <span className="text-primary group-open:hidden">Show</span>
+              <span className="hidden text-primary group-open:inline">Hide</span>
+            </summary>
+            <div className="mt-2 grid grid-cols-3 gap-2 text-xs">
               {Object.entries(DLI_RECOMMENDATIONS).map(([key, rec]) => (
                 <div 
                   key={key} 
-                  className={`p-2 rounded text-center ${
-                    phase === key ? 'bg-green-600/20 text-green-400' : 'bg-gray-800 text-gray-400'
+                  className={`rounded-2xl p-2 text-center ${
+                    phase === key ? 'bg-primary/10 text-primary' : 'border border-white/10 bg-white/[0.045] text-muted-foreground'
                   }`}
                 >
                   <div className="font-medium">{rec.label}</div>
@@ -244,7 +238,7 @@ const DLICalculator: React.FC<DLICalculatorProps> = ({
                 </div>
               ))}
             </div>
-          </div>
+          </details>
         </div>
       </CardContent>
     </Card>

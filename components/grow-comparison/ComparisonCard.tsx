@@ -40,14 +40,14 @@ const ComparisonCard: React.FC<ComparisonCardProps> = ({
     const direction = getComparisonDirection(value1, value2, higherIsBetter);
 
     if (direction === 'equal') {
-      return <Minus className="h-4 w-4 text-gray-400" />;
+      return <Minus className="h-4 w-4 text-muted-foreground" />;
     }
 
     if (direction === 'first') {
-      return <ArrowUp className="h-4 w-4 text-green-400" />;
+      return <ArrowUp className="h-4 w-4 text-primary" />;
     }
 
-    return <ArrowDown className="h-4 w-4 text-red-400" />;
+    return <ArrowDown className="h-4 w-4 text-destructive" />;
   };
 
   const getValueColor = (
@@ -60,9 +60,9 @@ const ComparisonCard: React.FC<ComparisonCardProps> = ({
   };
 
   return (
-    <Card className="bg-gray-800/50 border-gray-700">
+    <Card>
       <CardHeader className="pb-3">
-        <CardTitle className="text-sm font-medium text-gray-300 flex items-center gap-2">
+        <CardTitle className="text-sm font-medium text-foreground flex items-center gap-2">
           {icon}
           {title}
         </CardTitle>
@@ -70,7 +70,7 @@ const ComparisonCard: React.FC<ComparisonCardProps> = ({
       <CardContent className="space-y-3">
         {metrics.map((metric, index) => (
           <div key={index} className="flex items-center justify-between">
-            <span className="text-xs text-gray-400 flex-1">{metric.label}</span>
+            <span className="text-xs text-muted-foreground flex-1">{metric.label}</span>
             <div className="flex items-center gap-3">
               <span className={`text-sm font-medium ${getValueColor(metric.value1, metric.value2, true, metric.higherIsBetter)}`}>
                 {renderValue(metric.value1, metric.unit)}

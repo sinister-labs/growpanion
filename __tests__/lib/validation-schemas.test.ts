@@ -1,15 +1,34 @@
 import { describe, expect, it } from 'vitest';
 import {
     FertilizerMixDBSchema,
+    GeneticsSchema,
+    GrowEventSchema,
     GrowSchema,
+    IrrigationEventSchema,
+    MixRecipeSchema,
     NotificationSettingsSchema,
     PlantDBSchema,
     ReminderSchema,
     SettingsSchema,
     StrainSchema,
+    TelemetryReadingSchema,
 } from '@/lib/validation-schemas';
 
 describe('validation schemas', () => {
+    it('accepts structured manual training event types from the Product OS timeline', () => {
+        for (const type of ['topping', 'lst', 'hst'] as const) {
+            expect(GrowEventSchema.safeParse({
+                id: `${type}-event`,
+                growId: 'grow-1',
+                plantId: 'plant-1',
+                type,
+                title: type.toUpperCase(),
+                occurredAt: '2024-01-01T12:00:00.000Z',
+                createdAt: '2024-01-01T12:00:00.000Z',
+            }).success).toBe(true);
+        }
+    });
+
     it('preserves optional yield fields on persisted grows', () => {
         const result = GrowSchema.parse({
             id: 'grow-1',
@@ -293,5 +312,77 @@ describe('validation schemas', () => {
             tuyaId: 'device-1',
             values: [{ code: 'temp_current', decimalPlaces: 2 }],
         });
+    });
+
+    it('validates PRODUCT OS genetics and telemetry entities', () => {
+        expect(GeneticsSchema.parse({
+            id: 'genetics-1',
+            name: 'Blueberry Pancake',
+            type: 'Hybrid',
+            source: 'default',
+            terpeneProfile: ['Berry', 'Gas'],
+            createdAt: '2024-01-01T00:00:00.000Z',
+            updatedAt: '2024-01-01T00:00:00.000Z',
+        })).toMatchObject({
+            id: 'genetics-1',
+            source: 'default',
+        });
+
+        expect(TelemetryReadingSchema.safeParse({
+            id: 'reading-1',
+            growId: 'grow-1',
+            metric: 'leaf_vpd',
+            value: 1.15,
+            unit: 'kPa',
+            recordedAt: '2024-01-01T12:00:00.000Z',
+            source: 'manual',
+        }).success).toBe(true);
+
+        expect(TelemetryReadingSchema.safeParse({
+            id: 'reading-2',
+            growId: 'grow-1',
+            metric: 'unsupported',
+            value: Number.NaN,
+            unit: 'kPa',
+            recordedAt: '2024-01-01T12:00:00.000Z',
+        }).success).toBe(false);
+    });
+
+    it('validates recipe and irrigation constraints', () => {
+        expect(MixRecipeSchema.safeParse({
+            id: 'recipe-1',
+            name: 'Terra Veg',
+            fertilizerType: 'mineral',
+            substrateType: 'soil',
+            products: [{ productId: 'product-1', dosePerLiter: 3 }],
+            targetEc: 1.5,
+            targetPh: 6.2,
+            createdAt: '2024-01-01T00:00:00.000Z',
+            updatedAt: '2024-01-01T00:00:00.000Z',
+        }).success).toBe(true);
+
+        expect(IrrigationEventSchema.safeParse({
+            id: 'irrigation-1',
+            growId: 'grow-1',
+            plantId: 'plant-1',
+            liters: 1.4,
+            potWeightBefore: 10.8,
+            potWeightAfter: 12.1,
+            drainVolume: 0.1,
+            drainEc: 1.8,
+            drainPh: 6.4,
+            photoId: 'photo-1',
+            notes: 'Drain looked clear.',
+            occurredAt: '2024-01-01T12:00:00.000Z',
+        }).success).toBe(true);
+
+        expect(IrrigationEventSchema.safeParse({
+            id: 'irrigation-2',
+            growId: 'grow-1',
+            plantId: 'plant-1',
+            liters: 0,
+            drainPh: 99,
+            occurredAt: '2024-01-01T12:00:00.000Z',
+        }).success).toBe(false);
     });
 });

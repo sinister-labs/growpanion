@@ -144,10 +144,10 @@ export function getVpdStatus(vpdValue: number, optimalRange: VpdRange | null): V
  */
 export function getVpdStatusClass(status: VpdStatus): string {
   switch (status) {
-    case 'optimal': return 'text-green-400';
-    case 'low': return 'text-amber-400';
-    case 'high': return 'text-red-400';
-    default: return 'text-gray-400';
+    case 'optimal': return 'text-primary';
+    case 'low': return 'text-accent';
+    case 'high': return 'text-destructive';
+    default: return 'text-muted-foreground';
   }
 }
 

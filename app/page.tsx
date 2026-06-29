@@ -2,15 +2,17 @@
 
 import { getRouteBoundaryKey, useRoutingProvider, RoutingContext } from '@/hooks/useRouting'
 import { GrowsContext, useGrowsProvider } from '@/hooks/useGrows'
-import Header from '@/components/header'
 import DashboardContent from '@/app/dashboard-content'
 import GrowOverview from '@/components/grow-overview'
 import Settings from '@/components/settings'
 import GrowDetailClient from '@/components/grow-detail-client'
 import Statistics from '@/components/statistics'
 import ToolsPage from '@/components/tools-page'
+import DeviceLayerPage from '@/components/device-layer-page'
+import GeneticsRegistryPage from '@/components/genetics-registry-page'
 import { ErrorBoundary } from '@/components/error-boundary'
-import { ScrollArea } from "@/components/ui/scroll-area"
+import { InfotainmentShell } from '@/components/infotainment-shell'
+import { AcInfinityPollingProvider } from '@/components/ac-infinity-polling-provider'
 
 export default function Home() {
   const routingState = useRoutingProvider();
@@ -34,13 +36,25 @@ export default function Home() {
       case 'growDetail':
         return (
           <ErrorBoundary key={routeBoundaryKey}>
-            <GrowDetailClient growId={routingState.params.id || ''} />
+            <GrowDetailClient growId={routingState.params.id || ''} initialTab={routingState.params.tab} />
           </ErrorBoundary>
         );
       case 'settings':
         return (
           <ErrorBoundary key={routeBoundaryKey}>
-            <Settings />
+            <Settings initialTab={routingState.params.tab} />
+          </ErrorBoundary>
+        );
+      case 'devices':
+        return (
+          <ErrorBoundary key={routeBoundaryKey}>
+            <DeviceLayerPage />
+          </ErrorBoundary>
+        );
+      case 'genetics':
+        return (
+          <ErrorBoundary key={routeBoundaryKey}>
+            <GeneticsRegistryPage />
           </ErrorBoundary>
         );
       case 'statistics':
@@ -67,25 +81,11 @@ export default function Home() {
   return (
     <RoutingContext.Provider value={routingState}>
       <GrowsContext.Provider value={growsState}>
-
-        <div className="fixed inset-0 bg-gradient-to-br from-gray-900 to-black z-0"></div>
-
-        <div className="flex flex-col min-h-screen max-h-screen bg-transparent text-white overflow-hidden">
-          <div className="z-50 w-full">
-            <ErrorBoundary>
-              <Header />
-            </ErrorBoundary>
-          </div>
-
-          {/* Scrollbarer Content-Bereich mit ScrollArea */}
-          <div className="flex-grow overflow-hidden">
-            <ScrollArea className="h-[calc(100vh-80px)]">
-              <main className="container max-w-screen-xl mx-auto px-4 pb-8 pt-8 relative z-10">
-                {renderView()}
-              </main>
-            </ScrollArea>
-          </div>
-        </div>
+        <AcInfinityPollingProvider>
+          <ErrorBoundary>
+            <InfotainmentShell>{renderView()}</InfotainmentShell>
+          </ErrorBoundary>
+        </AcInfinityPollingProvider>
       </GrowsContext.Provider>
     </RoutingContext.Provider>
   )

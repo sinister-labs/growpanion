@@ -131,15 +131,15 @@ const HarvestCalculator: React.FC<HarvestCalculatorProps> = ({
   };
 
   return (
-    <Card className="bg-gray-800/50 border-gray-700">
+    <Card>
       <CardHeader className="pb-4">
         <div className="flex items-center gap-3">
-          <div className="p-2 bg-green-600/20 rounded-lg">
-            <Scale className="h-5 w-5 text-green-400" />
+          <div className="rounded-2xl bg-primary/[0.12] p-2">
+            <Scale className="h-5 w-5 text-primary" />
           </div>
           <div>
-            <CardTitle className="text-lg text-white">Harvest Yield Calculator</CardTitle>
-            <p className="text-sm text-gray-400">
+            <CardTitle className="text-lg text-foreground">Harvest Yield Calculator</CardTitle>
+            <p className="text-sm text-muted-foreground">
               Estimate your expected yield based on grow parameters
             </p>
           </div>
@@ -148,28 +148,21 @@ const HarvestCalculator: React.FC<HarvestCalculatorProps> = ({
 
       <CardContent className="space-y-6">
         <Tabs defaultValue="estimate" className="w-full">
-          <TabsList className="grid grid-cols-2 bg-gray-800 rounded-full">
-            <TabsTrigger
-              value="estimate"
-              className="data-[state=active]:bg-green-500 data-[state=active]:text-gray-800 rounded-full"
-            >
+          <TabsList className="grid w-full grid-cols-2">
+            <TabsTrigger value="estimate">
               <Calculator className="h-4 w-4 mr-2" />
               Estimate
             </TabsTrigger>
-            <TabsTrigger
-              value="compare"
-              className="data-[state=active]:bg-green-500 data-[state=active]:text-gray-800 rounded-full"
-            >
+            <TabsTrigger value="compare">
               <TrendingUp className="h-4 w-4 mr-2" />
               Compare
             </TabsTrigger>
           </TabsList>
 
           <TabsContent value="estimate" className="mt-6 space-y-6">
-            {/* Input Form */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
               <div>
-                <Label className="text-white">Number of Plants</Label>
+                <Label>Number of Plants</Label>
                 <Input
                   type="number"
                   min={1}
@@ -181,43 +174,43 @@ const HarvestCalculator: React.FC<HarvestCalculatorProps> = ({
               </div>
 
               <div>
-                <Label className="text-white">Strain Type</Label>
+                <Label>Strain Type</Label>
                 <CustomDropdown
                   options={strainOptions}
                   value={strainType}
                   onChange={(v) => setStrainType(v as StrainType)}
                   placeholder="Select strain type"
                   width="w-full"
-                  buttonClassName="bg-gray-700 border-gray-600 mt-1"
+                  buttonClassName="mt-1"
                 />
               </div>
 
               <div>
-                <Label className="text-white">Growing Medium</Label>
+                <Label>Growing Medium</Label>
                 <CustomDropdown
                   options={mediumOptions}
                   value={medium}
                   onChange={(v) => setMedium(v as MediumType)}
                   placeholder="Select medium"
                   width="w-full"
-                  buttonClassName="bg-gray-700 border-gray-600 mt-1"
+                  buttonClassName="mt-1"
                 />
               </div>
 
               <div>
-                <Label className="text-white">Light Type</Label>
+                <Label>Light Type</Label>
                 <CustomDropdown
                   options={lightOptions}
                   value={lightType}
                   onChange={(v) => setLightType(v as LightType)}
                   placeholder="Select light"
                   width="w-full"
-                  buttonClassName="bg-gray-700 border-gray-600 mt-1"
+                  buttonClassName="mt-1"
                 />
               </div>
 
               <div>
-                <Label className="text-white">Light Wattage</Label>
+                <Label>Light Wattage</Label>
                 <Input
                   type="number"
                   min={50}
@@ -229,19 +222,19 @@ const HarvestCalculator: React.FC<HarvestCalculatorProps> = ({
               </div>
 
               <div>
-                <Label className="text-white">Experience Level</Label>
+                <Label>Experience Level</Label>
                 <CustomDropdown
                   options={experienceOptions}
                   value={experienceLevel}
                   onChange={(v) => setExperienceLevel(v as ExperienceLevel)}
                   placeholder="Select experience"
                   width="w-full"
-                  buttonClassName="bg-gray-700 border-gray-600 mt-1"
+                  buttonClassName="mt-1"
                 />
               </div>
 
               <div>
-                <Label className="text-white">Grow Space (m²) - Optional</Label>
+                <Label>Grow Space (m²) - Optional</Label>
                 <Input
                   type="number"
                   min={0.1}
@@ -255,45 +248,44 @@ const HarvestCalculator: React.FC<HarvestCalculatorProps> = ({
               </div>
             </div>
 
-            {/* Results */}
-            <div className="bg-gray-900/50 rounded-xl p-6 space-y-4">
-              <h3 className="text-lg font-semibold text-green-400 flex items-center gap-2">
+            <div className="space-y-4 rounded-[1rem] border border-white/10 bg-white/[0.045] p-6">
+              <h3 className="flex items-center gap-2 text-lg font-semibold text-primary">
                 <Leaf className="h-5 w-5" />
                 Estimated Yield
               </h3>
 
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                <div className="text-center p-4 bg-gray-800/50 rounded-lg">
-                  <div className="text-2xl font-bold text-white">
+              <div className="grid grid-cols-2 gap-4 md:grid-cols-4">
+                <div className="infotainment-surface p-4 text-center">
+                  <div className="text-2xl font-semibold text-foreground">
                     {estimation.minYieldPerPlant}-{estimation.maxYieldPerPlant}g
                   </div>
-                  <div className="text-xs text-gray-400">Per Plant</div>
+                  <div className="text-xs text-muted-foreground">Per Plant</div>
                 </div>
 
-                <div className="text-center p-4 bg-green-600/20 rounded-lg border border-green-600/30">
-                  <div className="text-2xl font-bold text-green-400">
+                <div className="rounded-3xl border border-primary/35 bg-primary/10 p-4 text-center">
+                  <div className="text-2xl font-semibold text-primary">
                     {estimation.totalMinYield}-{estimation.totalMaxYield}g
                   </div>
-                  <div className="text-xs text-gray-400">Total Yield</div>
+                  <div className="text-xs text-muted-foreground">Total Yield</div>
                 </div>
 
-                <div className="text-center p-4 bg-gray-800/50 rounded-lg">
-                  <div className="text-2xl font-bold text-white">
+                <div className="infotainment-surface p-4 text-center">
+                  <div className="text-2xl font-semibold text-foreground">
                     ~{estimation.averageYield}g
                   </div>
-                  <div className="text-xs text-gray-400">Average</div>
+                  <div className="text-xs text-muted-foreground">Average</div>
                 </div>
 
-                <div className="text-center p-4 bg-gray-800/50 rounded-lg">
-                  <div className="text-2xl font-bold text-white">
+                <div className="infotainment-surface p-4 text-center">
+                  <div className="text-2xl font-semibold text-foreground">
                     {estimation.efficiency.gramsPerWatt.min}-{estimation.efficiency.gramsPerWatt.max}
                   </div>
-                  <div className="text-xs text-gray-400">g/Watt</div>
+                  <div className="text-xs text-muted-foreground">g/Watt</div>
                 </div>
               </div>
 
               {estimation.efficiency.gramsPerSqM && (
-                <div className="text-center text-sm text-gray-400">
+                <div className="text-center text-sm text-muted-foreground">
                   Estimated {estimation.efficiency.gramsPerSqM.min}-{estimation.efficiency.gramsPerSqM.max} g/m²
                 </div>
               )}
@@ -303,7 +295,7 @@ const HarvestCalculator: React.FC<HarvestCalculatorProps> = ({
           <TabsContent value="compare" className="mt-6 space-y-6">
             <div className="space-y-4">
               <div>
-                <Label className="text-white">Actual Harvest Yield (g)</Label>
+                <Label>Actual Harvest Yield (g)</Label>
                 <Input
                   type="number"
                   min={0}
@@ -315,47 +307,47 @@ const HarvestCalculator: React.FC<HarvestCalculatorProps> = ({
               </div>
 
               {comparison && (
-                <div className="bg-gray-900/50 rounded-xl p-6 space-y-4">
-                  <h3 className="text-lg font-semibold text-green-400 flex items-center gap-2">
+                <div className="space-y-4 rounded-[1rem] border border-white/10 bg-white/[0.045] p-6">
+                  <h3 className="flex items-center gap-2 text-lg font-semibold text-primary">
                     <Award className="h-5 w-5" />
                     Yield Comparison
                   </h3>
 
                   <div className="grid grid-cols-3 gap-4 text-center">
-                    <div className="p-4 bg-gray-800/50 rounded-lg">
-                      <div className="text-xl font-bold text-gray-300">
+                    <div className="infotainment-surface p-4">
+                      <div className="text-xl font-semibold text-muted-foreground">
                         {comparison.expectedAverage}g
                       </div>
-                      <div className="text-xs text-gray-400">Expected</div>
+                      <div className="text-xs text-muted-foreground">Expected</div>
                     </div>
 
-                    <div className="p-4 bg-gray-800/50 rounded-lg">
-                      <div className="text-xl font-bold text-white">
+                    <div className="infotainment-surface p-4">
+                      <div className="text-xl font-semibold text-foreground">
                         {comparison.actualYield}g
                       </div>
-                      <div className="text-xs text-gray-400">Actual</div>
+                      <div className="text-xs text-muted-foreground">Actual</div>
                     </div>
 
-                    <div className="p-4 bg-gray-800/50 rounded-lg">
-                      <div className={`text-xl font-bold ${
-                        comparison.difference >= 0 ? 'text-green-400' : 'text-red-400'
+                    <div className="infotainment-surface p-4">
+                      <div className={`text-xl font-semibold ${
+                        comparison.difference >= 0 ? 'text-primary' : 'text-destructive'
                       }`}>
                         {comparison.difference >= 0 ? '+' : ''}{comparison.difference}g
                       </div>
-                      <div className="text-xs text-gray-400">
+                      <div className="text-xs text-muted-foreground">
                         ({comparison.percentageDifference >= 0 ? '+' : ''}{comparison.percentageDifference}%)
                       </div>
                     </div>
                   </div>
 
-                  <div className={`p-4 rounded-lg text-center ${getRatingColorClass(comparison.rating)}`}>
+                  <div className={`rounded-3xl p-4 text-center ${getRatingColorClass(comparison.rating)}`}>
                     <div className="text-lg font-semibold">{comparison.ratingLabel}</div>
                   </div>
 
                   {onSaveYield && (
                     <Button
                       onClick={handleSave}
-                      className="w-full bg-green-600 hover:bg-green-700"
+                      className="w-full"
                     >
                       Save Yield Data
                     </Button>
@@ -364,8 +356,8 @@ const HarvestCalculator: React.FC<HarvestCalculatorProps> = ({
               )}
 
               {!actualYield && (
-                <div className="text-center py-8 text-gray-400">
-                  <Scale className="h-12 w-12 mx-auto mb-4 opacity-50" />
+                <div className="py-8 text-center text-muted-foreground">
+                  <Scale className="mx-auto mb-4 h-12 w-12 opacity-50" />
                   <p>Enter your actual harvest yield to compare with expectations</p>
                 </div>
               )}

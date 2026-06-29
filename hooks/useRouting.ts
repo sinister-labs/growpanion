@@ -2,9 +2,9 @@
 
 import { useState, useCallback, createContext, useContext, useEffect } from 'react';
 
-export type AppView = 'dashboard' | 'grows' | 'growDetail' | 'settings' | 'statistics' | 'tools';
+export type AppView = 'dashboard' | 'grows' | 'growDetail' | 'devices' | 'genetics' | 'settings' | 'statistics' | 'tools';
 
-const APP_VIEWS: AppView[] = ['dashboard', 'grows', 'growDetail', 'settings', 'statistics', 'tools'];
+const APP_VIEWS: AppView[] = ['dashboard', 'grows', 'growDetail', 'devices', 'genetics', 'settings', 'statistics', 'tools'];
 
 interface RoutingContextType {
     currentView: AppView;

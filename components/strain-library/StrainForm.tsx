@@ -105,7 +105,7 @@ const StrainForm: React.FC<StrainFormProps> = ({
     <form onSubmit={handleSubmit} className="space-y-4">
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <div>
-          <Label className="text-white">Strain Name *</Label>
+          <Label>Strain Name *</Label>
           <Input
             value={formData.name || ''}
             onChange={(e) => handleChange('name', e.target.value)}
@@ -117,7 +117,7 @@ const StrainForm: React.FC<StrainFormProps> = ({
         </div>
 
         <div>
-          <Label className="text-white">Breeder *</Label>
+          <Label>Breeder *</Label>
           <Input
             value={formData.breeder || ''}
             onChange={(e) => handleChange('breeder', e.target.value)}
@@ -129,33 +129,33 @@ const StrainForm: React.FC<StrainFormProps> = ({
         </div>
 
         <div>
-          <Label className="text-white">Genetics *</Label>
+          <Label>Genetics *</Label>
           <CustomDropdown
             options={GENETICS_OPTIONS}
             value={formData.genetics || 'Hybrid'}
             onChange={(v) => handleChange('genetics', v as Strain['genetics'])}
             placeholder="Select genetics"
             width="w-full"
-            buttonClassName="bg-gray-700 border-gray-600 mt-1"
+            buttonClassName="mt-1"
             disabled={isSaving}
           />
         </div>
 
         <div>
-          <Label className="text-white">Difficulty</Label>
+          <Label>Difficulty</Label>
           <CustomDropdown
             options={DIFFICULTY_OPTIONS}
             value={formData.difficulty || ''}
             onChange={(v) => handleChange('difficulty', v as Strain['difficulty'])}
             placeholder="Select difficulty"
             width="w-full"
-            buttonClassName="bg-gray-700 border-gray-600 mt-1"
+            buttonClassName="mt-1"
             disabled={isSaving}
           />
         </div>
 
         <div>
-          <Label className="text-white">Indica %</Label>
+          <Label>Indica %</Label>
           <Input
             type="number"
             min={0}
@@ -169,7 +169,7 @@ const StrainForm: React.FC<StrainFormProps> = ({
         </div>
 
         <div>
-          <Label className="text-white">Sativa %</Label>
+          <Label>Sativa %</Label>
           <Input
             type="number"
             min={0}
@@ -183,7 +183,7 @@ const StrainForm: React.FC<StrainFormProps> = ({
         </div>
 
         <div>
-          <Label className="text-white">THC %</Label>
+          <Label>THC %</Label>
           <Input
             type="number"
             min={0}
@@ -198,7 +198,7 @@ const StrainForm: React.FC<StrainFormProps> = ({
         </div>
 
         <div>
-          <Label className="text-white">CBD %</Label>
+          <Label>CBD %</Label>
           <Input
             type="number"
             min={0}
@@ -213,7 +213,7 @@ const StrainForm: React.FC<StrainFormProps> = ({
         </div>
 
         <div>
-          <Label className="text-white">Flowering Time (weeks)</Label>
+          <Label>Flowering Time (weeks)</Label>
           <Input
             type="number"
             min={4}
@@ -228,27 +228,27 @@ const StrainForm: React.FC<StrainFormProps> = ({
       </div>
 
       <div>
-        <Label className="text-white">Description</Label>
+        <Label>Description</Label>
         <Textarea
           value={formData.description || ''}
           onChange={(e) => handleChange('description', e.target.value)}
           placeholder="Effects, aroma, growing tips..."
-          className="mt-1 bg-gray-800 border-gray-700"
+          className="mt-1"
           rows={3}
           disabled={isSaving}
         />
       </div>
 
       {formError && (
-        <p className="text-sm text-red-400">{formError}</p>
+        <p className="text-sm text-destructive">{formError}</p>
       )}
 
-      <div className="flex gap-2 justify-end pt-4 border-t border-gray-700">
+      <div className="flex gap-2 justify-end pt-4 border-t border-border/[0.70]">
         <Button
           type="button"
           variant="ghost"
           onClick={onCancel}
-          className="text-gray-400"
+          className="text-muted-foreground"
           disabled={isSaving}
         >
           <X className="h-4 w-4 mr-2" />
@@ -256,7 +256,7 @@ const StrainForm: React.FC<StrainFormProps> = ({
         </Button>
         <Button
           type="submit"
-          className="bg-green-600 hover:bg-green-700"
+          className=""
           disabled={isSaving}
         >
           <Save className="h-4 w-4 mr-2" />

@@ -134,7 +134,15 @@ export const PlantSchema = z.object({
 
 export const CreatePlantSchema = PlantSchema.omit({ id: true });
 export const PlantDBSchema = PlantSchema.extend({
-  growId: IdSchema
+  growId: IdSchema,
+  geneticsId: OptionalStringSchema,
+  phenotypeId: OptionalStringSchema,
+  label: OptionalStringSchema,
+  location: OptionalStringSchema,
+  tent: OptionalStringSchema,
+  sensorBindingIds: z.array(IdSchema).optional(),
+  lifecycleStatus: OptionalStringSchema,
+  currentPhase: PlantPhaseSchema.optional()
 });
 
 // Grow validation schemas
@@ -218,6 +226,8 @@ export const SettingsSchema = z.object({
   id: z.literal('global'),
   tuyaClientId: OptionalStringSchema,
   tuyaClientSecret: OptionalStringSchema,
+  acInfinityEmail: OptionalStringSchema,
+  backgroundPollingEnabled: z.boolean().optional(),
   lastUpdated: OptionalStringSchema,
   sensors: z.array(TuyaSensorSchema).optional()
 });
@@ -257,6 +267,277 @@ export const NotificationSettingsSchema = z.object({
   permission: NotificationPermissionSchema,
   defaultReminderTime: TimeStringSchema,
   soundEnabled: z.boolean()
+});
+
+export const GeneticsSchema = z.object({
+  id: IdSchema,
+  name: NonEmptyStringSchema.max(120),
+  breeder: OptionalStringSchema,
+  type: z.enum(['Indica', 'Sativa', 'Hybrid', 'Unknown']).default('Unknown'),
+  floweringWeeks: z.number().min(0).max(30).optional(),
+  stretch: OptionalStringSchema,
+  terpeneProfile: z.array(z.string().trim().min(1)).optional(),
+  cannabinoids: OptionalStringSchema,
+  origin: OptionalStringSchema,
+  notes: OptionalStringSchema,
+  source: z.enum(['default', 'user']).default('user'),
+  createdAt: DateStringSchema,
+  updatedAt: DateStringSchema
+});
+
+export const GeneticsOverrideSchema = z.object({
+  id: IdSchema,
+  geneticsId: IdSchema,
+  patch: z.record(z.any()),
+  updatedAt: DateStringSchema
+});
+
+export const LineageEdgeSchema = z.object({
+  id: IdSchema,
+  parentGeneticsId: IdSchema,
+  childGeneticsId: IdSchema,
+  relationType: z.enum(['parent', 'cross', 'child']).default('parent'),
+  notes: OptionalStringSchema,
+  createdAt: DateStringSchema
+});
+
+export const PhenotypeSchema = z.object({
+  id: IdSchema,
+  geneticsId: IdSchema,
+  plantId: IdSchema,
+  growId: IdSchema,
+  label: NonEmptyStringSchema.max(120),
+  growthStructure: OptionalStringSchema,
+  stretch: OptionalStringSchema,
+  vigor: OptionalStringSchema,
+  internodeSpacing: OptionalStringSchema,
+  trainingResponse: OptionalStringSchema,
+  floweringTime: OptionalStringSchema,
+  aroma: OptionalStringSchema,
+  terpenes: z.array(z.string().trim().min(1)).optional(),
+  yieldGrams: z.number().nonnegative().optional(),
+  qualityNotes: OptionalStringSchema,
+  photos: z.array(z.string()).optional(),
+  observations: z.array(z.string()).optional(),
+  issues: z.array(z.string()).optional(),
+  traits: z.array(z.string()).optional(),
+  createdAt: DateStringSchema,
+  updatedAt: DateStringSchema
+});
+
+export const GrowEventSchema = z.object({
+  id: IdSchema,
+  growId: IdSchema,
+  plantId: OptionalStringSchema,
+  phenotypeId: OptionalStringSchema,
+  type: z.enum([
+    'watering',
+    'feeding',
+    'prepared_batch',
+    'training',
+    'topping',
+    'lst',
+    'hst',
+    'defoliation',
+    'lollipopping',
+    'scrog',
+    'transplant',
+    'flowering_start',
+    'harvest',
+    'photo',
+    'note',
+    'diagnosis',
+    'problem',
+    'treatment',
+    'measurement',
+    'substrate_change',
+    'light_adjustment'
+  ]),
+  title: NonEmptyStringSchema.max(160),
+  description: OptionalStringSchema,
+  occurredAt: DateStringSchema,
+  payload: z.record(z.any()).optional(),
+  photoIds: z.array(IdSchema).optional(),
+  createdAt: DateStringSchema
+});
+
+export const TelemetryReadingSchema = z.object({
+  id: IdSchema,
+  growId: IdSchema,
+  plantId: OptionalStringSchema,
+  phenotypeId: OptionalStringSchema,
+  deviceId: OptionalStringSchema,
+  sensorBindingId: OptionalStringSchema,
+  metric: z.enum([
+    'temperature',
+    'humidity',
+    'air_vpd',
+    'leaf_temperature',
+    'leaf_vpd',
+    'pot_weight',
+    'water_consumption',
+    'ppfd',
+    'dli',
+    'light_power',
+    'fan_power',
+    'exhaust_power',
+    'circulation_power',
+    'ec',
+    'ph',
+    'drain_ec',
+    'drain_ph',
+    'drain_volume'
+  ]),
+  value: z.number().finite(),
+  unit: NonEmptyStringSchema.max(32),
+  recordedAt: DateStringSchema,
+  source: z.enum(['sensor', 'manual', 'calculated']).default('manual')
+});
+
+export const DeviceIntegrationSchema = z.object({
+  id: IdSchema,
+  type: z.enum(['ac_infinity', 'tuya_legacy', 'manual', 'mqtt_esp32', 'third_party']),
+  name: NonEmptyStringSchema.max(120),
+  status: z.enum(['planned', 'configured', 'active', 'error']).default('planned'),
+  config: z.record(z.any()).optional(),
+  createdAt: DateStringSchema,
+  updatedAt: DateStringSchema
+});
+
+export const DeviceSchema = z.object({
+  id: IdSchema,
+  integrationId: IdSchema,
+  name: NonEmptyStringSchema.max(120),
+  type: z.enum(['sensor', 'lamp', 'fan', 'filter', 'humidifier', 'dehumidifier', 'pump', 'controller', 'other']),
+  room: OptionalStringSchema,
+  tent: OptionalStringSchema,
+  growId: OptionalStringSchema,
+  plantId: OptionalStringSchema,
+  status: z.enum(['active', 'inactive', 'planned', 'error']).default('planned'),
+  createdAt: DateStringSchema,
+  updatedAt: DateStringSchema
+});
+
+export const SensorBindingSchema = z.object({
+  id: IdSchema,
+  deviceId: IdSchema,
+  growId: OptionalStringSchema,
+  plantId: OptionalStringSchema,
+  metric: TelemetryReadingSchema.shape.metric,
+  label: NonEmptyStringSchema.max(120),
+  unit: NonEmptyStringSchema.max(32),
+  createdAt: DateStringSchema
+});
+
+export const FertilizerProductSchema = z.object({
+  id: IdSchema,
+  name: NonEmptyStringSchema.max(120),
+  brand: OptionalStringSchema,
+  fertilizerType: z.enum(['mineral', 'organic', 'hybrid']).default('mineral'),
+  npk: OptionalStringSchema,
+  notes: OptionalStringSchema,
+  createdAt: DateStringSchema,
+  updatedAt: DateStringSchema
+});
+
+export const MixRecipeSchema = z.object({
+  id: IdSchema,
+  growId: OptionalStringSchema,
+  name: NonEmptyStringSchema.max(120),
+  fertilizerType: z.enum(['mineral', 'organic', 'hybrid']),
+  substrateType: z.enum(['soil', 'coco', 'hydro', 'living_soil', 'other']),
+  products: z.array(z.object({
+    productId: IdSchema,
+    dosePerLiter: z.number().nonnegative()
+  })),
+  targetEc: z.number().nonnegative().optional(),
+  targetPh: z.number().min(0).max(14).optional(),
+  phase: OptionalStringSchema,
+  notes: OptionalStringSchema,
+  createdAt: DateStringSchema,
+  updatedAt: DateStringSchema
+});
+
+export const PreparedBatchSchema = z.object({
+  id: IdSchema,
+  recipeId: OptionalStringSchema,
+  growId: IdSchema,
+  totalLiters: z.number().positive(),
+  measuredEc: z.number().nonnegative().optional(),
+  measuredPh: z.number().min(0).max(14).optional(),
+  waterEc: z.number().nonnegative().optional(),
+  waterPh: z.number().min(0).max(14).optional(),
+  temperature: z.number().min(0).max(60).optional(),
+  preparedAt: DateStringSchema,
+  notes: OptionalStringSchema
+});
+
+export const IrrigationEventSchema = z.object({
+  id: IdSchema,
+  batchId: OptionalStringSchema,
+  growId: IdSchema,
+  plantId: IdSchema,
+  phenotypeId: OptionalStringSchema,
+  liters: z.number().positive(),
+  potWeightBefore: z.number().nonnegative().optional(),
+  potWeightAfter: z.number().nonnegative().optional(),
+  drainVolume: z.number().nonnegative().optional(),
+  drainEc: z.number().nonnegative().optional(),
+  drainPh: z.number().min(0).max(14).optional(),
+  photoId: OptionalStringSchema,
+  notes: OptionalStringSchema,
+  occurredAt: DateStringSchema
+});
+
+export const PhotoSchema = z.object({
+  id: IdSchema,
+  growId: OptionalStringSchema,
+  plantId: OptionalStringSchema,
+  phenotypeId: OptionalStringSchema,
+  uri: NonEmptyStringSchema,
+  caption: OptionalStringSchema,
+  takenAt: DateStringSchema,
+  createdAt: DateStringSchema
+});
+
+export const RecommendationSchema = z.object({
+  id: IdSchema,
+  growId: IdSchema,
+  plantId: OptionalStringSchema,
+  phenotypeId: OptionalStringSchema,
+  title: NonEmptyStringSchema.max(160),
+  severity: z.enum(['info', 'success', 'warning', 'critical', 'action']),
+  summary: NonEmptyStringSchema.max(1000),
+  suggestedAction: NonEmptyStringSchema.max(1000),
+  usedData: z.array(z.string()),
+  relatedEventIds: z.array(IdSchema).optional(),
+  supportingMeasurements: z.array(z.string()).optional(),
+  createdAt: DateStringSchema,
+  dismissedAt: OptionalStringSchema
+});
+
+export const PowerConsumerSchema = z.object({
+  id: IdSchema,
+  growId: OptionalStringSchema,
+  name: NonEmptyStringSchema.max(120),
+  watts: z.number().nonnegative(),
+  hoursPerDay: z.number().min(0).max(24),
+  phase: z.enum(['growth', 'flower', 'both']).default('both'),
+  createdAt: DateStringSchema,
+  updatedAt: DateStringSchema
+});
+
+export const PowerCostProfileSchema = z.object({
+  id: IdSchema,
+  growId: OptionalStringSchema,
+  name: NonEmptyStringSchema.max(120),
+  centPerKwh: z.number().nonnegative(),
+  vegDays: z.number().int().nonnegative(),
+  flowerDays: z.number().int().nonnegative(),
+  plantCount: z.number().int().positive().optional(),
+  harvestGrams: z.number().positive().optional(),
+  createdAt: DateStringSchema,
+  updatedAt: DateStringSchema
 });
 
 // Training record validation

@@ -107,14 +107,14 @@ export function GrowSelector() {
     if (isLoading) {
         return (
             <div className="flex items-center justify-center p-4">
-                <Loader2 className="w-6 h-6 animate-spin text-green-500" />
+                <Loader2 className="w-6 h-6 animate-spin text-primary" />
             </div>
         );
     }
 
     if (error) {
         return (
-            <div className="bg-red-900/30 text-red-300 p-4 rounded-md">
+            <div className="rounded-2xl border border-destructive/30 bg-destructive/10 p-4 text-destructive">
                 Error loading grows: {error.message}
             </div>
         );
@@ -134,9 +134,9 @@ export function GrowSelector() {
     }));
 
     return (
-        <div className="bg-gray-800/50 rounded-lg border border-gray-700 p-4">
+        <div className="rounded-[1.1rem] border border-white/10 bg-[#090f14]/92 p-4 shadow-[inset_0_1px_0_rgba(255,255,255,0.055),0_18px_52px_rgba(0,0,0,0.25)]">
             <div className="flex justify-between items-center mb-4">
-                <h3 className="text-lg font-medium text-green-400">My Grows</h3>
+                <h3 className="text-lg font-medium text-foreground">My Grows</h3>
                 <Dialog
                     open={isNewGrowDialogOpen}
                     onOpenChange={(open) => {
@@ -150,20 +150,20 @@ export function GrowSelector() {
                     <DialogTrigger asChild>
                         <Button
                             variant="outline"
-                            className="border-green-600 text-green-500 hover:bg-green-900/20 hover:text-green-400"
+                            className="border-primary/45 text-primary hover:bg-primary/10"
                             size="sm"
                         >
                             <PlusCircle className="mr-2 h-4 w-4" />
                             New Grow
                         </Button>
                     </DialogTrigger>
-                    <DialogContent className="bg-gray-800 border-gray-700 text-white">
+                    <DialogContent>
                         <DialogHeader>
-                            <DialogTitle className="text-green-400">Create New Grow</DialogTitle>
+                            <DialogTitle>Create New Grow</DialogTitle>
                         </DialogHeader>
                         <div className="space-y-4 py-4">
                             {createError && (
-                                <div className="rounded-md border border-red-800 bg-red-900/20 p-3 text-sm text-red-200">
+                                <div className="rounded-2xl border border-destructive/30 bg-destructive/10 p-3 text-sm text-destructive">
                                     {createError}
                                 </div>
                             )}
@@ -189,7 +189,7 @@ export function GrowSelector() {
                                         onChange={handleGrowChange}
                                         disabled={isCreating}
                                     />
-                                    <Calendar className="absolute right-3 top-2.5 h-4 w-4 text-gray-400 pointer-events-none" />
+                                    <Calendar className="absolute right-3 top-2.5 h-4 w-4 text-muted-foreground pointer-events-none" />
                                 </div>
                             </div>
                             <div className="grid w-full gap-2">
@@ -199,7 +199,7 @@ export function GrowSelector() {
                                     value={newGrow.currentPhase || "Seedling"}
                                     onChange={handlePhaseChange}
                                     width="w-full"
-                                    buttonClassName="bg-gray-700 border-gray-600"
+                                    buttonClassName="mt-1"
                                     disabled={isCreating}
                                 />
                             </div>
@@ -207,9 +207,10 @@ export function GrowSelector() {
                                 <Button
                                     onClick={handleCreateGrow}
                                     disabled={isCreating}
-                                    className="w-full bg-green-600 hover:bg-green-700"
+                                    className="w-full"
                                 >
-                                    {isCreating ? "Creating..." : "Create Grow"}
+                                    {isCreating && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                                    Create Grow
                                 </Button>
                             </div>
                         </div>
@@ -218,12 +219,12 @@ export function GrowSelector() {
             </div>
 
             {grows.length === 0 ? (
-                <div className="bg-gray-900 p-6 rounded-lg text-center text-gray-400">
-                    <List className="h-12 w-12 mx-auto mb-4 text-gray-600" />
+                <div className="rounded-[1rem] border border-dashed border-white/[0.12] bg-white/[0.035] p-6 text-center text-muted-foreground">
+                    <List className="h-12 w-12 mx-auto mb-4 text-muted-foreground" />
                     <p className="mb-4">No grows available yet</p>
                     <Button
                         onClick={() => setIsNewGrowDialogOpen(true)}
-                        className="bg-green-600 hover:bg-green-700"
+                        className=""
                     >
                         <PlusCircle className="mr-2 h-4 w-4" />
                         Create Grow
@@ -232,27 +233,27 @@ export function GrowSelector() {
             ) : (
                 <div className="space-y-4">
                     <div className="grid grid-cols-1 gap-2">
-                        <Label htmlFor="activeGrow" className="text-white">Active Grow</Label>
+                        <Label htmlFor="activeGrow">Active Grow</Label>
                         <CustomDropdown
                             options={growOptions}
                             value={activeGrowId || ""}
                             onChange={setActiveGrow}
-                            placeholder="Select a grow"
+                        placeholder="Select a grow…"
                             width="w-full"
-                            buttonClassName="bg-gray-700 border-gray-600"
+                            buttonClassName="mt-1"
                         />
                     </div>
 
                     {activeGrow && (
-                        <div className="mt-4 bg-gray-900/60 rounded-lg p-3 text-sm">
+                        <div className="mt-4 rounded-[1rem] border border-white/10 bg-white/[0.045] p-3 text-sm">
                             <div className="flex justify-between items-center mb-2">
-                                <h4 className="font-medium text-green-400">{activeGrow.name}</h4>
-                                <div className="text-xs text-gray-400">
+                                <h4 className="font-medium text-foreground">{activeGrow.name}</h4>
+                                <div className="text-xs text-muted-foreground">
                                     Start: {formatDate(activeGrow.startDate)}
                                 </div>
                             </div>
                             <div className="flex justify-between">
-                                <span className="bg-green-600/30 text-green-400 rounded px-2 py-1 text-xs">
+                                <span className="rounded-full bg-primary/10 px-2 py-1 text-xs text-primary">
                                     {activeGrow.currentPhase}
                                 </span>
                             </div>

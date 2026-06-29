@@ -52,10 +52,10 @@ const WateringFeedingTab: React.FC<WateringFeedingTabProps> = ({
         <div className="flex flex-col h-full">
             {/* Fixed input section */}
             <div className="flex-none mb-6">
-                <h3 className="text-xl font-semibold text-green-400 mb-4">Add Watering</h3>
+                <h3 className="text-xl font-semibold text-primary mb-4">Add Watering</h3>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-4">
                     <div>
-                        <Label className="text-white">Date</Label>
+                        <Label className="text-foreground">Date</Label>
                         <Input
                             type="date"
                             name="date"
@@ -64,7 +64,7 @@ const WateringFeedingTab: React.FC<WateringFeedingTabProps> = ({
                         />
                     </div>
                     <div>
-                        <Label className="text-white">Amount (ml)</Label>
+                        <Label className="text-foreground">Amount (ml)</Label>
                         <div className="relative">
                             <Input
                                 type="number"
@@ -75,7 +75,7 @@ const WateringFeedingTab: React.FC<WateringFeedingTabProps> = ({
                                 onChange={handleWateringChange}
                                 className="pr-8"
                             />
-                            <span className="absolute inset-y-0 right-0 flex items-center pr-4 text-gray-400 pointer-events-none border-l-2 pl-2 border-gray-700 bg-gray-700 rounded-r-full">
+                            <span className="absolute inset-y-0 right-0 flex items-center pr-4 text-muted-foreground pointer-events-none border-l border-white/10 bg-white/[0.045] pl-2 rounded-r-full">
                                 ml
                             </span>
                         </div>
@@ -83,17 +83,17 @@ const WateringFeedingTab: React.FC<WateringFeedingTabProps> = ({
                 </div>
 
                 <div className="mb-4">
-                    <Label className="text-white">Fertilizer Mix (optional)</Label>
+                    <Label className="text-foreground">Fertilizer Mix (optional)</Label>
                     <CustomDropdown
                         options={mixOptions}
                         value={newWatering.mixId || ''}
                         onChange={handleMixChange}
-                        placeholder={mixOptions.length === 0 ? "No fertilizer mixes available" : "Select mix"}
+                        placeholder={mixOptions.length === 0 ? "No fertilizer mixes available" : "Select mix…"}
                         width="w-full"
-                        buttonClassName={`bg-gray-800 border-gray-700 focus:ring-green-500 focus:border-green-500 ${mixOptions.length === 0 ? 'opacity-70' : ''}`}
+                        buttonClassName={`border-white/10 bg-white/[0.045] focus:ring-ring focus:border-ring ${mixOptions.length === 0 ? 'opacity-70' : ''}`}
                         renderFooter={onManageFertilizerMixes ? () => (
                             <DropdownMenuItem
-                                className="py-2 cursor-pointer text-gray-300 hover:text-white"
+                                className="py-2 cursor-pointer text-foreground hover:text-foreground"
                                 onClick={onManageFertilizerMixes}
                             >
                                 {mixOptions.length === 0 ? "Create fertilizer mixes" : "Manage fertilizer mixes"}
@@ -105,7 +105,7 @@ const WateringFeedingTab: React.FC<WateringFeedingTabProps> = ({
 
                 <Button
                     onClick={handleWateringAdd}
-                    className="bg-green-600 hover:bg-green-700 w-full"
+                    className="bg-primary hover:bg-primary/90 w-full"
                 >
                     Add Watering
                 </Button>
@@ -113,25 +113,26 @@ const WateringFeedingTab: React.FC<WateringFeedingTabProps> = ({
 
             {/* Scrollable history section */}
             <div className="flex-grow overflow-y-auto">
-                <h3 className="text-xl font-semibold text-green-400 mb-4">Watering History</h3>
+                <h3 className="text-xl font-semibold text-primary mb-4">Watering History</h3>
 
                 {localPlant.waterings && localPlant.waterings.length > 0 ? (
                     <ul className="space-y-2 w-full">
                         {localPlant.waterings.map((watering, index) => (
                             <li
                                 key={index}
-                                className="flex flex-col bg-gray-800 p-3 rounded-lg border border-gray-700 w-full"
+                                className="flex w-full flex-col rounded-[1rem] border border-white/10 bg-white/[0.045] p-3 shadow-sm"
                             >
                                 <div className="flex justify-between items-center">
-                                    <span className="text-white">{formatRecordDate(watering.date)}</span>
+                                    <span className="text-foreground">{formatRecordDate(watering.date)}</span>
                                     <div className="flex items-center gap-2">
-                                        <div className="bg-green-600 text-white px-2 py-1 rounded-md text-sm">
+                                        <div className="rounded-full bg-primary px-2 py-1 text-sm text-primary-foreground">
                                             {watering.amount} ml
                                         </div>
                                         <Button
                                             variant="ghost"
                                             size="icon"
-                                            className="h-8 w-8 text-red-500 hover:text-red-300 hover:bg-red-950/30"
+                                            aria-label="Delete watering record"
+                                            className="h-9 w-9 rounded-[0.85rem] text-destructive hover:bg-red-500/10 hover:text-red-200"
                                             onClick={() => handleWateringDelete(index)}
                                         >
                                             <Trash2 className="h-4 w-4" />
@@ -140,12 +141,12 @@ const WateringFeedingTab: React.FC<WateringFeedingTabProps> = ({
                                 </div>
 
                                 {watering.mixId && (
-                                    <div className="mt-2 pl-2 border-l-2 border-gray-700">
-                                        <div className="border-green-600 text-green-400 px-2 py-1 rounded-md border text-sm inline-block">
+                                    <div className="mt-2 border-l border-white/10 pl-2">
+                                        <div className="border-primary/40 text-primary px-2 py-1 rounded-2xl border text-sm inline-block">
                                             {availableMixes.find(mix => mix.id === watering.mixId)?.name || 'Unavailable fertilizer mix'}
                                         </div>
 
-                                        <div className="mt-2 text-sm text-gray-400">
+                                        <div className="mt-2 text-sm text-muted-foreground">
                                             {(() => {
                                                 const mix = availableMixes.find(mix => mix.id === watering.mixId);
                                                 return mix && mix.fertilizers && mix.fertilizers.length > 0 ? (
@@ -157,7 +158,7 @@ const WateringFeedingTab: React.FC<WateringFeedingTabProps> = ({
                                                                 return (
                                                                     <div key={i} className="flex justify-between items-center py-1">
                                                                         <span>{fert.name} <span className="text-xs">({formatDosePerLiter(fert.amount, mix.waterAmount)})</span></span>
-                                                                        <span className="text-green-400">{calculatedAmount ? `${calculatedAmount} ml` : 'n/a'}</span>
+                                                                        <span className="text-primary">{calculatedAmount ? `${calculatedAmount} ml` : 'n/a'}</span>
                                                                     </div>
                                                                 );
                                                             })()

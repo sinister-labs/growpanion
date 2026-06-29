@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useRef, useState } from "react"
 import { Grow } from "@/lib/db"
 import {
     Dialog,
@@ -14,7 +14,7 @@ import { Label } from "@/components/ui/label"
 import { CustomDropdown } from "@/components/ui/custom-dropdown"
 import { createInitialPhaseHistory, GROWTH_PHASES } from "@/lib/growth-utils"
 import { useDateUtils } from "@/hooks/useDateUtils"
-import { Calendar } from "lucide-react"
+import { Calendar, Loader2, Sprout } from "lucide-react"
 
 interface NewGrowDialogProps {
     isOpen: boolean;
@@ -24,6 +24,7 @@ interface NewGrowDialogProps {
 
 export function NewGrowDialog({ isOpen, onClose, onCreateGrow }: NewGrowDialogProps) {
     const { todayISOString } = useDateUtils();
+    const nameInputRef = useRef<HTMLInputElement>(null);
 
     const [newGrow, setNewGrow] = useState<Partial<Grow>>({
         name: "",
@@ -33,6 +34,7 @@ export function NewGrowDialog({ isOpen, onClose, onCreateGrow }: NewGrowDialogPr
     });
 
     const [isSubmitting, setIsSubmitting] = useState(false);
+    const [submitted, setSubmitted] = useState(false);
 
     const handleGrowChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         setNewGrow({
@@ -48,8 +50,12 @@ export function NewGrowDialog({ isOpen, onClose, onCreateGrow }: NewGrowDialogPr
         });
     };
 
-    const handleCreateGrow = async () => {
-        if (!newGrow.name || !newGrow.startDate || !newGrow.currentPhase) {
+    const handleCreateGrow = async (event?: React.FormEvent<HTMLFormElement>) => {
+        event?.preventDefault();
+        setSubmitted(true);
+
+        if (!newGrow.name?.trim() || !newGrow.startDate || !newGrow.currentPhase) {
+            window.setTimeout(() => nameInputRef.current?.focus(), 0);
             return;
         }
 
@@ -58,6 +64,7 @@ export function NewGrowDialog({ isOpen, onClose, onCreateGrow }: NewGrowDialogPr
         try {
             const growToCreate = {
                 ...newGrow,
+                name: newGrow.name.trim(),
                 phaseHistory: createInitialPhaseHistory(newGrow.currentPhase, newGrow.startDate),
             } as Omit<Grow, "id">;
 
@@ -78,6 +85,7 @@ export function NewGrowDialog({ isOpen, onClose, onCreateGrow }: NewGrowDialogPr
             currentPhase: "Seedling",
             phaseHistory: createInitialPhaseHistory("Seedling", todayISOString())
         });
+        setSubmitted(false);
     };
 
     const phaseOptions = GROWTH_PHASES.filter(phase => phase !== "Done").map(phase => ({
@@ -92,54 +100,94 @@ export function NewGrowDialog({ isOpen, onClose, onCreateGrow }: NewGrowDialogPr
                 resetForm();
             }
         }}>
-            <DialogContent className="bg-gray-800 border-gray-700 text-white">
+            <DialogContent className="max-w-xl overflow-hidden p-0">
                 <DialogHeader>
-                    <DialogTitle className="text-green-400">Create new Grow</DialogTitle>
-                </DialogHeader>
-                <div className="space-y-4 py-4">
-                    <div className="grid w-full gap-2">
-                        <Label htmlFor="name">Name</Label>
-                        <Input
-                            id="name"
-                            name="name"
-                            value={newGrow.name}
-                            onChange={handleGrowChange}
-                            placeholder="e.g. Summer Grow 2023"
-                        />
-                    </div>
-                    <div className="grid w-full gap-2">
-                        <Label htmlFor="startDate">Start date</Label>
-                        <div className="relative">
-                            <Input
-                                id="startDate"
-                                name="startDate"
-                                type="date"
-                                value={newGrow.startDate}
-                                onChange={handleGrowChange}
-                            />
-                            <Calendar className="absolute right-3 top-2.5 h-4 w-4 text-gray-400 pointer-events-none" />
+                    <div className="border-b border-white/10 bg-white/[0.035] px-6 py-5">
+                        <div className="flex items-start gap-3">
+                            <div className="rounded-[0.95rem] border border-emerald-300/[0.20] bg-emerald-300/10 p-3 text-emerald-200">
+                                <Sprout className="h-5 w-5" />
+                            </div>
+                            <div>
+                                <DialogTitle>Create new Grow</DialogTitle>
+                                <p className="mt-1 text-sm text-muted-foreground">
+                                    Set the workspace name, start date and first phase.
+                                </p>
+                            </div>
                         </div>
                     </div>
-                    <div className="grid w-full gap-2">
-                        <Label htmlFor="phase">Current phase</Label>
-                        <CustomDropdown
-                            options={phaseOptions}
-                            value={newGrow.currentPhase || "Seedling"}
-                            onChange={handlePhaseChange}
-                            width="w-full"
-                            buttonClassName="bg-gray-700 border-gray-600"
-                        />
+                </DialogHeader>
+                <form className="space-y-5 p-6" onSubmit={handleCreateGrow}>
+                    <div className="rounded-[1rem] border border-white/10 bg-white/[0.045] p-4">
+                        <div className="grid w-full gap-2">
+                            <Label htmlFor="name">Name</Label>
+                            <Input
+                                ref={nameInputRef}
+                                id="name"
+                                name="name"
+                                autoComplete="off"
+                                value={newGrow.name}
+                                onChange={handleGrowChange}
+                                placeholder="e.g. Summer Grow 2026…"
+                                aria-invalid={submitted && !newGrow.name?.trim()}
+                                aria-describedby="new-grow-name-error"
+                            />
+                            {submitted && !newGrow.name?.trim() && (
+                                <p id="new-grow-name-error" className="text-sm text-destructive" aria-live="polite">
+                                    Add a grow name before creating the workspace.
+                                </p>
+                            )}
+                        </div>
                     </div>
-                    <div className="pt-4">
+
+                    <div className="grid gap-4 rounded-[1rem] border border-white/10 bg-white/[0.045] p-4 sm:grid-cols-2">
+                        <div className="grid w-full gap-2">
+                            <Label htmlFor="startDate">Start date</Label>
+                            <div className="relative">
+                                <Input
+                                    id="startDate"
+                                    name="startDate"
+                                    type="date"
+                                    value={newGrow.startDate}
+                                    onChange={handleGrowChange}
+                                    aria-invalid={submitted && !newGrow.startDate}
+                                />
+                                <Calendar className="pointer-events-none absolute right-3 top-2.5 h-4 w-4 text-muted-foreground" />
+                            </div>
+                        </div>
+                        <div className="grid w-full gap-2">
+                            <Label htmlFor="phase">Current phase</Label>
+                            <CustomDropdown
+                                options={phaseOptions}
+                                value={newGrow.currentPhase || "Seedling"}
+                                onChange={handlePhaseChange}
+                                width="w-full"
+                                buttonClassName="mt-1"
+                            />
+                        </div>
+                    </div>
+
+                    <div className="flex flex-col gap-3 sm:flex-row sm:justify-end">
                         <Button
-                            onClick={handleCreateGrow}
-                            className="w-full bg-green-600 hover:bg-green-700"
+                            type="button"
+                            variant="outline"
+                            onClick={() => {
+                                resetForm();
+                                onClose();
+                            }}
                             disabled={isSubmitting}
                         >
-                            {isSubmitting ? "Creating..." : "Create Grow"}
+                            Cancel
+                        </Button>
+                        <Button
+                            type="submit"
+                            className="gap-2"
+                            disabled={isSubmitting}
+                        >
+                            {isSubmitting && <Loader2 className="h-4 w-4 animate-spin" />}
+                            Create Grow
                         </Button>
                     </div>
-                </div>
+                </form>
             </DialogContent>
         </Dialog>
     );

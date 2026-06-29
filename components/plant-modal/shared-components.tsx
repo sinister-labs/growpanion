@@ -19,8 +19,8 @@ export const isRenderableImage = (image?: string | null) => {
 };
 
 export const NoRecordsIndicator = ({ icon: Icon, text }: NoRecordsIndicatorProps) => (
-    <div className="flex flex-col items-center justify-center h-40 text-gray-500">
-        <Icon className="w-12 h-12 mb-2" />
+    <div className="flex h-40 flex-col items-center justify-center rounded-[1rem] border border-dashed border-white/[0.12] bg-white/[0.035] text-muted-foreground">
+        <Icon className="mb-2 h-10 w-10" />
         <p>{text}</p>
     </div>
 );
@@ -31,11 +31,12 @@ export function FullscreenImage({ fullscreenImage, setFullscreenImage }: Fullscr
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-90 p-4"
+            className="fixed inset-0 z-50 flex items-center justify-center bg-black/90 p-4"
             onClick={() => setFullscreenImage(null)}
         >
             <button
-                className="absolute top-4 right-4 text-white bg-gray-800 rounded-full p-2 hover:bg-gray-700"
+                aria-label="Close fullscreen image"
+                className="absolute right-4 top-4 rounded-[0.95rem] border border-white/10 bg-white/[0.08] p-2 text-foreground shadow-sm hover:bg-emerald-300/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                 onClick={(e) => {
                     e.stopPropagation();
                     setFullscreenImage(null);

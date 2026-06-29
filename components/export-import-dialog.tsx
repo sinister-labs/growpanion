@@ -337,12 +337,12 @@ export function ExportImportSection() {
     const summary = importPreviewData ? getExportSummary(importPreviewData) : null;
 
     return (
-        <Card className="bg-gray-800 bg-opacity-50 backdrop-filter backdrop-blur-lg border-gray-700 text-left">
+        <Card className="">
             <CardHeader>
-                <CardTitle className="text-base sm:text-lg font-medium text-green-400">
+                <CardTitle className="text-base sm:text-lg font-medium text-primary">
                     <div>
                         <p className="font-semibold">Data Backup & Restore</p>
-                        <CardDescription className="text-gray-400">
+                        <CardDescription className="text-muted-foreground">
                             Export your data for backup or transfer to another device
                         </CardDescription>
                     </div>
@@ -352,7 +352,7 @@ export function ExportImportSection() {
                 <div className="flex flex-col sm:flex-row gap-4">
                     <Button
                         onClick={() => setExportDialogOpen(true)}
-                        className="flex-1 bg-green-700 hover:bg-green-600 text-white rounded-full transition-colors"
+                        className="flex-1 bg-primary text-primary-foreground hover:bg-primary/90 rounded-full transition-colors"
                     >
                         <Download className="mr-2 h-4 w-4" />
                         Export Data
@@ -360,16 +360,16 @@ export function ExportImportSection() {
                     <Button
                         onClick={() => setImportDialogOpen(true)}
                         variant="outline"
-                        className="flex-1 border-gray-600 hover:bg-gray-600/30 text-gray-300 rounded-full transition-colors"
+                        className="flex-1 border-white/10 hover:border-emerald-300/[0.22] hover:bg-emerald-300/10 text-foreground rounded-full transition-colors"
                     >
                         <Upload className="mr-2 h-4 w-4" />
                         Import Data
                     </Button>
                 </div>
 
-                <div className="mt-4 p-4 bg-blue-900/30 border border-blue-800 rounded-2xl flex items-start">
-                    <Shield className="h-5 w-5 text-blue-400 mr-2 mt-0.5 flex-shrink-0" />
-                    <div className="text-sm text-blue-300">
+                <div className="mt-4 p-4 bg-accent/10 border border-accent/35 rounded-2xl flex items-start">
+                    <Shield className="h-5 w-5 text-accent mr-2 mt-0.5 flex-shrink-0" />
+                    <div className="text-sm text-accent">
                         <p className="mb-1">Your data stays on your device and is never uploaded to any server.</p>
                         <p>For extra security, you can encrypt your backups with a password.</p>
                     </div>
@@ -382,13 +382,13 @@ export function ExportImportSection() {
                     setExportDialogOpen(open);
                     if (!open) resetExportState();
                 }}>
-                    <DialogContent className="bg-gray-800 border-gray-700 text-white sm:max-w-[500px] rounded-xl">
+                    <DialogContent className=" sm:max-w-[500px] rounded-3xl">
                         <DialogHeader>
                             <DialogTitle className="flex items-center gap-2">
-                                <Download className="h-5 w-5 text-green-400" />
+                                <Download className="h-5 w-5 text-primary" />
                                 Export Data
                             </DialogTitle>
-                            <DialogDescription className="text-gray-400">
+                            <DialogDescription className="text-muted-foreground">
                                 Create a backup of all your GrowPanion data
                             </DialogDescription>
                         </DialogHeader>
@@ -396,30 +396,30 @@ export function ExportImportSection() {
                         <div className="space-y-6 py-4">
                             {/* Description */}
                             <div className="space-y-2">
-                                <Label htmlFor="export-desc" className="text-gray-300">Description (optional)</Label>
+                                <Label htmlFor="export-desc" className="text-foreground">Description (optional)</Label>
                                 <Input
                                     id="export-desc"
                                     value={exportDescription}
                                     onChange={(e) => setExportDescription(e.target.value)}
                                     placeholder="e.g., Before major changes..."
-                                    className="bg-gray-700 border-gray-600 text-white"
+                                    className="bg-white/[0.045] border-white/10 text-foreground"
                                 />
                             </div>
 
                             {/* Encryption toggle */}
-                            <div className="flex items-center space-x-3 p-4 bg-gray-700/50 rounded-xl">
+                            <div className="flex items-center space-x-3 p-4 bg-white/[0.045] rounded-3xl">
                                 <Checkbox
                                     id="encrypt"
                                     checked={exportEncrypted}
                                     onCheckedChange={(checked) => setExportEncrypted(checked === true)}
-                                    className="border-gray-500 data-[state=checked]:bg-green-600 data-[state=checked]:border-green-600"
+                                    className="border-white/10 data-[state=checked]:bg-primary data-[state=checked]:border-primary"
                                 />
                                 <div className="flex-1">
-                                    <Label htmlFor="encrypt" className="text-gray-200 cursor-pointer flex items-center gap-2">
+                                    <Label htmlFor="encrypt" className="text-foreground cursor-pointer flex items-center gap-2">
                                         <Lock className="h-4 w-4" />
                                         Encrypt backup with password
                                     </Label>
-                                    <p className="text-xs text-gray-400 mt-1">
+                                    <p className="text-xs text-muted-foreground mt-1">
                                         Protects your data if the file is accessed by others
                                     </p>
                                 </div>
@@ -427,9 +427,9 @@ export function ExportImportSection() {
 
                             {/* Password fields */}
                             {exportEncrypted && (
-                                <div className="space-y-4 p-4 bg-gray-700/30 rounded-xl border border-gray-600">
+                                <div className="space-y-4 p-4 bg-white/[0.045] rounded-[1rem] border border-white/10">
                                     <div className="space-y-2">
-                                        <Label htmlFor="export-pwd" className="text-gray-300">Password</Label>
+                                        <Label htmlFor="export-pwd" className="text-foreground">Password</Label>
                                         <div className="relative">
                                             <Input
                                                 id="export-pwd"
@@ -437,26 +437,26 @@ export function ExportImportSection() {
                                                 value={exportPassword}
                                                 onChange={(e) => setExportPassword(e.target.value)}
                                                 placeholder="Min. 8 characters"
-                                                className="bg-gray-700 border-gray-600 text-white pr-10"
+                                                className="bg-white/[0.045] border-white/10 text-foreground pr-10"
                                             />
                                             <button
                                                 type="button"
                                                 onClick={() => setShowExportPassword(!showExportPassword)}
-                                                className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-white"
+                                                className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
                                             >
                                                 {showExportPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                                             </button>
                                         </div>
                                     </div>
                                     <div className="space-y-2">
-                                        <Label htmlFor="export-pwd-confirm" className="text-gray-300">Confirm Password</Label>
+                                        <Label htmlFor="export-pwd-confirm" className="text-foreground">Confirm Password</Label>
                                         <Input
                                             id="export-pwd-confirm"
                                             type={showExportPassword ? "text" : "password"}
                                             value={exportPasswordConfirm}
                                             onChange={(e) => setExportPasswordConfirm(e.target.value)}
                                             placeholder="Repeat password"
-                                            className="bg-gray-700 border-gray-600 text-white"
+                                            className="bg-white/[0.045] border-white/10 text-foreground"
                                         />
                                     </div>
                                     {exportPassword && exportPasswordConfirm && exportPassword !== exportPasswordConfirm && (
@@ -469,17 +469,17 @@ export function ExportImportSection() {
                             )}
 
                             {/* File info */}
-                            <div className="flex items-center gap-3 p-3 bg-gray-700/30 rounded-xl">
+                            <div className="flex items-center gap-3 p-3 bg-white/[0.045] rounded-[1rem]">
                                 {exportEncrypted ? (
-                                    <Lock className="h-5 w-5 text-amber-400" />
+                                    <Lock className="h-5 w-5 text-accent" />
                                 ) : (
-                                    <FileJson className="h-5 w-5 text-blue-400" />
+                                    <FileJson className="h-5 w-5 text-accent" />
                                 )}
                                 <div className="text-sm">
-                                    <p className="text-gray-200">
+                                    <p className="text-foreground">
                                         {exportEncrypted ? 'Encrypted file (.growpanion)' : 'JSON file (.json)'}
                                     </p>
-                                    <p className="text-gray-400 text-xs">
+                                    <p className="text-muted-foreground text-xs">
                                         {exportEncrypted 
                                             ? 'AES-256-GCM encryption, requires password to restore'
                                             : 'Human-readable, can be opened in any text editor'
@@ -494,14 +494,14 @@ export function ExportImportSection() {
                                 variant="outline"
                                 onClick={() => setExportDialogOpen(false)}
                                 disabled={isExporting}
-                                className="border-gray-600 hover:bg-gray-600/30 text-gray-300 rounded-full"
+                                className="border-white/10 hover:border-emerald-300/[0.22] hover:bg-emerald-300/10 text-foreground rounded-full"
                             >
                                 Cancel
                             </Button>
                             <Button
                                 onClick={handleExport}
                                 disabled={isExporting || (exportEncrypted && (exportPassword.length < 8 || exportPassword !== exportPasswordConfirm))}
-                                className="bg-green-700 hover:bg-green-600 text-white rounded-full"
+                                className="bg-primary text-primary-foreground hover:bg-primary/90 rounded-full"
                             >
                                 {isExporting ? (
                                     <>
@@ -526,13 +526,13 @@ export function ExportImportSection() {
                     setImportDialogOpen(open);
                     if (!open) resetImportState();
                 }}>
-                    <DialogContent className="bg-gray-800 border-gray-700 text-white sm:max-w-[600px] rounded-xl">
+                    <DialogContent className=" sm:max-w-[600px] rounded-3xl">
                         <DialogHeader>
                             <DialogTitle className="flex items-center gap-2">
-                                <Upload className="h-5 w-5 text-blue-400" />
+                                <Upload className="h-5 w-5 text-accent" />
                                 Import Data
                             </DialogTitle>
-                            <DialogDescription className="text-gray-400">
+                            <DialogDescription className="text-muted-foreground">
                                 Restore data from a GrowPanion backup file
                             </DialogDescription>
                         </DialogHeader>
@@ -544,22 +544,22 @@ export function ExportImportSection() {
                                     <div
                                         {...getRootProps()}
                                         className={`
-                                            border-2 border-dashed rounded-xl p-8 text-center cursor-pointer transition-colors
+                                            border-2 border-dashed rounded-3xl p-8 text-center cursor-pointer transition-colors
                                             ${isDragActive 
-                                                ? 'border-green-500 bg-green-500/10' 
-                                                : 'border-gray-600 hover:border-gray-500 hover:bg-gray-700/30'
+                                                ? 'border-primary bg-primary/10' 
+                                                : 'border-white/[0.12] hover:border-emerald-300/[0.25] hover:bg-emerald-300/10'
                                             }
                                         `}
                                     >
                                         <input {...getInputProps()} />
-                                        <Upload className={`h-12 w-12 mx-auto mb-4 ${isDragActive ? 'text-green-400' : 'text-gray-400'}`} />
+                                        <Upload className={`h-12 w-12 mx-auto mb-4 ${isDragActive ? 'text-primary' : 'text-muted-foreground'}`} />
                                         {isDragActive ? (
-                                            <p className="text-green-400">Drop the file here...</p>
+                                            <p className="text-primary">Drop the file here...</p>
                                         ) : (
                                             <>
-                                                <p className="text-gray-300 mb-1">Drag & drop a backup file here</p>
-                                                <p className="text-gray-500 text-sm">or click to select a file</p>
-                                                <p className="text-gray-500 text-xs mt-2">Supports .json and .growpanion files</p>
+                                                <p className="text-foreground mb-1">Drag & drop a backup file here</p>
+                                                <p className="text-muted-foreground text-sm">or click to select a file</p>
+                                                <p className="text-muted-foreground text-xs mt-2">Supports .json and .growpanion files</p>
                                             </>
                                         )}
                                     </div>
@@ -576,8 +576,8 @@ export function ExportImportSection() {
                             {/* Step: Password Required */}
                             {importStep === 'password-required' && (
                                 <div className="space-y-4">
-                                    <div className="flex items-center gap-3 p-4 bg-amber-900/30 border border-amber-700 rounded-xl">
-                                        <Lock className="h-5 w-5 text-amber-400" />
+                                    <div className="flex items-center gap-3 p-4 bg-amber-900/30 border border-amber-700 rounded-3xl">
+                                        <Lock className="h-5 w-5 text-accent" />
                                         <div>
                                             <p className="text-amber-200 font-medium">Encrypted File</p>
                                             <p className="text-amber-300/70 text-sm">
@@ -587,14 +587,14 @@ export function ExportImportSection() {
                                     </div>
 
                                     {importFile && (
-                                        <div className="flex items-center gap-2 text-sm text-gray-400">
+                                        <div className="flex items-center gap-2 text-sm text-muted-foreground">
                                             <FileText className="h-4 w-4" />
                                             {importFile.name}
                                         </div>
                                     )}
 
                                     <div className="space-y-2">
-                                        <Label htmlFor="import-pwd" className="text-gray-300">Password</Label>
+                                        <Label htmlFor="import-pwd" className="text-foreground">Password</Label>
                                         <div className="relative">
                                             <Input
                                                 id="import-pwd"
@@ -602,13 +602,13 @@ export function ExportImportSection() {
                                                 value={importPassword}
                                                 onChange={(e) => setImportPassword(e.target.value)}
                                                 placeholder="Enter backup password"
-                                                className="bg-gray-700 border-gray-600 text-white pr-10"
+                                                className="bg-white/[0.045] border-white/10 text-foreground pr-10"
                                                 onKeyDown={(e) => e.key === 'Enter' && handleDecryptAndPreview()}
                                             />
                                             <button
                                                 type="button"
                                                 onClick={() => setShowImportPassword(!showImportPassword)}
-                                                className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-white"
+                                                className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
                                             >
                                                 {showImportPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                                             </button>
@@ -626,7 +626,7 @@ export function ExportImportSection() {
                                         <Button
                                             variant="outline"
                                             onClick={resetImportState}
-                                            className="border-gray-600 hover:bg-gray-600/30 text-gray-300 rounded-full"
+                                            className="border-white/10 hover:border-emerald-300/[0.22] hover:bg-emerald-300/10 text-foreground rounded-full"
                                         >
                                             <X className="mr-2 h-4 w-4" />
                                             Cancel
@@ -634,7 +634,7 @@ export function ExportImportSection() {
                                         <Button
                                             onClick={handleDecryptAndPreview}
                                             disabled={!importPassword}
-                                            className="bg-blue-700 hover:bg-blue-600 text-white rounded-full"
+                                            className="bg-accent text-accent-foreground hover:bg-accent/90 rounded-full"
                                         >
                                             <Unlock className="mr-2 h-4 w-4" />
                                             Decrypt & Preview
@@ -647,79 +647,79 @@ export function ExportImportSection() {
                             {importStep === 'preview' && summary && (
                                 <div className="space-y-4">
                                     {/* File info */}
-                                    <div className="flex items-center gap-2 text-sm text-gray-400">
+                                    <div className="flex items-center gap-2 text-sm text-muted-foreground">
                                         <FileText className="h-4 w-4" />
                                         {importFile?.name}
-                                        <span className="text-gray-500">•</span>
+                                        <span className="text-muted-foreground">•</span>
                                         <span>Exported {new Date(summary.exportDate).toLocaleDateString()}</span>
                                     </div>
 
                                     {/* Summary */}
                                     <div className="grid grid-cols-2 gap-3">
-                                        <div className="p-3 bg-gray-700/50 rounded-xl flex items-center gap-3">
-                                            <Database className="h-5 w-5 text-green-400" />
+                                        <div className="p-3 bg-white/[0.045] rounded-3xl flex items-center gap-3">
+                                            <Database className="h-5 w-5 text-primary" />
                                             <div>
-                                                <p className="text-lg font-semibold text-white">{summary.grows}</p>
-                                                <p className="text-xs text-gray-400">Grows</p>
+                                                <p className="text-lg font-semibold text-foreground">{summary.grows}</p>
+                                                <p className="text-xs text-muted-foreground">Grows</p>
                                             </div>
                                         </div>
-                                        <div className="p-3 bg-gray-700/50 rounded-xl flex items-center gap-3">
-                                            <Leaf className="h-5 w-5 text-green-400" />
+                                        <div className="p-3 bg-white/[0.045] rounded-3xl flex items-center gap-3">
+                                            <Leaf className="h-5 w-5 text-primary" />
                                             <div>
-                                                <p className="text-lg font-semibold text-white">{summary.plants}</p>
-                                                <p className="text-xs text-gray-400">Plants</p>
+                                                <p className="text-lg font-semibold text-foreground">{summary.plants}</p>
+                                                <p className="text-xs text-muted-foreground">Plants</p>
                                             </div>
                                         </div>
-                                        <div className="p-3 bg-gray-700/50 rounded-xl flex items-center gap-3">
-                                            <FlaskConical className="h-5 w-5 text-blue-400" />
+                                        <div className="p-3 bg-white/[0.045] rounded-3xl flex items-center gap-3">
+                                            <FlaskConical className="h-5 w-5 text-accent" />
                                             <div>
-                                                <p className="text-lg font-semibold text-white">{summary.fertilizerMixes}</p>
-                                                <p className="text-xs text-gray-400">Fertilizer Mixes</p>
+                                                <p className="text-lg font-semibold text-foreground">{summary.fertilizerMixes}</p>
+                                                <p className="text-xs text-muted-foreground">Fertilizer Mixes</p>
                                             </div>
                                         </div>
-                                        <div className="p-3 bg-gray-700/50 rounded-xl flex items-center gap-3">
-                                            <Leaf className="h-5 w-5 text-emerald-400" />
+                                        <div className="p-3 bg-white/[0.045] rounded-3xl flex items-center gap-3">
+                                            <Leaf className="h-5 w-5 text-primary" />
                                             <div>
-                                                <p className="text-lg font-semibold text-white">{summary.strains}</p>
-                                                <p className="text-xs text-gray-400">Strains</p>
+                                                <p className="text-lg font-semibold text-foreground">{summary.strains}</p>
+                                                <p className="text-xs text-muted-foreground">Strains</p>
                                             </div>
                                         </div>
-                                        <div className="p-3 bg-gray-700/50 rounded-xl flex items-center gap-3">
-                                            <Bell className="h-5 w-5 text-amber-400" />
+                                        <div className="p-3 bg-white/[0.045] rounded-3xl flex items-center gap-3">
+                                            <Bell className="h-5 w-5 text-accent" />
                                             <div>
-                                                <p className="text-lg font-semibold text-white">{summary.reminders}</p>
-                                                <p className="text-xs text-gray-400">Reminders</p>
+                                                <p className="text-lg font-semibold text-foreground">{summary.reminders}</p>
+                                                <p className="text-xs text-muted-foreground">Reminders</p>
                                             </div>
                                         </div>
-                                        <div className="p-3 bg-gray-700/50 rounded-xl flex items-center gap-3">
-                                            <Settings className="h-5 w-5 text-purple-400" />
+                                        <div className="p-3 bg-white/[0.045] rounded-3xl flex items-center gap-3">
+                                            <Settings className="h-5 w-5 text-primary" />
                                             <div>
-                                                <p className="text-lg font-semibold text-white">{summary.hasSettings || summary.hasNotificationSettings ? 'Yes' : 'No'}</p>
-                                                <p className="text-xs text-gray-400">Settings</p>
+                                                <p className="text-lg font-semibold text-foreground">{summary.hasSettings || summary.hasNotificationSettings ? 'Yes' : 'No'}</p>
+                                                <p className="text-xs text-muted-foreground">Settings</p>
                                             </div>
                                         </div>
                                     </div>
 
                                     {/* Conflict strategy */}
                                     <div className="space-y-2">
-                                        <Label className="text-gray-300">If data already exists:</Label>
+                                        <Label className="text-foreground">If data already exists:</Label>
                                         <Select value={conflictStrategy} onValueChange={(v) => setConflictStrategy(v as ConflictStrategy)}>
-                                            <SelectTrigger className="bg-gray-700 border-gray-600 text-white">
+                                            <SelectTrigger className="bg-white/[0.045] border-white/10 text-foreground">
                                                 <SelectValue />
                                             </SelectTrigger>
-                                            <SelectContent className="bg-gray-800 border-gray-700">
-                                                <SelectItem value="merge" className="text-white hover:bg-gray-700">
+                                            <SelectContent className="">
+                                                <SelectItem value="merge" className="text-foreground hover:bg-emerald-300/10">
                                                     Merge - Keep existing, add new
                                                 </SelectItem>
-                                                <SelectItem value="replace" className="text-white hover:bg-gray-700">
+                                                <SelectItem value="replace" className="text-foreground hover:bg-emerald-300/10">
                                                     Replace All - Delete existing, import all
                                                 </SelectItem>
-                                                <SelectItem value="skip" className="text-white hover:bg-gray-700">
+                                                <SelectItem value="skip" className="text-foreground hover:bg-emerald-300/10">
                                                     Skip Duplicates - Only import new items
                                                 </SelectItem>
                                             </SelectContent>
                                         </Select>
-                                        <p className="text-xs text-gray-500">
+                                        <p className="text-xs text-muted-foreground">
                                             {conflictStrategy === 'merge' && 'Existing items with the same ID will be updated, new items will be added.'}
                                             {conflictStrategy === 'replace' && '⚠️ All existing data will be deleted before import!'}
                                             {conflictStrategy === 'skip' && 'Items with existing IDs will be skipped, only new items will be imported.'}
@@ -739,13 +739,13 @@ export function ExportImportSection() {
                                         <Button
                                             variant="outline"
                                             onClick={resetImportState}
-                                            className="border-gray-600 hover:bg-gray-600/30 text-gray-300 rounded-full"
+                                            className="border-white/10 hover:border-emerald-300/[0.22] hover:bg-emerald-300/10 text-foreground rounded-full"
                                         >
                                             Cancel
                                         </Button>
                                         <Button
                                             onClick={handleImport}
-                                            className="bg-green-700 hover:bg-green-600 text-white rounded-full flex-1"
+                                            className="bg-primary text-primary-foreground hover:bg-primary/90 rounded-full flex-1"
                                         >
                                             <Upload className="mr-2 h-4 w-4" />
                                             Import Data
@@ -758,12 +758,12 @@ export function ExportImportSection() {
                             {importStep === 'importing' && (
                                 <div className="space-y-4 py-8">
                                     <div className="text-center">
-                                        <RefreshCw className="h-12 w-12 mx-auto mb-4 text-blue-400 animate-spin" />
-                                        <p className="text-lg text-gray-200 mb-2">Importing data...</p>
-                                        <p className="text-sm text-gray-400">{importProgressMessage}</p>
+                                        <RefreshCw className="h-12 w-12 mx-auto mb-4 text-accent animate-spin" />
+                                        <p className="text-lg text-foreground mb-2">Importing data...</p>
+                                        <p className="text-sm text-muted-foreground">{importProgressMessage}</p>
                                     </div>
                                     <Progress value={importProgress} className="h-2" />
-                                    <p className="text-center text-sm text-gray-400">{importProgress}%</p>
+                                    <p className="text-center text-sm text-muted-foreground">{importProgress}%</p>
                                 </div>
                             )}
 
@@ -772,42 +772,42 @@ export function ExportImportSection() {
                                 <div className="space-y-4">
                                     <div className="text-center py-4">
                                         {importResult.success ? (
-                                            <CheckCircle2 className="h-16 w-16 mx-auto mb-4 text-green-400" />
+                                            <CheckCircle2 className="h-16 w-16 mx-auto mb-4 text-primary" />
                                         ) : (
-                                            <AlertCircle className="h-16 w-16 mx-auto mb-4 text-amber-400" />
+                                            <AlertCircle className="h-16 w-16 mx-auto mb-4 text-accent" />
                                         )}
-                                        <p className="text-xl font-semibold text-white mb-2">
+                                        <p className="text-xl font-semibold text-foreground mb-2">
                                             {importResult.success ? 'Import Complete!' : 'Import Failed'}
                                         </p>
                                     </div>
 
                                     {/* Results summary */}
                                     <div className="grid grid-cols-2 sm:grid-cols-5 gap-3">
-                                        <div className="p-3 bg-green-900/30 border border-green-800 rounded-xl text-center">
-                                            <p className="text-2xl font-bold text-green-400">{importResult.imported.grows}</p>
+                                        <div className="p-3 bg-green-900/30 border border-green-800 rounded-3xl text-center">
+                                            <p className="text-2xl font-bold text-primary">{importResult.imported.grows}</p>
                                             <p className="text-xs text-green-300">Grows imported</p>
                                         </div>
-                                        <div className="p-3 bg-green-900/30 border border-green-800 rounded-xl text-center">
-                                            <p className="text-2xl font-bold text-green-400">{importResult.imported.plants}</p>
+                                        <div className="p-3 bg-green-900/30 border border-green-800 rounded-3xl text-center">
+                                            <p className="text-2xl font-bold text-primary">{importResult.imported.plants}</p>
                                             <p className="text-xs text-green-300">Plants imported</p>
                                         </div>
-                                        <div className="p-3 bg-green-900/30 border border-green-800 rounded-xl text-center">
-                                            <p className="text-2xl font-bold text-green-400">{importResult.imported.fertilizerMixes}</p>
+                                        <div className="p-3 bg-green-900/30 border border-green-800 rounded-3xl text-center">
+                                            <p className="text-2xl font-bold text-primary">{importResult.imported.fertilizerMixes}</p>
                                             <p className="text-xs text-green-300">Mixes imported</p>
                                         </div>
-                                        <div className="p-3 bg-green-900/30 border border-green-800 rounded-xl text-center">
-                                            <p className="text-2xl font-bold text-green-400">{importResult.imported.strains}</p>
+                                        <div className="p-3 bg-green-900/30 border border-green-800 rounded-3xl text-center">
+                                            <p className="text-2xl font-bold text-primary">{importResult.imported.strains}</p>
                                             <p className="text-xs text-green-300">Strains imported</p>
                                         </div>
-                                        <div className="p-3 bg-green-900/30 border border-green-800 rounded-xl text-center">
-                                            <p className="text-2xl font-bold text-green-400">{importResult.imported.reminders}</p>
+                                        <div className="p-3 bg-green-900/30 border border-green-800 rounded-3xl text-center">
+                                            <p className="text-2xl font-bold text-primary">{importResult.imported.reminders}</p>
                                             <p className="text-xs text-green-300">Reminders imported</p>
                                         </div>
                                     </div>
 
                                     {(importResult.skipped.grows > 0 || importResult.skipped.plants > 0 || importResult.skipped.fertilizerMixes > 0 || importResult.skipped.strains > 0 || importResult.skipped.reminders > 0) && (
-                                        <div className="p-3 bg-gray-700/50 rounded-xl">
-                                            <p className="text-sm text-gray-400">
+                                        <div className="p-3 bg-white/[0.045] rounded-3xl">
+                                            <p className="text-sm text-muted-foreground">
                                                 Skipped: {importResult.skipped.grows} grows, {importResult.skipped.plants} plants, {importResult.skipped.fertilizerMixes} mixes, {importResult.skipped.strains} strains, {importResult.skipped.reminders} reminders
                                             </p>
                                         </div>
@@ -830,7 +830,7 @@ export function ExportImportSection() {
                                                 window.location.reload();
                                             }
                                         }}
-                                        className="w-full bg-green-700 hover:bg-green-600 text-white rounded-full"
+                                        className="w-full bg-primary text-primary-foreground hover:bg-primary/90 rounded-full"
                                     >
                                         <CheckCircle2 className="mr-2 h-4 w-4" />
                                         {importResult.success ? 'Done' : 'Close'}

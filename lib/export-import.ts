@@ -3,16 +3,59 @@
  * Handles data collection, serialization, and import with conflict resolution
  */
 
-import { db, Grow, PlantDB, FertilizerMixDB, Settings, Strain, Reminder, NotificationSettings } from '@/lib/db';
+import {
+    db,
+    Grow,
+    PlantDB,
+    FertilizerMixDB,
+    Settings,
+    Strain,
+    Reminder,
+    NotificationSettings,
+    Genetics,
+    GeneticsOverride,
+    LineageEdge,
+    Phenotype,
+    GrowEvent,
+    TelemetryReading,
+    DeviceIntegration,
+    Device,
+    SensorBinding,
+    FertilizerProduct,
+    MixRecipe,
+    PreparedBatch,
+    IrrigationEvent,
+    Photo,
+    Recommendation,
+    PowerConsumer,
+    PowerCostProfile
+} from '@/lib/db';
 import { encrypt, decrypt, isEncryptedFormat } from '@/lib/crypto-utils';
 import {
     FertilizerMixDBSchema,
+    FertilizerProductSchema,
+    GeneticsOverrideSchema,
+    GeneticsSchema,
     GrowSchema,
+    GrowEventSchema,
+    IrrigationEventSchema,
+    LineageEdgeSchema,
+    MixRecipeSchema,
     NotificationSettingsSchema,
+    PhenotypeSchema,
+    PhotoSchema,
     PlantDBSchema,
+    PowerConsumerSchema,
+    PowerCostProfileSchema,
+    PreparedBatchSchema,
+    RecommendationSchema,
     ReminderSchema,
+    SensorBindingSchema,
     SettingsSchema,
-    StrainSchema
+    StrainSchema,
+    TelemetryReadingSchema,
+    DeviceIntegrationSchema,
+    DeviceSchema
 } from '@/lib/validation-schemas';
 import { normalizeSensorConfig } from '@/lib/sensor-utils';
 
@@ -37,6 +80,23 @@ export interface ExportData {
         strains?: Strain[];
         reminders?: Reminder[];
         notificationSettings?: NotificationSettings | null;
+        genetics?: Genetics[];
+        geneticsOverrides?: GeneticsOverride[];
+        lineageEdges?: LineageEdge[];
+        phenotypes?: Phenotype[];
+        growEvents?: GrowEvent[];
+        telemetryReadings?: TelemetryReading[];
+        deviceIntegrations?: DeviceIntegration[];
+        devices?: Device[];
+        sensorBindings?: SensorBinding[];
+        fertilizerProducts?: FertilizerProduct[];
+        mixRecipes?: MixRecipe[];
+        preparedBatches?: PreparedBatch[];
+        irrigationEvents?: IrrigationEvent[];
+        photos?: Photo[];
+        recommendations?: Recommendation[];
+        powerConsumers?: PowerConsumer[];
+        powerCostProfiles?: PowerCostProfile[];
     };
 }
 
@@ -66,6 +126,23 @@ export interface ImportResult {
         strains: number;
         reminders: number;
         notificationSettings: boolean;
+        genetics: number;
+        geneticsOverrides: number;
+        lineageEdges: number;
+        phenotypes: number;
+        growEvents: number;
+        telemetryReadings: number;
+        deviceIntegrations: number;
+        devices: number;
+        sensorBindings: number;
+        fertilizerProducts: number;
+        mixRecipes: number;
+        preparedBatches: number;
+        irrigationEvents: number;
+        photos: number;
+        recommendations: number;
+        powerConsumers: number;
+        powerCostProfiles: number;
     };
     skipped: {
         grows: number;
@@ -73,6 +150,7 @@ export interface ImportResult {
         fertilizerMixes: number;
         strains: number;
         reminders: number;
+        productEntities: number;
     };
     errors: string[];
 }
@@ -105,6 +183,23 @@ const normalizeExportDataForImport = (exportData: ExportData): ExportData => ({
         notificationSettings: exportData.data.notificationSettings
             ? NotificationSettingsSchema.parse(exportData.data.notificationSettings)
             : null,
+        genetics: exportData.data.genetics?.map(item => GeneticsSchema.parse(item)),
+        geneticsOverrides: exportData.data.geneticsOverrides?.map(item => GeneticsOverrideSchema.parse(item)),
+        lineageEdges: exportData.data.lineageEdges?.map(item => LineageEdgeSchema.parse(item)),
+        phenotypes: exportData.data.phenotypes?.map(item => PhenotypeSchema.parse(item)),
+        growEvents: exportData.data.growEvents?.map(item => GrowEventSchema.parse(item)),
+        telemetryReadings: exportData.data.telemetryReadings?.map(item => TelemetryReadingSchema.parse(item)),
+        deviceIntegrations: exportData.data.deviceIntegrations?.map(item => DeviceIntegrationSchema.parse(item)),
+        devices: exportData.data.devices?.map(item => DeviceSchema.parse(item)),
+        sensorBindings: exportData.data.sensorBindings?.map(item => SensorBindingSchema.parse(item)),
+        fertilizerProducts: exportData.data.fertilizerProducts?.map(item => FertilizerProductSchema.parse(item)),
+        mixRecipes: exportData.data.mixRecipes?.map(item => MixRecipeSchema.parse(item)),
+        preparedBatches: exportData.data.preparedBatches?.map(item => PreparedBatchSchema.parse(item)),
+        irrigationEvents: exportData.data.irrigationEvents?.map(item => IrrigationEventSchema.parse(item)),
+        photos: exportData.data.photos?.map(item => PhotoSchema.parse(item)),
+        recommendations: exportData.data.recommendations?.map(item => RecommendationSchema.parse(item)),
+        powerConsumers: exportData.data.powerConsumers?.map(item => PowerConsumerSchema.parse(item)),
+        powerCostProfiles: exportData.data.powerCostProfiles?.map(item => PowerCostProfileSchema.parse(item)),
     },
 });
 
@@ -112,14 +207,56 @@ const normalizeExportDataForImport = (exportData: ExportData): ExportData => ({
  * Collects all data from the database for export
  */
 export async function collectExportData(description?: string): Promise<ExportData> {
-    const [grows, plants, fertilizerMixes, settings, strains, reminders, notificationSettings] = await Promise.all([
+    const [
+        grows,
+        plants,
+        fertilizerMixes,
+        settings,
+        strains,
+        reminders,
+        notificationSettings,
+        genetics,
+        geneticsOverrides,
+        lineageEdges,
+        phenotypes,
+        growEvents,
+        telemetryReadings,
+        deviceIntegrations,
+        devices,
+        sensorBindings,
+        fertilizerProducts,
+        mixRecipes,
+        preparedBatches,
+        irrigationEvents,
+        photos,
+        recommendations,
+        powerConsumers,
+        powerCostProfiles
+    ] = await Promise.all([
         db.grows.toArray(),
         db.plants.toArray(),
         db.fertilizerMixes.toArray(),
         db.settings.get('global'),
         db.strains.toArray(),
         db.reminders.toArray(),
-        db.notificationSettings.get('notification-settings')
+        db.notificationSettings.get('notification-settings'),
+        db.genetics.toArray(),
+        db.geneticsOverrides.toArray(),
+        db.lineageEdges.toArray(),
+        db.phenotypes.toArray(),
+        db.growEvents.toArray(),
+        db.telemetryReadings.toArray(),
+        db.deviceIntegrations.toArray(),
+        db.devices.toArray(),
+        db.sensorBindings.toArray(),
+        db.fertilizerProducts.toArray(),
+        db.mixRecipes.toArray(),
+        db.preparedBatches.toArray(),
+        db.irrigationEvents.toArray(),
+        db.photos.toArray(),
+        db.recommendations.toArray(),
+        db.powerConsumers.toArray(),
+        db.powerCostProfiles.toArray()
     ]);
 
     return {
@@ -137,7 +274,24 @@ export async function collectExportData(description?: string): Promise<ExportDat
             settings: settings || null,
             strains,
             reminders,
-            notificationSettings: notificationSettings || null
+            notificationSettings: notificationSettings || null,
+            genetics,
+            geneticsOverrides,
+            lineageEdges,
+            phenotypes,
+            growEvents,
+            telemetryReadings,
+            deviceIntegrations,
+            devices,
+            sensorBindings,
+            fertilizerProducts,
+            mixRecipes,
+            preparedBatches,
+            irrigationEvents,
+            photos,
+            recommendations,
+            powerConsumers,
+            powerCostProfiles
         }
     };
 }
@@ -261,6 +415,35 @@ export function validateExportSchema(data: unknown): { valid: boolean; errors: s
 
         duplicateIds.forEach(id => errors.push(`Duplicate ${sectionName} id: ${id}`));
     };
+    const optionalArraySections = [
+        'genetics',
+        'geneticsOverrides',
+        'lineageEdges',
+        'phenotypes',
+        'growEvents',
+        'telemetryReadings',
+        'deviceIntegrations',
+        'devices',
+        'sensorBindings',
+        'fertilizerProducts',
+        'mixRecipes',
+        'preparedBatches',
+        'irrigationEvents',
+        'photos',
+        'recommendations',
+        'powerConsumers',
+        'powerCostProfiles'
+    ];
+    const validateOptionalSectionSchema = (
+        dataSection: Record<string, unknown>,
+        sectionName: string,
+        schema: { safeParse: (value: unknown) => { success: boolean } }
+    ) => {
+        validateRecords(dataSection[sectionName], `data.${sectionName}`, (record, index) => {
+            if (!hasString(record, 'id')) errors.push(`Missing data.${sectionName}[${index}].id`);
+            if (!schema.safeParse(record).success) errors.push(`Invalid data.${sectionName}[${index}] schema`);
+        });
+    };
     const validateRecords = (
         value: unknown,
         sectionName: string,
@@ -311,6 +494,11 @@ export function validateExportSchema(data: unknown): { valid: boolean; errors: s
         if (dataSection.reminders !== undefined && !Array.isArray(dataSection.reminders)) {
             errors.push('Invalid data.reminders');
         }
+        optionalArraySections.forEach(sectionName => {
+            if (dataSection[sectionName] !== undefined && !Array.isArray(dataSection[sectionName])) {
+                errors.push(`Invalid data.${sectionName}`);
+            }
+        });
         if (
             dataSection.notificationSettings !== undefined &&
             dataSection.notificationSettings !== null &&
@@ -441,6 +629,24 @@ export function validateExportSchema(data: unknown): { valid: boolean; errors: s
             if (!ReminderSchema.safeParse(reminder).success) errors.push(`Invalid data.reminders[${index}] schema`);
         });
 
+        validateOptionalSectionSchema(dataSection, 'genetics', GeneticsSchema);
+        validateOptionalSectionSchema(dataSection, 'geneticsOverrides', GeneticsOverrideSchema);
+        validateOptionalSectionSchema(dataSection, 'lineageEdges', LineageEdgeSchema);
+        validateOptionalSectionSchema(dataSection, 'phenotypes', PhenotypeSchema);
+        validateOptionalSectionSchema(dataSection, 'growEvents', GrowEventSchema);
+        validateOptionalSectionSchema(dataSection, 'telemetryReadings', TelemetryReadingSchema);
+        validateOptionalSectionSchema(dataSection, 'deviceIntegrations', DeviceIntegrationSchema);
+        validateOptionalSectionSchema(dataSection, 'devices', DeviceSchema);
+        validateOptionalSectionSchema(dataSection, 'sensorBindings', SensorBindingSchema);
+        validateOptionalSectionSchema(dataSection, 'fertilizerProducts', FertilizerProductSchema);
+        validateOptionalSectionSchema(dataSection, 'mixRecipes', MixRecipeSchema);
+        validateOptionalSectionSchema(dataSection, 'preparedBatches', PreparedBatchSchema);
+        validateOptionalSectionSchema(dataSection, 'irrigationEvents', IrrigationEventSchema);
+        validateOptionalSectionSchema(dataSection, 'photos', PhotoSchema);
+        validateOptionalSectionSchema(dataSection, 'recommendations', RecommendationSchema);
+        validateOptionalSectionSchema(dataSection, 'powerConsumers', PowerConsumerSchema);
+        validateOptionalSectionSchema(dataSection, 'powerCostProfiles', PowerCostProfileSchema);
+
         addDuplicateErrors(growIds, 'data.grows');
         addDuplicateErrors(plantIds, 'data.plants');
         addDuplicateErrors(mixIds, 'data.fertilizerMixes');
@@ -492,8 +698,33 @@ export async function importData(
 ): Promise<ImportResult> {
     const result: ImportResult = {
         success: true,
-        imported: { grows: 0, plants: 0, fertilizerMixes: 0, settings: false, strains: 0, reminders: 0, notificationSettings: false },
-        skipped: { grows: 0, plants: 0, fertilizerMixes: 0, strains: 0, reminders: 0 },
+        imported: {
+            grows: 0,
+            plants: 0,
+            fertilizerMixes: 0,
+            settings: false,
+            strains: 0,
+            reminders: 0,
+            notificationSettings: false,
+            genetics: 0,
+            geneticsOverrides: 0,
+            lineageEdges: 0,
+            phenotypes: 0,
+            growEvents: 0,
+            telemetryReadings: 0,
+            deviceIntegrations: 0,
+            devices: 0,
+            sensorBindings: 0,
+            fertilizerProducts: 0,
+            mixRecipes: 0,
+            preparedBatches: 0,
+            irrigationEvents: 0,
+            photos: 0,
+            recommendations: 0,
+            powerConsumers: 0,
+            powerCostProfiles: 0
+        },
+        skipped: { grows: 0, plants: 0, fertilizerMixes: 0, strains: 0, reminders: 0, productEntities: 0 },
         errors: []
     };
 
@@ -510,12 +741,32 @@ export async function importData(
         const { data } = normalizeExportDataForImport(exportData);
         const strains = data.strains ?? [];
         const reminders = data.reminders ?? [];
+        const productImportSections = [
+            { key: 'genetics' as const, label: 'genetics', table: db.genetics, records: data.genetics ?? [] },
+            { key: 'geneticsOverrides' as const, label: 'genetics override', table: db.geneticsOverrides, records: data.geneticsOverrides ?? [] },
+            { key: 'lineageEdges' as const, label: 'lineage edge', table: db.lineageEdges, records: data.lineageEdges ?? [] },
+            { key: 'phenotypes' as const, label: 'phenotype', table: db.phenotypes, records: data.phenotypes ?? [] },
+            { key: 'growEvents' as const, label: 'grow event', table: db.growEvents, records: data.growEvents ?? [] },
+            { key: 'telemetryReadings' as const, label: 'telemetry reading', table: db.telemetryReadings, records: data.telemetryReadings ?? [] },
+            { key: 'deviceIntegrations' as const, label: 'device integration', table: db.deviceIntegrations, records: data.deviceIntegrations ?? [] },
+            { key: 'devices' as const, label: 'device', table: db.devices, records: data.devices ?? [] },
+            { key: 'sensorBindings' as const, label: 'sensor binding', table: db.sensorBindings, records: data.sensorBindings ?? [] },
+            { key: 'fertilizerProducts' as const, label: 'fertilizer product', table: db.fertilizerProducts, records: data.fertilizerProducts ?? [] },
+            { key: 'mixRecipes' as const, label: 'mix recipe', table: db.mixRecipes, records: data.mixRecipes ?? [] },
+            { key: 'preparedBatches' as const, label: 'prepared batch', table: db.preparedBatches, records: data.preparedBatches ?? [] },
+            { key: 'irrigationEvents' as const, label: 'irrigation event', table: db.irrigationEvents, records: data.irrigationEvents ?? [] },
+            { key: 'photos' as const, label: 'photo', table: db.photos, records: data.photos ?? [] },
+            { key: 'recommendations' as const, label: 'recommendation', table: db.recommendations, records: data.recommendations ?? [] },
+            { key: 'powerConsumers' as const, label: 'power consumer', table: db.powerConsumers, records: data.powerConsumers ?? [] },
+            { key: 'powerCostProfiles' as const, label: 'power cost profile', table: db.powerCostProfiles, records: data.powerCostProfiles ?? [] },
+        ];
         const totalItems =
             data.grows.length +
             data.plants.length +
             data.fertilizerMixes.length +
             strains.length +
             reminders.length +
+            productImportSections.reduce((sum, section) => sum + section.records.length, 0) +
             (data.settings ? 1 : 0) +
             (data.notificationSettings ? 1 : 0);
         let processedItems = 0;
@@ -533,7 +784,24 @@ export async function importData(
             db.settings,
             db.strains,
             db.reminders,
-            db.notificationSettings
+            db.notificationSettings,
+            db.genetics,
+            db.geneticsOverrides,
+            db.lineageEdges,
+            db.phenotypes,
+            db.growEvents,
+            db.telemetryReadings,
+            db.deviceIntegrations,
+            db.devices,
+            db.sensorBindings,
+            db.fertilizerProducts,
+            db.mixRecipes,
+            db.preparedBatches,
+            db.irrigationEvents,
+            db.photos,
+            db.recommendations,
+            db.powerConsumers,
+            db.powerCostProfiles
         ], async () => {
             // Handle based on strategy
             if (strategy === 'replace') {
@@ -546,7 +814,24 @@ export async function importData(
                     db.settings.clear(),
                     db.strains.clear(),
                     db.reminders.clear(),
-                    db.notificationSettings.clear()
+                    db.notificationSettings.clear(),
+                    db.genetics.clear(),
+                    db.geneticsOverrides.clear(),
+                    db.lineageEdges.clear(),
+                    db.phenotypes.clear(),
+                    db.growEvents.clear(),
+                    db.telemetryReadings.clear(),
+                    db.deviceIntegrations.clear(),
+                    db.devices.clear(),
+                    db.sensorBindings.clear(),
+                    db.fertilizerProducts.clear(),
+                    db.mixRecipes.clear(),
+                    db.preparedBatches.clear(),
+                    db.irrigationEvents.clear(),
+                    db.photos.clear(),
+                    db.recommendations.clear(),
+                    db.powerConsumers.clear(),
+                    db.powerCostProfiles.clear()
                 ]);
             }
 
@@ -698,6 +983,22 @@ export async function importData(
                     result.imported.notificationSettings = true;
                 }
                 updateProgress('Imported notification settings');
+            }
+
+            for (const section of productImportSections) {
+                if (section.records.length === 0) continue;
+
+                progressCallback?.(99, `Importing ${section.label}s...`);
+                for (const record of section.records) {
+                    const exists = await section.table.get(record.id);
+                    if (exists && strategy === 'skip') {
+                        result.skipped.productEntities++;
+                    } else {
+                        await section.table.put(record as never);
+                        result.imported[section.key]++;
+                    }
+                    updateProgress(`Imported ${section.label}: ${record.id}`);
+                }
             }
         });
 

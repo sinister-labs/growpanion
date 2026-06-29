@@ -6,7 +6,7 @@ const Badge = React.forwardRef<HTMLDivElement, React.HTMLAttributes<HTMLDivEleme
   return (
     <div
       className={cn(
-        "inline-flex items-center rounded-full border px-2.5 py-0.5 text-xs font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:opacity-50 disabled:pointer-events-none border-transparent bg-secondary text-black ",
+        "inline-flex items-center rounded-full border border-emerald-300/[0.18] bg-emerald-300/10 px-2.5 py-0.5 text-xs font-semibold text-emerald-100 transition-colors focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:pointer-events-none disabled:opacity-50",
         className,
       )}
       ref={ref}
@@ -17,4 +17,3 @@ const Badge = React.forwardRef<HTMLDivElement, React.HTMLAttributes<HTMLDivEleme
 Badge.displayName = "Badge"
 
 export { Badge }
-

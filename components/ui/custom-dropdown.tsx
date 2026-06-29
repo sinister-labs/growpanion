@@ -1,7 +1,7 @@
 "use client";
 
-import { useState, ReactNode } from "react";
-import { ChevronDown, Check } from "lucide-react";
+import { useMemo, useState, ReactNode } from "react";
+import { ChevronDown, Check, Search } from "lucide-react";
 import { cn } from "@/lib/utils";
 import {
     DropdownMenu,
@@ -30,6 +30,7 @@ interface CustomDropdownProps {
     renderItem?: (option: DropdownOption, isSelected: boolean) => ReactNode;
     renderFooter?: () => ReactNode;
     disabled?: boolean;
+    searchable?: boolean;
 }
 
 export function CustomDropdown({
@@ -45,17 +46,35 @@ export function CustomDropdown({
     renderItem,
     renderFooter,
     disabled = false,
+    searchable = true,
 }: CustomDropdownProps) {
     const [isOpen, setIsOpen] = useState(false);
+    const [query, setQuery] = useState("");
     const selectedOption = options.find((option) => option.id === value);
+    const shouldShowSearch = searchable && options.length > 6;
+    const filteredOptions = useMemo(() => {
+        const normalizedQuery = query.trim().toLowerCase();
+        if (!normalizedQuery) return options;
+        return options.filter((option) => (
+            option.label.toLowerCase().includes(normalizedQuery) ||
+            option.description?.toLowerCase().includes(normalizedQuery)
+        ));
+    }, [options, query]);
+
+    const handleOpenChange = (open: boolean) => {
+        if (disabled) return;
+        setIsOpen(open);
+        if (!open) setQuery("");
+    };
 
     return (
         <div className={className}>
-            <DropdownMenu open={isOpen} onOpenChange={disabled ? undefined : setIsOpen}>
+            <DropdownMenu open={isOpen} onOpenChange={handleOpenChange}>
                 <DropdownMenuTrigger asChild disabled={disabled}>
                     <button
+                        type="button"
                         className={cn(
-                            "flex items-center gap-2 px-4 py-2 bg-gray-800/80 backdrop-blur-sm rounded-full border border-gray-700 transition-all duration-200 hover:bg-gray-700/80 hover:border-gray-600 text-white w-full",
+                            "flex h-10 w-full items-center gap-2 rounded-full border border-input bg-background/[0.65] px-4 text-foreground shadow-inner shadow-primary/5 transition-all duration-300 hover:bg-background/[0.85]",
                             {
                                 "opacity-50 cursor-not-allowed": disabled,
                             },
@@ -66,7 +85,7 @@ export function CustomDropdown({
                             {selectedOption?.label || placeholder}
                         </span>
                         <ChevronDown
-                            className={cn("h-4 w-4 text-gray-400 transition-transform", {
+                            className={cn("h-4 w-4 text-muted-foreground transition-transform", {
                                 "transform rotate-180": isOpen,
                             })}
                         />
@@ -75,19 +94,34 @@ export function CustomDropdown({
                 <DropdownMenuContent
                     className={cn(
                         width,
-                        "bg-gray-800/95 backdrop-blur-md rounded-xl border-gray-700 text-white",
+                        "max-h-[min(22rem,var(--radix-dropdown-menu-content-available-height))] overflow-y-auto rounded-2xl border-border/[0.70] bg-popover/[0.95] p-1.5 text-popover-foreground shadow-xl backdrop-blur-md",
                         contentClassName
                     )}
                     align="start"
+                    sideOffset={6}
                 >
-                    {options.map((option) => (
+                    {shouldShowSearch && (
+                        <div className="sticky top-0 z-10 mb-1 rounded-xl bg-popover/[0.95] p-1 backdrop-blur">
+                            <div className="flex h-9 items-center gap-2 rounded-xl border border-border/[0.70] bg-background/80 px-3">
+                                <Search className="h-3.5 w-3.5 text-muted-foreground" />
+                                <input
+                                    value={query}
+                                    onChange={(event) => setQuery(event.target.value)}
+                                    onKeyDown={(event) => event.stopPropagation()}
+                                    placeholder="Search…"
+                                    className="h-full min-w-0 flex-1 bg-transparent text-sm text-foreground outline-none placeholder:text-muted-foreground"
+                                />
+                            </div>
+                        </div>
+                    )}
+                    {filteredOptions.map((option) => (
                         <DropdownMenuItem
                             key={option.id}
                             className={cn(
-                                "py-2.5 cursor-pointer  rounded-xl flex justify-between items-center",
+                                "flex cursor-pointer items-center justify-between rounded-xl px-3 py-2.5",
                                 {
-                                    "border-l-green-500 bg-green-900/20": option.id === value,
-                                    "border-l-transparent hover:border-l-gray-300": option.id !== value,
+                                    "bg-primary/[0.12] text-primary": option.id === value,
+                                    "hover:bg-muted/[0.55]": option.id !== value,
                                 },
                                 itemClassName
                             )}
@@ -97,28 +131,33 @@ export function CustomDropdown({
                                 renderItem(option, option.id === value)
                             ) : (
                                 <>
-                                    <div className="flex flex-col">
+                                    <div className="min-w-0 flex flex-col">
                                         <span
-                                            className={cn("font-medium", {
-                                                "text-green-400": option.id === value,
-                                                "text-white": option.id !== value,
+                                            className={cn("truncate font-medium", {
+                                                "text-primary": option.id === value,
+                                                "text-foreground": option.id !== value,
                                             })}
                                         >
                                             {option.label}
                                         </span>
                                         {option.description && (
-                                            <span className="text-xs text-gray-400 mt-0.5">
+                                            <span className="mt-0.5 truncate text-xs text-muted-foreground">
                                                 {option.description}
                                             </span>
                                         )}
                                     </div>
-                                    {option.id === value && <Check className="h-4 w-4 text-green-400" />}
+                                    {option.id === value && <Check className="ml-2 h-4 w-4 shrink-0 text-primary" />}
                                 </>
                             )}
                         </DropdownMenuItem>
                     ))}
+                    {filteredOptions.length === 0 && (
+                        <div className="px-3 py-6 text-center text-sm text-muted-foreground">
+                            No matches
+                        </div>
+                    )}
                     {renderFooter && (
-                        <div className="border-t border-gray-700 pt-1 mt-1">
+                        <div className="mt-1 border-t border-border/[0.70] pt-1">
                             {renderFooter()}
                         </div>
                     )}

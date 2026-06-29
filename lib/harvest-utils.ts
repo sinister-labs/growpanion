@@ -285,16 +285,16 @@ export const EXPERIENCE_LABELS: Record<ExperienceLevel, string> = {
 export function getRatingColorClass(rating: YieldComparison['rating']): string {
   switch (rating) {
     case 'excellent':
-      return 'text-green-400 bg-green-600/20';
+      return 'border border-primary/35 bg-primary/10 text-primary';
     case 'above_average':
-      return 'text-emerald-400 bg-emerald-600/20';
+      return 'border border-[#2FA98C]/45 bg-[#2FA98C]/18 text-[#00DF81]';
     case 'average':
-      return 'text-blue-400 bg-blue-600/20';
+      return 'border border-[#17876D]/45 bg-[#17876D]/18 text-[#AACBC4]';
     case 'below_average':
-      return 'text-yellow-400 bg-yellow-600/20';
+      return 'border border-[#00DF81]/45 bg-[#00DF81]/16 text-[#AACBC4]';
     case 'poor':
-      return 'text-red-400 bg-red-600/20';
+      return 'border border-destructive/35 bg-destructive/10 text-destructive';
     default:
-      return 'text-gray-400 bg-gray-600/20';
+      return 'border border-border/65 bg-muted/55 text-muted-foreground';
   }
 }

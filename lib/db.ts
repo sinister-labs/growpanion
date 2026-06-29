@@ -2,12 +2,29 @@ import Dexie, { Table } from 'dexie';
 import { Plant, FertilizerMix } from '@/components/plant-modal/types';
 import {
     FertilizerMixDBSchema,
+    FertilizerProductSchema,
+    GeneticsOverrideSchema,
+    GeneticsSchema,
     GrowSchema,
+    GrowEventSchema,
+    IrrigationEventSchema,
+    LineageEdgeSchema,
+    MixRecipeSchema,
     NotificationSettingsSchema,
+    PhenotypeSchema,
+    PhotoSchema,
     PlantDBSchema,
+    PowerConsumerSchema,
+    PowerCostProfileSchema,
+    PreparedBatchSchema,
+    RecommendationSchema,
     ReminderSchema,
+    SensorBindingSchema,
     SettingsSchema,
-    StrainSchema
+    StrainSchema,
+    TelemetryReadingSchema,
+    DeviceIntegrationSchema,
+    DeviceSchema
 } from '@/lib/validation-schemas';
 import { validateOrThrow } from '@/lib/validation-utils';
 import { normalizeSensorConfig } from '@/lib/sensor-utils';
@@ -19,6 +36,8 @@ import {
     removeFertilizerMixReferences
 } from '@/lib/persistence-utils';
 import { filterStrains } from '@/lib/strain-utils';
+import { DEFAULT_GENETICS } from '@/lib/genetics-registry';
+import { notifyTelemetryUpdated } from '@/lib/telemetry-events';
 
 export interface Grow {
     id: string;
@@ -42,6 +61,14 @@ export interface Grow {
 
 export interface PlantDB extends Plant {
     growId: string;
+    geneticsId?: string;
+    phenotypeId?: string;
+    label?: string;
+    location?: string;
+    tent?: string;
+    sensorBindingIds?: string[];
+    lifecycleStatus?: string;
+    currentPhase?: string;
 }
 
 export interface FertilizerMixDB extends FertilizerMix {
@@ -53,6 +80,9 @@ export interface Settings {
     id: string;
     tuyaClientId?: string;
     tuyaClientSecret?: string;
+    acInfinityEmail?: string;
+    /** When true, AC Infinity polling continues while the tab/window is hidden. Default: true. */
+    backgroundPollingEnabled?: boolean;
     lastUpdated?: string;
     sensors?: TuyaSensor[];
 }
@@ -109,6 +139,276 @@ export interface NotificationSettings {
     soundEnabled: boolean;
 }
 
+export interface Genetics {
+    id: string;
+    name: string;
+    breeder?: string;
+    type: 'Indica' | 'Sativa' | 'Hybrid' | 'Unknown';
+    floweringWeeks?: number;
+    stretch?: string;
+    terpeneProfile?: string[];
+    cannabinoids?: string;
+    origin?: string;
+    notes?: string;
+    source: 'default' | 'user';
+    createdAt: string;
+    updatedAt: string;
+}
+
+export interface GeneticsOverride {
+    id: string;
+    geneticsId: string;
+    patch: Record<string, unknown>;
+    updatedAt: string;
+}
+
+export interface LineageEdge {
+    id: string;
+    parentGeneticsId: string;
+    childGeneticsId: string;
+    relationType: 'parent' | 'cross' | 'child';
+    notes?: string;
+    createdAt: string;
+}
+
+export interface Phenotype {
+    id: string;
+    geneticsId: string;
+    plantId: string;
+    growId: string;
+    label: string;
+    growthStructure?: string;
+    stretch?: string;
+    vigor?: string;
+    internodeSpacing?: string;
+    trainingResponse?: string;
+    floweringTime?: string;
+    aroma?: string;
+    terpenes?: string[];
+    yieldGrams?: number;
+    qualityNotes?: string;
+    photos?: string[];
+    observations?: string[];
+    issues?: string[];
+    traits?: string[];
+    createdAt: string;
+    updatedAt: string;
+}
+
+export type GrowEventType =
+    | 'watering'
+    | 'feeding'
+    | 'prepared_batch'
+    | 'training'
+    | 'topping'
+    | 'lst'
+    | 'hst'
+    | 'defoliation'
+    | 'lollipopping'
+    | 'scrog'
+    | 'transplant'
+    | 'flowering_start'
+    | 'harvest'
+    | 'photo'
+    | 'note'
+    | 'diagnosis'
+    | 'problem'
+    | 'treatment'
+    | 'measurement'
+    | 'substrate_change'
+    | 'light_adjustment';
+
+export interface GrowEvent {
+    id: string;
+    growId: string;
+    plantId?: string;
+    phenotypeId?: string;
+    type: GrowEventType;
+    title: string;
+    description?: string;
+    occurredAt: string;
+    payload?: Record<string, unknown>;
+    photoIds?: string[];
+    createdAt: string;
+}
+
+export type TelemetryMetric =
+    | 'temperature'
+    | 'humidity'
+    | 'air_vpd'
+    | 'leaf_temperature'
+    | 'leaf_vpd'
+    | 'pot_weight'
+    | 'water_consumption'
+    | 'ppfd'
+    | 'dli'
+    | 'light_power'
+    | 'fan_power'
+    | 'exhaust_power'
+    | 'circulation_power'
+    | 'ec'
+    | 'ph'
+    | 'drain_ec'
+    | 'drain_ph'
+    | 'drain_volume';
+
+export interface TelemetryReading {
+    id: string;
+    growId: string;
+    plantId?: string;
+    phenotypeId?: string;
+    deviceId?: string;
+    sensorBindingId?: string;
+    metric: TelemetryMetric;
+    value: number;
+    unit: string;
+    recordedAt: string;
+    source: 'sensor' | 'manual' | 'calculated';
+}
+
+export interface DeviceIntegration {
+    id: string;
+    type: 'ac_infinity' | 'tuya_legacy' | 'manual' | 'mqtt_esp32' | 'third_party';
+    name: string;
+    status: 'planned' | 'configured' | 'active' | 'error';
+    config?: Record<string, unknown>;
+    createdAt: string;
+    updatedAt: string;
+}
+
+export interface Device {
+    id: string;
+    integrationId: string;
+    name: string;
+    type: 'sensor' | 'lamp' | 'fan' | 'filter' | 'humidifier' | 'dehumidifier' | 'pump' | 'controller' | 'other';
+    room?: string;
+    tent?: string;
+    growId?: string;
+    plantId?: string;
+    status: 'active' | 'inactive' | 'planned' | 'error';
+    createdAt: string;
+    updatedAt: string;
+}
+
+export interface SensorBinding {
+    id: string;
+    deviceId: string;
+    growId?: string;
+    plantId?: string;
+    metric: TelemetryMetric;
+    label: string;
+    unit: string;
+    createdAt: string;
+}
+
+export interface FertilizerProduct {
+    id: string;
+    name: string;
+    brand?: string;
+    fertilizerType: 'mineral' | 'organic' | 'hybrid';
+    npk?: string;
+    notes?: string;
+    createdAt: string;
+    updatedAt: string;
+}
+
+export interface MixRecipe {
+    id: string;
+    growId?: string;
+    name: string;
+    fertilizerType: 'mineral' | 'organic' | 'hybrid';
+    substrateType: 'soil' | 'coco' | 'hydro' | 'living_soil' | 'other';
+    products: Array<{ productId: string; dosePerLiter: number }>;
+    targetEc?: number;
+    targetPh?: number;
+    phase?: string;
+    notes?: string;
+    createdAt: string;
+    updatedAt: string;
+}
+
+export interface PreparedBatch {
+    id: string;
+    recipeId?: string;
+    growId: string;
+    totalLiters: number;
+    measuredEc?: number;
+    measuredPh?: number;
+    waterEc?: number;
+    waterPh?: number;
+    temperature?: number;
+    preparedAt: string;
+    notes?: string;
+}
+
+export interface IrrigationEvent {
+    id: string;
+    batchId?: string;
+    growId: string;
+    plantId: string;
+    phenotypeId?: string;
+    liters: number;
+    potWeightBefore?: number;
+    potWeightAfter?: number;
+    drainVolume?: number;
+    drainEc?: number;
+    drainPh?: number;
+    photoId?: string;
+    notes?: string;
+    occurredAt: string;
+}
+
+export interface Photo {
+    id: string;
+    growId?: string;
+    plantId?: string;
+    phenotypeId?: string;
+    uri: string;
+    caption?: string;
+    takenAt: string;
+    createdAt: string;
+}
+
+export interface Recommendation {
+    id: string;
+    growId: string;
+    plantId?: string;
+    phenotypeId?: string;
+    title: string;
+    severity: 'info' | 'success' | 'warning' | 'critical' | 'action';
+    summary: string;
+    suggestedAction: string;
+    usedData: string[];
+    relatedEventIds?: string[];
+    supportingMeasurements?: string[];
+    createdAt: string;
+    dismissedAt?: string;
+}
+
+export interface PowerConsumer {
+    id: string;
+    growId?: string;
+    name: string;
+    watts: number;
+    hoursPerDay: number;
+    phase: 'growth' | 'flower' | 'both';
+    createdAt: string;
+    updatedAt: string;
+}
+
+export interface PowerCostProfile {
+    id: string;
+    growId?: string;
+    name: string;
+    centPerKwh: number;
+    vegDays: number;
+    flowerDays: number;
+    plantCount?: number;
+    harvestGrams?: number;
+    createdAt: string;
+    updatedAt: string;
+}
+
 export class GrowPanionDB extends Dexie {
     grows!: Table<Grow, string>;
     plants!: Table<PlantDB, string>;
@@ -117,6 +417,23 @@ export class GrowPanionDB extends Dexie {
     strains!: Table<Strain, string>;
     reminders!: Table<Reminder, string>;
     notificationSettings!: Table<NotificationSettings, string>;
+    genetics!: Table<Genetics, string>;
+    geneticsOverrides!: Table<GeneticsOverride, string>;
+    lineageEdges!: Table<LineageEdge, string>;
+    phenotypes!: Table<Phenotype, string>;
+    growEvents!: Table<GrowEvent, string>;
+    telemetryReadings!: Table<TelemetryReading, string>;
+    deviceIntegrations!: Table<DeviceIntegration, string>;
+    devices!: Table<Device, string>;
+    sensorBindings!: Table<SensorBinding, string>;
+    fertilizerProducts!: Table<FertilizerProduct, string>;
+    mixRecipes!: Table<MixRecipe, string>;
+    preparedBatches!: Table<PreparedBatch, string>;
+    irrigationEvents!: Table<IrrigationEvent, string>;
+    photos!: Table<Photo, string>;
+    recommendations!: Table<Recommendation, string>;
+    powerConsumers!: Table<PowerConsumer, string>;
+    powerCostProfiles!: Table<PowerCostProfile, string>;
 
     constructor() {
         super('GrowPanionDB');
@@ -157,6 +474,33 @@ export class GrowPanionDB extends Dexie {
             strains: 'id, name, breeder, genetics',
             reminders: 'id, growId, plantId, type, nextDue, enabled',
             notificationSettings: 'id'
+        });
+
+        this.version(6).stores({
+            grows: 'id, name, currentPhase',
+            plants: 'id, name, genetic, geneticsId, phenotypeId, type, propagationMethod, growId',
+            fertilizerMixes: 'id, name, growId',
+            settings: 'id',
+            strains: 'id, name, breeder, genetics',
+            reminders: 'id, growId, plantId, type, nextDue, enabled',
+            notificationSettings: 'id',
+            genetics: 'id, name, breeder, type, source',
+            geneticsOverrides: 'id, geneticsId',
+            lineageEdges: 'id, parentGeneticsId, childGeneticsId, relationType',
+            phenotypes: 'id, geneticsId, plantId, growId',
+            growEvents: 'id, growId, plantId, phenotypeId, type, occurredAt',
+            telemetryReadings: 'id, growId, plantId, phenotypeId, deviceId, sensorBindingId, metric, recordedAt',
+            deviceIntegrations: 'id, type, status',
+            devices: 'id, integrationId, growId, plantId, type, status',
+            sensorBindings: 'id, deviceId, growId, plantId, metric',
+            fertilizerProducts: 'id, name, brand, fertilizerType',
+            mixRecipes: 'id, growId, name, fertilizerType, substrateType',
+            preparedBatches: 'id, recipeId, growId, preparedAt',
+            irrigationEvents: 'id, batchId, growId, plantId, phenotypeId, occurredAt',
+            photos: 'id, growId, plantId, phenotypeId, takenAt',
+            recommendations: 'id, growId, plantId, phenotypeId, severity, createdAt, dismissedAt',
+            powerConsumers: 'id, growId, phase',
+            powerCostProfiles: 'id, growId, name'
         });
 
         // Handle database upgrade events
@@ -490,7 +834,18 @@ export async function searchStrains(query: string): Promise<Strain[]> {
 }
 
 export async function populateDBWithDemoDataIfEmpty(): Promise<void> {
-    return;
+    try {
+        const existingDefaultCount = await db.genetics
+            .where('source')
+            .equals('default')
+            .count();
+
+        if (existingDefaultCount === 0) {
+            await db.genetics.bulkPut(DEFAULT_GENETICS);
+        }
+    } catch (error) {
+        console.error('Failed to populate default genetics:', error);
+    }
 }
 
 // ============== REMINDER FUNCTIONS ==============
@@ -609,6 +964,304 @@ export async function deleteRemindersForGrow(growId: string): Promise<void> {
     }
 }
 
+async function putValidatedRecord<T>(schema: { parse: (value: unknown) => T }, table: Table<T, string>, value: T, errorMessage: string): Promise<string> {
+    try {
+        return await table.put(schema.parse(value));
+    } catch (error) {
+        console.error(errorMessage, error);
+        throw new Error(errorMessage);
+    }
+}
+
+async function getRecordsForIndex<T>(table: Table<T, string>, index: string, value: string, errorMessage: string): Promise<T[]> {
+    try {
+        if (!value || typeof value !== 'string') {
+            throw new Error('Invalid index value provided');
+        }
+        return await table.where(index).equals(value).toArray();
+    } catch (error) {
+        console.error(errorMessage, error);
+        throw new Error(errorMessage);
+    }
+}
+
+// ============== PRODUCT OS ENTITY FUNCTIONS ==============
+
+export async function getAllGenetics(): Promise<Genetics[]> {
+    try {
+        return await db.genetics.toArray();
+    } catch (error) {
+        console.error('Failed to get genetics:', error);
+        throw new Error('Unable to retrieve genetics from database');
+    }
+}
+
+/**
+ * Replaces the bundled default genetics and their lineage edges in a single transaction.
+ *
+ * User-created genetics, overrides and user-created lineage edges are preserved: only
+ * records with `source === 'default'` and seed lineage edges (id prefixed with `edge:`)
+ * are removed before the fresh seed is written. Records are written via bulkPut without
+ * per-record validation for performance, mirroring populateDBWithDemoDataIfEmpty.
+ */
+export async function replaceDefaultGeneticsAndLineage(
+    genetics: Genetics[],
+    edges: LineageEdge[],
+): Promise<void> {
+    try {
+        await db.transaction('rw', db.genetics, db.lineageEdges, async () => {
+            const defaultKeys = await db.genetics.where('source').equals('default').primaryKeys();
+            if (defaultKeys.length > 0) {
+                await db.genetics.bulkDelete(defaultKeys);
+            }
+            if (genetics.length > 0) {
+                await db.genetics.bulkPut(genetics);
+            }
+
+            const existingEdgeKeys = await db.lineageEdges.toCollection().primaryKeys();
+            const seedEdgeKeys = existingEdgeKeys.filter(key => String(key).startsWith('edge:'));
+            if (seedEdgeKeys.length > 0) {
+                await db.lineageEdges.bulkDelete(seedEdgeKeys);
+            }
+            if (edges.length > 0) {
+                await db.lineageEdges.bulkPut(edges);
+            }
+        });
+    } catch (error) {
+        console.error('Failed to replace default genetics seed:', error);
+        throw new Error('Unable to import default genetics seed into database');
+    }
+}
+
+export async function saveGenetics(genetics: Genetics): Promise<string> {
+    return putValidatedRecord(GeneticsSchema, db.genetics, genetics, 'Unable to save genetics to database');
+}
+
+export async function saveGeneticsOverride(override: GeneticsOverride): Promise<string> {
+    return putValidatedRecord(GeneticsOverrideSchema, db.geneticsOverrides, override, 'Unable to save genetics override to database');
+}
+
+export async function getAllGeneticsOverrides(): Promise<GeneticsOverride[]> {
+    try {
+        return await db.geneticsOverrides.toArray();
+    } catch (error) {
+        console.error('Failed to get genetics overrides:', error);
+        throw new Error('Unable to retrieve genetics overrides from database');
+    }
+}
+
+export async function deleteGeneticsOverride(id: string): Promise<void> {
+    try {
+        await db.geneticsOverrides.delete(id);
+    } catch (error) {
+        console.error('Failed to delete genetics override:', error);
+        throw new Error('Unable to delete genetics override from database');
+    }
+}
+
+export async function saveLineageEdge(edge: LineageEdge): Promise<string> {
+    return putValidatedRecord(LineageEdgeSchema, db.lineageEdges, edge, 'Unable to save lineage edge to database');
+}
+
+export async function getAllLineageEdges(): Promise<LineageEdge[]> {
+    try {
+        return await db.lineageEdges.toArray();
+    } catch (error) {
+        console.error('Failed to get lineage edges:', error);
+        throw new Error('Unable to retrieve lineage edges from database');
+    }
+}
+
+export async function getPhenotypesForGenetics(geneticsId: string): Promise<Phenotype[]> {
+    return getRecordsForIndex(db.phenotypes, 'geneticsId', geneticsId, 'Unable to retrieve phenotypes from database');
+}
+
+export async function getPhenotypesForPlant(plantId: string): Promise<Phenotype[]> {
+    return getRecordsForIndex(db.phenotypes, 'plantId', plantId, 'Unable to retrieve phenotypes from database');
+}
+
+export async function getPhenotypesForGrow(growId: string): Promise<Phenotype[]> {
+    return getRecordsForIndex(db.phenotypes, 'growId', growId, 'Unable to retrieve phenotypes from database');
+}
+
+export async function savePhenotype(phenotype: Phenotype): Promise<string> {
+    return putValidatedRecord(PhenotypeSchema, db.phenotypes, phenotype, 'Unable to save phenotype to database');
+}
+
+export async function getGrowEventsForGrow(growId: string): Promise<GrowEvent[]> {
+    return getRecordsForIndex(db.growEvents, 'growId', growId, 'Unable to retrieve grow events from database');
+}
+
+export async function getGrowEventsForPlant(plantId: string): Promise<GrowEvent[]> {
+    return getRecordsForIndex(db.growEvents, 'plantId', plantId, 'Unable to retrieve plant events from database');
+}
+
+export async function saveGrowEvent(event: GrowEvent): Promise<string> {
+    return putValidatedRecord(GrowEventSchema, db.growEvents, event, 'Unable to save grow event to database');
+}
+
+export async function getTelemetryForGrow(growId: string): Promise<TelemetryReading[]> {
+    return getRecordsForIndex(db.telemetryReadings, 'growId', growId, 'Unable to retrieve telemetry from database');
+}
+
+export async function getTelemetryForPlant(plantId: string): Promise<TelemetryReading[]> {
+    return getRecordsForIndex(db.telemetryReadings, 'plantId', plantId, 'Unable to retrieve plant telemetry from database');
+}
+
+export async function saveTelemetryReading(reading: TelemetryReading): Promise<string> {
+    const id = await putValidatedRecord(TelemetryReadingSchema, db.telemetryReadings, reading, 'Unable to save telemetry reading to database');
+    notifyTelemetryUpdated({ source: 'manual', growIds: [reading.growId] });
+    return id;
+}
+
+export async function saveDeviceIntegration(integration: DeviceIntegration): Promise<string> {
+    return putValidatedRecord(DeviceIntegrationSchema, db.deviceIntegrations, integration, 'Unable to save device integration to database');
+}
+
+export async function getAllDeviceIntegrations(): Promise<DeviceIntegration[]> {
+    try {
+        return await db.deviceIntegrations.toArray();
+    } catch (error) {
+        console.error('Failed to get device integrations:', error);
+        throw new Error('Unable to retrieve device integrations from database');
+    }
+}
+
+export async function saveDevice(device: Device): Promise<string> {
+    return putValidatedRecord(DeviceSchema, db.devices, device, 'Unable to save device to database');
+}
+
+export async function getAllDevices(): Promise<Device[]> {
+    try {
+        return await db.devices.toArray();
+    } catch (error) {
+        console.error('Failed to get devices:', error);
+        throw new Error('Unable to retrieve devices from database');
+    }
+}
+
+export async function deleteDevice(id: string): Promise<void> {
+    try {
+        await db.transaction('rw', db.devices, db.sensorBindings, db.telemetryReadings, async () => {
+            await db.telemetryReadings.where({ deviceId: id }).delete();
+            await db.sensorBindings.where({ deviceId: id }).delete();
+            await db.devices.delete(id);
+        });
+    } catch (error) {
+        console.error(`Failed to delete device ${id}:`, error);
+        throw new Error('Unable to delete device from database');
+    }
+}
+
+export async function saveSensorBinding(binding: SensorBinding): Promise<string> {
+    return putValidatedRecord(SensorBindingSchema, db.sensorBindings, binding, 'Unable to save sensor binding to database');
+}
+
+export async function getAllSensorBindings(): Promise<SensorBinding[]> {
+    try {
+        return await db.sensorBindings.toArray();
+    } catch (error) {
+        console.error('Failed to get sensor bindings:', error);
+        throw new Error('Unable to retrieve sensor bindings from database');
+    }
+}
+
+export async function deleteSensorBinding(id: string): Promise<void> {
+    try {
+        await db.transaction('rw', db.sensorBindings, db.telemetryReadings, async () => {
+            await db.telemetryReadings.where({ sensorBindingId: id }).delete();
+            await db.sensorBindings.delete(id);
+        });
+    } catch (error) {
+        console.error(`Failed to delete sensor binding ${id}:`, error);
+        throw new Error('Unable to delete sensor binding from database');
+    }
+}
+
+export async function getDevicesForGrow(growId: string): Promise<Device[]> {
+    return getRecordsForIndex(db.devices, 'growId', growId, 'Unable to retrieve devices from database');
+}
+
+export async function saveFertilizerProduct(product: FertilizerProduct): Promise<string> {
+    return putValidatedRecord(FertilizerProductSchema, db.fertilizerProducts, product, 'Unable to save fertilizer product to database');
+}
+
+export async function saveMixRecipe(recipe: MixRecipe): Promise<string> {
+    return putValidatedRecord(MixRecipeSchema, db.mixRecipes, recipe, 'Unable to save mix recipe to database');
+}
+
+export async function getMixRecipesForGrow(growId: string): Promise<MixRecipe[]> {
+    return getRecordsForIndex(db.mixRecipes, 'growId', growId, 'Unable to retrieve mix recipes from database');
+}
+
+export async function savePreparedBatch(batch: PreparedBatch): Promise<string> {
+    return putValidatedRecord(PreparedBatchSchema, db.preparedBatches, batch, 'Unable to save prepared batch to database');
+}
+
+export async function getPreparedBatchesForGrow(growId: string): Promise<PreparedBatch[]> {
+    return getRecordsForIndex(db.preparedBatches, 'growId', growId, 'Unable to retrieve prepared batches from database');
+}
+
+export async function saveIrrigationEvent(event: IrrigationEvent): Promise<string> {
+    return putValidatedRecord(IrrigationEventSchema, db.irrigationEvents, event, 'Unable to save irrigation event to database');
+}
+
+export async function getIrrigationEventsForPlant(plantId: string): Promise<IrrigationEvent[]> {
+    return getRecordsForIndex(db.irrigationEvents, 'plantId', plantId, 'Unable to retrieve irrigation events from database');
+}
+
+export async function getIrrigationEventsForGrow(growId: string): Promise<IrrigationEvent[]> {
+    return getRecordsForIndex(db.irrigationEvents, 'growId', growId, 'Unable to retrieve irrigation events from database');
+}
+
+export async function savePhoto(photo: Photo): Promise<string> {
+    return putValidatedRecord(PhotoSchema, db.photos, photo, 'Unable to save photo to database');
+}
+
+export async function getPhotosForGrow(growId: string): Promise<Photo[]> {
+    return getRecordsForIndex(db.photos, 'growId', growId, 'Unable to retrieve photos from database');
+}
+
+export async function saveRecommendation(recommendation: Recommendation): Promise<string> {
+    return putValidatedRecord(RecommendationSchema, db.recommendations, recommendation, 'Unable to save recommendation to database');
+}
+
+export async function getRecommendationsForGrow(growId: string): Promise<Recommendation[]> {
+    return getRecordsForIndex(db.recommendations, 'growId', growId, 'Unable to retrieve recommendations from database');
+}
+
+export async function savePowerConsumer(consumer: PowerConsumer): Promise<string> {
+    return putValidatedRecord(PowerConsumerSchema, db.powerConsumers, consumer, 'Unable to save power consumer to database');
+}
+
+export async function getPowerConsumersForGrow(growId?: string): Promise<PowerConsumer[]> {
+    try {
+        if (!growId) {
+            return await db.powerConsumers.filter(consumer => !consumer.growId).toArray();
+        }
+        return await db.powerConsumers.filter(consumer => !consumer.growId || consumer.growId === growId).toArray();
+    } catch (error) {
+        console.error('Failed to get power consumers:', error);
+        throw new Error('Unable to retrieve power consumers from database');
+    }
+}
+
+export async function savePowerCostProfile(profile: PowerCostProfile): Promise<string> {
+    return putValidatedRecord(PowerCostProfileSchema, db.powerCostProfiles, profile, 'Unable to save power cost profile to database');
+}
+
+export async function getPowerCostProfilesForGrow(growId?: string): Promise<PowerCostProfile[]> {
+    try {
+        if (!growId) {
+            return await db.powerCostProfiles.filter(profile => !profile.growId).toArray();
+        }
+        return await db.powerCostProfiles.filter(profile => !profile.growId || profile.growId === growId).toArray();
+    } catch (error) {
+        console.error('Failed to get power cost profiles:', error);
+        throw new Error('Unable to retrieve power cost profiles from database');
+    }
+}
+
 // ============== NOTIFICATION SETTINGS FUNCTIONS ==============
 
 export async function getNotificationSettings(): Promise<NotificationSettings | undefined> {
@@ -661,6 +1314,23 @@ export async function checkDatabaseHealth(): Promise<boolean> {
         await db.strains.limit(1).toArray();
         await db.reminders.limit(1).toArray();
         await db.notificationSettings.limit(1).toArray();
+        await db.genetics.limit(1).toArray();
+        await db.geneticsOverrides.limit(1).toArray();
+        await db.lineageEdges.limit(1).toArray();
+        await db.phenotypes.limit(1).toArray();
+        await db.growEvents.limit(1).toArray();
+        await db.telemetryReadings.limit(1).toArray();
+        await db.deviceIntegrations.limit(1).toArray();
+        await db.devices.limit(1).toArray();
+        await db.sensorBindings.limit(1).toArray();
+        await db.fertilizerProducts.limit(1).toArray();
+        await db.mixRecipes.limit(1).toArray();
+        await db.preparedBatches.limit(1).toArray();
+        await db.irrigationEvents.limit(1).toArray();
+        await db.photos.limit(1).toArray();
+        await db.recommendations.limit(1).toArray();
+        await db.powerConsumers.limit(1).toArray();
+        await db.powerCostProfiles.limit(1).toArray();
 
         return true;
     } catch (error) {

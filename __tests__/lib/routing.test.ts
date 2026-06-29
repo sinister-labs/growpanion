@@ -58,6 +58,8 @@ describe('routing utilities', () => {
 
     it('builds distinct error boundary keys for route changes', () => {
         expect(getRouteBoundaryKey('dashboard')).toBe('dashboard:');
+        expect(getRouteBoundaryKey('devices')).toBe('devices:');
+        expect(getRouteBoundaryKey('genetics')).toBe('genetics:');
         expect(getRouteBoundaryKey('settings')).toBe('settings:');
         expect(getRouteBoundaryKey('growDetail', { id: 'grow-1' })).toBe('growDetail:grow-1');
         expect(getRouteBoundaryKey('growDetail', { id: 'grow-2' })).toBe('growDetail:grow-2');

@@ -3,9 +3,9 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { useDropzone } from 'react-dropzone';
 import { motion, AnimatePresence } from 'framer-motion';
-import { DialogContent } from '@/components/ui/dialog';
+import { DialogContent, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
-import { ChevronRight, Menu, Save, Check, Trash2 } from 'lucide-react';
+import { ChevronRight, Loader2, Menu, Save, Trash2, X } from 'lucide-react';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import {
     AlertDialog,
@@ -30,11 +30,13 @@ import ImagesTab from './ImagesTab';
 import { Badge } from '../ui/badge';
 import { useFertilizerMixes } from "@/hooks/useFertilizerMixes";
 import { normalizeSubstrateRecord, normalizeTrainingRecord, normalizeWateringRecord } from '@/lib/plant-modal-utils';
+import { generateId, saveGrowEvent, saveIrrigationEvent, savePhenotype, saveTelemetryReading } from '@/lib/db';
+import { createPhenotypeForPlant } from '@/lib/genetics-registry';
 
 const MAX_IMAGE_SIZE_BYTES = 5 * 1024 * 1024;
 
-export function PlantModal({ plant, updatePlant, deletePlant, growId, onManageFertilizerMixes }: PlantModalProps) {
-    const [activeTab, setActiveTab] = useState<TabType>("info");
+export function PlantModal({ plant, updatePlant, deletePlant, growId, onManageFertilizerMixes, initialTab = "info" }: PlantModalProps) {
+    const [activeTab, setActiveTab] = useState<TabType>(initialTab);
     const [localPlant, setLocalPlant] = useState<Plant>(plant);
     const [isMobile, setIsMobile] = useState(false);
     const [isMenuOpen, setIsMenuOpen] = useState(false);
@@ -88,18 +90,115 @@ export function PlantModal({ plant, updatePlant, deletePlant, growId, onManageFe
         setLocalPlant(plant);
     }, [plant]);
 
-    const handleWateringAdd = () => {
+    useEffect(() => {
+        setActiveTab(initialTab);
+    }, [initialTab, plant.id]);
+
+    const persistWateringEvent = async (watering: WateringRecord) => {
+        const amountMl = Number(watering.amount);
+        const liters = amountMl / 1000;
+        const occurredAt = new Date(watering.date).toISOString();
+        const irrigationId = generateId();
+
+        await saveIrrigationEvent({
+            id: irrigationId,
+            growId,
+            plantId: plant.id,
+            phenotypeId: plant.phenotypeId,
+            liters,
+            occurredAt,
+            notes: watering.mixId ? `Fertilizer mix: ${watering.mixId}` : undefined,
+        });
+
+        await saveTelemetryReading({
+            id: generateId(),
+            growId,
+            plantId: plant.id,
+            phenotypeId: plant.phenotypeId,
+            metric: 'water_consumption',
+            value: liters,
+            unit: 'L',
+            recordedAt: occurredAt,
+            source: 'manual',
+        });
+
+        await saveGrowEvent({
+            id: generateId(),
+            growId,
+            plantId: plant.id,
+            phenotypeId: plant.phenotypeId,
+            type: watering.mixId ? 'feeding' : 'watering',
+            title: watering.mixId ? 'Watering with fertilizer mix' : 'Watering',
+            description: `${amountMl} ml${watering.mixId ? ` with mix ${watering.mixId}` : ''}`,
+            occurredAt,
+            payload: {
+                irrigationEventId: irrigationId,
+                amountMl,
+                liters,
+                mixId: watering.mixId || undefined,
+            },
+            createdAt: new Date().toISOString(),
+        });
+    };
+
+    const persistTrainingEvent = async (record: TrainingRecord, type: 'hst' | 'lst') => {
+        const occurredAt = new Date(record.date).toISOString();
+        await saveGrowEvent({
+            id: generateId(),
+            growId,
+            plantId: plant.id,
+            phenotypeId: plant.phenotypeId,
+            type,
+            title: `${type.toUpperCase()}: ${record.method}`,
+            description: record.notes || `${type.toUpperCase()} training recorded`,
+            occurredAt,
+            payload: {
+                method: record.method,
+                trainingType: type,
+            },
+            createdAt: new Date().toISOString(),
+        });
+    };
+
+    const persistSubstrateEvent = async (record: SubstrateRecord) => {
+        const occurredAt = new Date(record.date).toISOString();
+        await saveGrowEvent({
+            id: generateId(),
+            growId,
+            plantId: plant.id,
+            phenotypeId: plant.phenotypeId,
+            type: record.action === 'repotting' ? 'transplant' : 'substrate_change',
+            title: record.action === 'repotting' ? 'Repotting' : 'Substrate change',
+            description: `${record.substrateType} in ${record.potSize} pot`,
+            occurredAt,
+            payload: {
+                action: record.action,
+                substrateType: record.substrateType,
+                potSize: record.potSize,
+            },
+            createdAt: new Date().toISOString(),
+        });
+    };
+
+    const handleWateringAdd = async () => {
         const amount = Number(newWatering.amount);
         const date = new Date(newWatering.date);
         if (!Number.isFinite(date.getTime()) || !Number.isFinite(amount) || amount <= 0) return;
+        const normalizedWatering = normalizeWateringRecord(newWatering);
 
         setLocalPlant({
             ...localPlant,
             waterings: [
                 ...(localPlant.waterings || []),
-                normalizeWateringRecord(newWatering)
+                normalizedWatering
             ]
         });
+
+        try {
+            await persistWateringEvent(normalizedWatering);
+        } catch (error) {
+            setSaveError(error instanceof Error ? error.message : 'Failed to save watering event.');
+        }
 
         setNewWatering({
             date: getCurrentDate(),
@@ -108,17 +207,24 @@ export function PlantModal({ plant, updatePlant, deletePlant, growId, onManageFe
         });
     };
 
-    const handleHSTAdd = () => {
+    const handleHSTAdd = async () => {
         const date = new Date(newHST.date);
         if (!Number.isFinite(date.getTime()) || !newHST.method.trim()) return;
+        const normalizedRecord = normalizeTrainingRecord(newHST);
 
         setLocalPlant({
             ...localPlant,
             hstRecords: [
                 ...(localPlant.hstRecords || []),
-                normalizeTrainingRecord(newHST)
+                normalizedRecord
             ]
         });
+
+        try {
+            await persistTrainingEvent(normalizedRecord, 'hst');
+        } catch (error) {
+            setSaveError(error instanceof Error ? error.message : 'Failed to save HST event.');
+        }
 
         setNewHST({
             date: getCurrentDate(),
@@ -126,17 +232,24 @@ export function PlantModal({ plant, updatePlant, deletePlant, growId, onManageFe
         });
     };
 
-    const handleLSTAdd = () => {
+    const handleLSTAdd = async () => {
         const date = new Date(newLST.date);
         if (!Number.isFinite(date.getTime()) || !newLST.method.trim()) return;
+        const normalizedRecord = normalizeTrainingRecord(newLST);
 
         setLocalPlant({
             ...localPlant,
             lstRecords: [
                 ...(localPlant.lstRecords || []),
-                normalizeTrainingRecord(newLST)
+                normalizedRecord
             ]
         });
+
+        try {
+            await persistTrainingEvent(normalizedRecord, 'lst');
+        } catch (error) {
+            setSaveError(error instanceof Error ? error.message : 'Failed to save LST event.');
+        }
 
         setNewLST({
             date: getCurrentDate(),
@@ -144,18 +257,25 @@ export function PlantModal({ plant, updatePlant, deletePlant, growId, onManageFe
         });
     };
 
-    const handleSubstrateAdd = () => {
+    const handleSubstrateAdd = async () => {
         const date = new Date(newSubstrate.date);
         const potSize = Number(newSubstrate.potSize);
         if (!Number.isFinite(date.getTime()) || !newSubstrate.substrateType.trim() || !Number.isFinite(potSize) || potSize <= 0) return;
+        const normalizedRecord = normalizeSubstrateRecord(newSubstrate);
 
         setLocalPlant({
             ...localPlant,
             substrateRecords: [
                 ...(localPlant.substrateRecords || []),
-                normalizeSubstrateRecord(newSubstrate)
+                normalizedRecord
             ]
         });
+
+        try {
+            await persistSubstrateEvent(normalizedRecord);
+        } catch (error) {
+            setSaveError(error instanceof Error ? error.message : 'Failed to save substrate event.');
+        }
 
         setNewSubstrate({
             date: getCurrentDate(),
@@ -166,7 +286,7 @@ export function PlantModal({ plant, updatePlant, deletePlant, growId, onManageFe
     };
 
     const handleSave = async () => {
-        const plantToSave: Plant = {
+        let plantToSave: Plant = {
             ...localPlant,
             name: localPlant.name.trim(),
             genetic: localPlant.genetic.trim(),
@@ -182,6 +302,18 @@ export function PlantModal({ plant, updatePlant, deletePlant, growId, onManageFe
         setIsSaving(true);
         setSaveError(null);
         try {
+            if (plantToSave.geneticsId && !plantToSave.phenotypeId) {
+                const phenotype = createPhenotypeForPlant({
+                    growId,
+                    plantId: plantToSave.id,
+                    geneticsId: plantToSave.geneticsId,
+                    label: plantToSave.label || `${plantToSave.name} phenotype`,
+                });
+                await savePhenotype(phenotype);
+                plantToSave = { ...plantToSave, phenotypeId: phenotype.id };
+                setLocalPlant(plantToSave);
+            }
+
             const result = await updatePlant(plantToSave);
             if (result === false) {
                 setSaveError("Failed to save plant.");
@@ -284,25 +416,24 @@ export function PlantModal({ plant, updatePlant, deletePlant, growId, onManageFe
         }
     };
 
-    // Füge den Bestätigungsdialog für das Löschen hinzu
     const DeleteConfirmDialog = () => (
         <AlertDialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
-            <AlertDialogContent className="bg-gray-800 text-white">
+            <AlertDialogContent className="infotainment-overlay border-white/10 text-foreground shadow-[0_24px_80px_rgba(0,0,0,0.36)]">
                 <AlertDialogHeader>
                     <AlertDialogTitle>Delete Plant</AlertDialogTitle>
-                    <AlertDialogDescription className="text-gray-300">
+                    <AlertDialogDescription className="text-muted-foreground">
                         Are you sure you want to delete the plant &quot;{plant.name}&quot;?
                         <br />
-                        <span className="text-red-400">This action cannot be undone.</span>
+                        <span className="text-destructive">This action cannot be undone.</span>
                     </AlertDialogDescription>
                     {saveError && (
-                        <p className="text-sm text-red-400">{saveError}</p>
+                        <p className="text-sm text-destructive">{saveError}</p>
                     )}
                 </AlertDialogHeader>
                 <AlertDialogFooter>
                     <AlertDialogCancel
                         disabled={isDeleting}
-                        className="bg-gray-700 text-white hover:bg-gray-600 border-none rounded-full"
+                        className="rounded-[0.95rem] border-white/10 bg-white/[0.045] text-slate-100 hover:border-emerald-300/[0.22] hover:bg-emerald-300/10"
                     >
                         Cancel
                     </AlertDialogCancel>
@@ -312,9 +443,10 @@ export function PlantModal({ plant, updatePlant, deletePlant, growId, onManageFe
                             void confirmDelete();
                         }}
                         disabled={isDeleting}
-                        className="bg-red-600 text-white hover:bg-red-700 border-none rounded-full"
+                        className="rounded-2xl bg-destructive text-destructive-foreground hover:bg-destructive/90"
                     >
-                        {isDeleting ? 'Deleting...' : 'Delete Plant'}
+                        {isDeleting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                        Delete Plant
                     </AlertDialogAction>
                 </AlertDialogFooter>
             </AlertDialogContent>
@@ -322,25 +454,37 @@ export function PlantModal({ plant, updatePlant, deletePlant, growId, onManageFe
     );
 
     return (
-        <DialogContent className="p-0 gap-0 bg-[#1a1d24] text-white overflow-hidden max-w-full sm:max-w-4xl h-full sm:h-auto sm:rounded-xl sm:shadow-2xl flex flex-col border-gray-700">
+        <DialogContent className="flex h-[100dvh] max-w-full flex-col gap-0 overflow-hidden border-white/10 bg-[#070d12] p-0 text-foreground shadow-[0_28px_90px_rgba(0,0,0,0.46)] sm:h-[min(84vh,820px)] sm:max-w-6xl sm:rounded-[1.35rem]">
+            <DialogTitle className="sr-only">{localPlant.name} plant details</DialogTitle>
             {isMobile ? (
-                // Mobile header
-                <div className="flex items-center gap-2 py-2 px-3 border-b border-gray-800">
+                <div className="flex items-center gap-3 border-b border-white/10 bg-white/[0.035] px-3 py-3 backdrop-blur-xl">
                     <Button
                         variant="ghost"
                         size="icon"
-                        className="h-8 w-8 text-gray-400 hover:text-white"
+                        aria-label={isMenuOpen ? "Close plant sections" : "Open plant sections"}
+                        className="h-11 w-11 rounded-[0.95rem] border border-white/10 bg-white/[0.045] text-slate-100 shadow-sm hover:border-emerald-300/[0.22] hover:bg-emerald-300/10"
                         onClick={() => setIsMenuOpen(!isMenuOpen)}
                     >
-                        <Menu className="h-4 w-4" />
+                        {isMenuOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
                     </Button>
-                    <h2 className="flex-1 text-sm font-medium">{localPlant.name}</h2>
+                    <div className="min-w-0 flex-1">
+                        <h2 className="truncate text-base font-semibold">{localPlant.name}</h2>
+                        <p className="truncate text-xs text-muted-foreground">{localPlant.genetic || "No genetics assigned"}</p>
+                    </div>
+                    <Button
+                        onClick={handleSave}
+                        size="icon"
+                        aria-label="Save plant"
+                        disabled={isSaving}
+                        className="h-11 w-11 rounded-2xl bg-primary text-primary-foreground hover:bg-primary/90"
+                    >
+                        {isSaving ? <Loader2 className="h-5 w-5 animate-spin" /> : <Save className="h-5 w-5" />}
+                    </Button>
                 </div>
             ) : (
-                // Desktop header
-                <div className="flex items-center justify-between p-4 border-b border-gray-700">
-                    <div className="flex items-center space-x-4">
-                        <div className="w-24 aspect-square rounded-md overflow-hidden border-2 border-green-500">
+                <div className="flex items-center justify-between gap-4 border-b border-white/10 bg-white/[0.035] p-4 backdrop-blur-xl">
+                    <div className="flex min-w-0 items-center gap-4">
+                        <div className="aspect-square w-24 overflow-hidden rounded-[1.05rem] border border-white/10 bg-white/[0.045] shadow-[inset_0_1px_0_rgba(255,255,255,0.06)]">
                             {/* eslint-disable-next-line @next/next/no-img-element -- User images are stored as dynamic data/blob URLs from IndexedDB. */}
                             <img
                                 src={previewImage}
@@ -348,16 +492,42 @@ export function PlantModal({ plant, updatePlant, deletePlant, growId, onManageFe
                                 className="w-full h-full object-cover"
                             />
                         </div>
-                        <div>
-                            <div className="flex items-center gap-2">
-                                <h2 className="text-2xl font-bold text-white">{localPlant.name}</h2>
-                                <Badge className={`bg-green-400 ${localPlant.type === "regular" ? "bg-green-400" : localPlant.type === "autoflowering" ? "bg-yellow-400" : "bg-purple-400"}`}>{localPlant.type}</Badge>
-                                <Badge className={`bg-green-400 ${localPlant.propagationMethod === "clone" ? "bg-green-400" : "bg-blue-400"}`}>{localPlant.propagationMethod}</Badge>
+                        <div className="min-w-0">
+                            <div className="flex min-w-0 flex-wrap items-center gap-2">
+                                <h2 className="max-w-[42vw] truncate text-2xl font-semibold text-foreground">{localPlant.name}</h2>
+                                <Badge className="rounded-full border border-emerald-300/[0.20] bg-emerald-300/10 px-2.5 py-1 text-emerald-200 shadow-none">{localPlant.type}</Badge>
+                                <Badge className="rounded-full border border-sky-300/20 bg-sky-300/10 px-2.5 py-1 text-sky-200 shadow-none">{localPlant.propagationMethod}</Badge>
                             </div>
-                            <p className="text-gray-400 text-sm">{localPlant.genetic}</p>
-                            <p className="text-gray-400 text-sm">{localPlant.manufacturer}</p>
+                            <p className="truncate text-sm text-muted-foreground">{localPlant.genetic || "No genetics assigned"}</p>
+                            <p className="truncate text-sm text-muted-foreground">{localPlant.manufacturer || "No breeder assigned"}</p>
                         </div>
                     </div>
+                    <div className="flex items-center gap-2">
+                        <Button
+                            onClick={handleDeleteClick}
+                            variant="ghost"
+                            size="sm"
+                            className="rounded-[0.95rem] border border-red-400/20 bg-red-500/10 text-red-200 hover:bg-red-500/15 hover:text-red-100"
+                        >
+                            <Trash2 className="mr-2 h-4 w-4" />
+                            Delete
+                        </Button>
+                        <Button
+                            onClick={handleSave}
+                            disabled={isSaving}
+                            size="sm"
+                            className="min-w-28 rounded-2xl bg-primary text-primary-foreground hover:bg-primary/90"
+                        >
+                            {isSaving ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Save className="mr-2 h-4 w-4" />}
+                            Save
+                        </Button>
+                    </div>
+                </div>
+            )}
+
+            {saveError && (
+                <div className="border-b border-red-400/20 bg-red-500/10 px-4 py-2 text-sm text-red-200" aria-live="polite">
+                    {saveError}
                 </div>
             )}
 
@@ -372,10 +542,10 @@ export function PlantModal({ plant, updatePlant, deletePlant, growId, onManageFe
                                     animate={{ x: 0 }}
                                     exit={{ x: "-100%" }}
                                     transition={{ type: "spring", bounce: 0, duration: 0.3 }}
-                                    className="absolute inset-0 z-20 bg-[#1a1d24] border-r border-gray-800"
+                                    className="absolute inset-y-0 left-0 z-20 w-[min(86vw,360px)] border-r border-white/10 bg-[#0b1116]/96 shadow-[18px_0_60px_rgba(0,0,0,0.32)] backdrop-blur-xl"
                                 >
                                     <ScrollArea className="h-full">
-                                        <nav className="p-2">
+                                        <nav className="p-3">
                                             {tabs.map((item) => (
                                                 <button
                                                     key={item.value}
@@ -383,26 +553,26 @@ export function PlantModal({ plant, updatePlant, deletePlant, growId, onManageFe
                                                         setActiveTab(item.value);
                                                         setIsMenuOpen(false);
                                                     }}
-                                                    className={`w-full flex items-center justify-between p-3 rounded-lg mb-1 transition-colors ${activeTab === item.value
-                                                        ? "bg-green-600 text-white"
-                                                        : "text-gray-300 hover:bg-gray-800"
+                                                    className={`mb-1 flex min-h-12 w-full items-center justify-between rounded-2xl border px-3 py-2 text-left text-sm transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring ${activeTab === item.value
+                                                        ? "border-primary/30 bg-primary text-primary-foreground shadow-sm"
+                                                        : "border-transparent text-slate-300 hover:border-emerald-300/[0.22] hover:bg-emerald-300/10 hover:text-white"
                                                         }`}
                                                 >
-                                                    <div className="flex items-center gap-3">
+                                                    <div className="flex min-w-0 items-center gap-3">
                                                         <item.icon className="h-5 w-5" />
-                                                        <span className="text-sm font-medium">{item.label}</span>
+                                                        <span className="truncate font-medium">{item.label}</span>
                                                     </div>
-                                                    <ChevronRight className="h-4 w-4 text-gray-400" />
+                                                    <ChevronRight className="h-4 w-4 opacity-60" />
                                                 </button>
                                             ))}
-                                            <div className="mt-4 p-2">
+                                            <div className="mt-4">
                                                 <Button
                                                     onClick={() => {
                                                         handleDeleteClick();
                                                         setIsMenuOpen(false);
                                                     }}
                                                     variant="destructive"
-                                                    className="w-full text-white bg-red-600 hover:bg-red-700 border border-red-800"
+                                                    className="h-11 w-full rounded-2xl bg-destructive text-destructive-foreground hover:bg-destructive/90"
                                                 >
                                                     <Trash2 className="h-4 w-4 mr-2" />
                                                     Delete Plant
@@ -414,51 +584,34 @@ export function PlantModal({ plant, updatePlant, deletePlant, growId, onManageFe
                             )}
                         </AnimatePresence>
                     ) : (
-                        // Desktop menu
-                        <div className="w-1/3 bg-gray-800 flex flex-col border-r border-gray-700">
-                            <ScrollArea className="flex-1 h-[calc(100vh-16rem)] md:h-[500px]">
-                                <nav className="p-2">
+                        <div className="flex w-72 flex-col border-r border-white/10 bg-white/[0.025]">
+                            <ScrollArea className="flex-1">
+                                <nav className="space-y-1 p-3">
                                     {tabs.map((item) => (
                                         <button
                                             key={item.value}
                                             onClick={() => setActiveTab(item.value)}
-                                            className={`w-full flex items-center justify-between p-3 rounded-lg mb-1 transition-colors ${activeTab === item.value
-                                                ? "bg-green-600 text-white"
-                                                : "text-gray-300 hover:bg-gray-800"
+                                            className={`flex min-h-12 w-full items-center justify-between rounded-2xl border px-3 py-2 text-left transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring ${activeTab === item.value
+                                                ? "border-primary/30 bg-primary text-primary-foreground shadow-sm"
+                                                : "border-transparent text-slate-300 hover:border-emerald-300/[0.22] hover:bg-emerald-300/10 hover:text-white"
                                                 }`}
                                         >
-                                            <div className="flex items-center gap-3">
+                                            <div className="flex min-w-0 items-center gap-3">
                                                 <item.icon className="h-5 w-5" />
-                                                <span className="text-sm font-medium">{item.label}</span>
+                                                <span className="truncate text-sm font-medium">{item.label}</span>
                                             </div>
                                         </button>
                                     ))}
                                 </nav>
                             </ScrollArea>
-
-                            {/* Löschen-Button unter den Tabs */}
-                            <div className="p-2 mt-auto">
-                                <Button
-                                    onClick={handleDeleteClick}
-                                    variant="ghost"
-                                    size="sm"
-                                    className="text-red-400 hover:text-red-300 hover:bg-red-950/30 w-full rounded-full"
-                                >
-                                    <Trash2 className="h-4 w-4 mr-2" />
-                                    Delete Plant
-                                </Button>
-                            </div>
                         </div>
                     )}
 
-                    {/* Main Content Area */}
-                    <div className="flex-grow p-0 h-[calc(100vh-10rem)] md:h-[600px] flex flex-col w-full overflow-hidden">
+                    <div className="flex h-full w-full flex-grow flex-col overflow-hidden p-0">
                         <div className="flex flex-col md:flex-row h-full w-full">
-                            {/* Content Area */}
-                            <div className="flex-1 h-full w-full">
+                            <div className="flex-1 h-full w-full min-w-0">
                                 <div className="w-full h-full">
-                                    {/* Tab Content */}
-                                    <div className="p-6 h-full w-full overflow-hidden">
+                                    <div className="h-full w-full overflow-hidden p-4 sm:p-5">
                                         <AnimatePresence mode="wait">
                                             <motion.div
                                                 key={activeTab}
@@ -466,7 +619,7 @@ export function PlantModal({ plant, updatePlant, deletePlant, growId, onManageFe
                                                 animate={{ opacity: 1 }}
                                                 exit={{ opacity: 0 }}
                                                 transition={{ duration: 0.15 }}
-                                                className="h-full w-full"
+                                                className="h-full w-full overflow-hidden rounded-[1.15rem] border border-white/10 bg-[linear-gradient(145deg,rgba(18,27,34,0.94),rgba(7,12,17,0.96))] p-4 shadow-[inset_0_1px_0_rgba(255,255,255,0.06),0_16px_50px_rgba(0,0,0,0.28)]"
                                             >
                                                 {activeTab === "info" && (
                                                     <InfoTab
@@ -543,30 +696,16 @@ export function PlantModal({ plant, updatePlant, deletePlant, growId, onManageFe
                 </div>
             </div>
 
-            {/* Füge den Delete-Dialog hinzu */}
             <DeleteConfirmDialog />
 
-            {/* Footer mit nur Speichern: */}
-            <div className="p-3 border-t border-gray-700 bg-gray-900/50 backdrop-blur-sm">
-                {saveError && (
-                    <p className="text-sm text-red-400 mb-2">{saveError}</p>
-                )}
+            <div className="border-t border-white/10 bg-white/[0.035] px-4 py-3 backdrop-blur-xl sm:hidden">
                 <Button
                     onClick={handleSave}
-                    className={`w-full transition-all duration-200 ${isSaving ? "bg-green-800 hover:bg-green-800" : "bg-green-600 hover:bg-green-700"
-                        } text-white relative overflow-hidden`}
+                    className="relative h-11 w-full overflow-hidden rounded-2xl bg-primary text-primary-foreground hover:bg-primary/90"
                     disabled={isSaving}
                 >
-                    <span className={`flex items-center justify-center transition-all duration-200 ${isSaving ? "opacity-0" : "opacity-100"
-                        }`}>
-                        <Save className="h-4 w-4 mr-2" />
-                        Save
-                    </span>
-                    <span className={`absolute inset-0 flex items-center justify-center transition-all duration-200 ${isSaving ? "opacity-100 transform scale-100" : "opacity-0 transform scale-50"
-                        }`}>
-                        <Check className="h-5 w-5 mr-2" />
-                        Saving...
-                    </span>
+                    {isSaving ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Save className="mr-2 h-4 w-4" />}
+                    Save
                 </Button>
             </div>
 

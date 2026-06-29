@@ -41,9 +41,9 @@ describe('reminder utilities', () => {
   it('returns due badge classes for invalid, overdue, due soon, and later reminders', () => {
     const now = new Date('2024-04-01T12:00:00.000Z');
 
-    expect(getReminderDueBadgeClass('not-a-date', now)).toContain('bg-gray-500/20');
-    expect(getReminderDueBadgeClass('2024-04-01T11:59:00.000Z', now)).toContain('bg-red-500/20');
-    expect(getReminderDueBadgeClass('2024-04-01T15:00:00.000Z', now)).toContain('bg-green-500/20');
-    expect(getReminderDueBadgeClass('2024-04-03T12:00:00.000Z', now)).toContain('bg-gray-500/20');
+    expect(getReminderDueBadgeClass('not-a-date', now)).toContain('bg-muted/65');
+    expect(getReminderDueBadgeClass('2024-04-01T11:59:00.000Z', now)).toContain('bg-destructive/12');
+    expect(getReminderDueBadgeClass('2024-04-01T15:00:00.000Z', now)).toContain('bg-[#00DF81]/18');
+    expect(getReminderDueBadgeClass('2024-04-03T12:00:00.000Z', now)).toContain('bg-primary/12');
   });
 });

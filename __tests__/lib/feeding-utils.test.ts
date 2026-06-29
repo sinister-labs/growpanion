@@ -1,5 +1,13 @@
 import { describe, expect, it } from 'vitest';
-import { calculateFertilizerAmount, formatDosePerLiter, hasExistingFertilizerMix } from '@/lib/feeding-utils';
+import {
+  calculateDosePerLiter,
+  calculateFertilizerAmount,
+  createFertilizerProductId,
+  createMixRecipeIdFromLegacyMix,
+  findMixRecipeForLegacyMix,
+  formatDosePerLiter,
+  hasExistingFertilizerMix,
+} from '@/lib/feeding-utils';
 
 describe('feeding-utils', () => {
   it('scales fertilizer amounts from recipe batch to watering amount', () => {
@@ -33,5 +41,26 @@ describe('feeding-utils', () => {
     expect(hasExistingFertilizerMix(mixes, { id: 'mix-legacy-id' })).toBe(true);
     expect(hasExistingFertilizerMix(mixes, { id: 'mix-new-temp' })).toBe(false);
     expect(hasExistingFertilizerMix(mixes, null)).toBe(false);
+  });
+
+  it('creates deterministic product and recipe ids for product-os records', () => {
+    expect(createFertilizerProductId(' Terra Vega ')).toBe('fertilizer-product-terra-vega');
+    expect(createFertilizerProductId('CalMag+ 2.0')).toBe('fertilizer-product-calmag-2-0');
+    expect(createMixRecipeIdFromLegacyMix('mix-123')).toBe('recipe-mix-123');
+  });
+
+  it('calculates numeric recipe dose per liter', () => {
+    expect(calculateDosePerLiter('15', '5000')).toBe(3);
+    expect(calculateDosePerLiter('3', '0')).toBeNull();
+  });
+
+  it('finds product-os recipe metadata for a legacy fertilizer mix', () => {
+    const recipes = [
+      { id: 'recipe-other', name: 'Other' },
+      { id: 'recipe-mix-123', name: 'Product OS Recipe' },
+    ];
+
+    expect(findMixRecipeForLegacyMix(recipes, 'mix-123')).toEqual(recipes[1]);
+    expect(findMixRecipeForLegacyMix(recipes, 'missing')).toBeUndefined();
   });
 });

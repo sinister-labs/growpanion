@@ -143,37 +143,37 @@ export function getSensorIcon(type?: TuyaSensor['type'], size: IconSize = 'sm', 
   if (type) {
     switch (type) {
       case 'Temperature':
-        return React.createElement(ThermometerSun, { className: `${iconSize} text-amber-400` });
+        return React.createElement(ThermometerSun, { className: `${iconSize} text-accent` });
       case 'Humidity':
-        return React.createElement(Droplets, { className: `${iconSize} text-blue-400` });
+        return React.createElement(Droplets, { className: `${iconSize} text-primary` });
       case 'Lamp':
-        return React.createElement(Lightbulb, { className: `${iconSize} text-yellow-400` });
+        return React.createElement(Lightbulb, { className: `${iconSize} text-accent` });
       case 'Fan':
-        return React.createElement(Fan, { className: `${iconSize} text-sky-400` });
+        return React.createElement(Fan, { className: `${iconSize} text-primary` });
       case 'Carbon Filter':
-        return React.createElement(Filter, { className: `${iconSize} text-green-400` });
+        return React.createElement(Filter, { className: `${iconSize} text-primary` });
       case 'Boolean':
-        return React.createElement(ToggleLeft, { className: `${iconSize} text-indigo-400` });
+        return React.createElement(ToggleLeft, { className: `${iconSize} text-accent` });
       case 'Number':
-        return React.createElement(Gauge, { className: `${iconSize} text-purple-400` });
+        return React.createElement(Gauge, { className: `${iconSize} text-primary` });
     }
   }
 
   if (valueName) {
     if (valueName.includes('temp')) {
-      return React.createElement(ThermometerSun, { className: `${iconSize} text-amber-400` });
+      return React.createElement(ThermometerSun, { className: `${iconSize} text-accent` });
     } else if (valueName.includes('humid')) {
-      return React.createElement(Droplets, { className: `${iconSize} text-blue-400` });
+      return React.createElement(Droplets, { className: `${iconSize} text-primary` });
     } else if (valueName.includes('lamp') || valueName.includes('light')) {
-      return React.createElement(Lightbulb, { className: `${iconSize} text-yellow-400` });
+      return React.createElement(Lightbulb, { className: `${iconSize} text-accent` });
     } else if (valueName.includes('fan')) {
-      return React.createElement(Fan, { className: `${iconSize} text-sky-400` });
+      return React.createElement(Fan, { className: `${iconSize} text-primary` });
     } else if (valueName.includes('filter')) {
-      return React.createElement(Filter, { className: `${iconSize} text-green-400` });
+      return React.createElement(Filter, { className: `${iconSize} text-primary` });
     }
   }
 
-  return React.createElement(Gauge, { className: `${iconSize} text-purple-400` });
+  return React.createElement(Gauge, { className: `${iconSize} text-primary` });
 }
 
 /**

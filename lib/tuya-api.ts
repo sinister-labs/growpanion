@@ -33,6 +33,29 @@ export interface TuyaSensorDataResult {
   last_online?: number;
 }
 
+export interface TuyaCloudDevice {
+  id: string;
+  name: string;
+  category?: string;
+  online?: boolean;
+}
+
+interface TuyaDeviceListResponse {
+  success: boolean;
+  result?: {
+    devices?: Array<{
+      id: string;
+      name?: string;
+      category?: string;
+      is_online?: boolean;
+    }>;
+    total?: number;
+  };
+  message?: string;
+  msg?: string;
+}
+
+
 export interface SensorDataResponse {
   success: boolean;
   result?: TuyaSensorDataResult;
@@ -204,4 +227,69 @@ export class TuyaApiClient {
       return this.handleApiError(error, "Error retrieving sensor data");
     }
   }
-} 
+
+  private async ensureAccessToken(): Promise<boolean> {
+    if (this.accessToken && Date.now() < this.accessTokenExpiry) return true;
+    const authResponse = await this.authenticate();
+    return authResponse.success && Boolean(authResponse.result?.access_token);
+  }
+
+  private async signedGet<T>(signUrl: string): Promise<T> {
+    if (!this.accessToken) {
+      throw new Error('No valid access token available.');
+    }
+
+    const t = Date.now().toString();
+    const contentHash = crypto.createHash('sha256').update('').digest('hex');
+    const method = 'GET';
+    const stringToSign = [method, contentHash, '', signUrl].join('\n');
+    const signStr = this.clientId + this.accessToken + t + stringToSign;
+    const sign = crypto.createHmac('sha256', this.clientSecret)
+      .update(signStr, 'utf8')
+      .digest('hex')
+      .toUpperCase();
+
+    return apiRequest<T>({
+      url: `${this.baseUrl}${signUrl}`,
+      method: 'GET',
+      headers: {
+        client_id: this.clientId,
+        access_token: this.accessToken,
+        t,
+        sign,
+        sign_method: 'HMAC-SHA256',
+        'Content-Type': 'application/json',
+      },
+    });
+  }
+
+  async listCloudDevices(pageNo = 1, pageSize = 50): Promise<{ success: boolean; devices: TuyaCloudDevice[]; message?: string }> {
+    try {
+      const hasToken = await this.ensureAccessToken();
+      if (!hasToken) {
+        return { success: false, devices: [], message: 'Authentication failed.' };
+      }
+
+      const signUrl = `/v2.0/cloud/thing/device?page_no=${pageNo}&page_size=${pageSize}`;
+      const data = await this.signedGet<TuyaDeviceListResponse>(signUrl);
+      const devices = (data.result?.devices ?? []).map(device => ({
+        id: device.id,
+        name: device.name?.trim() || device.id,
+        category: device.category,
+        online: device.is_online,
+      }));
+
+      return {
+        success: Boolean(data.success),
+        devices,
+        message: data.msg || data.message,
+      };
+    } catch (error) {
+      return {
+        success: false,
+        devices: [],
+        message: error instanceof Error ? error.message : 'Error listing Tuya devices',
+      };
+    }
+  }
+}

@@ -165,21 +165,21 @@ const GrowComparison: React.FC<GrowComparisonProps> = ({
   if (isLoading) {
     return (
       <div className="flex items-center justify-center py-12">
-        <Loader2 className="h-8 w-8 animate-spin text-green-500" />
+        <Loader2 className="h-8 w-8 animate-spin text-primary" />
       </div>
     );
   }
 
   return (
-    <Card className="bg-gray-800/50 border-gray-700">
+    <Card>
       <CardHeader className="pb-4">
         <div className="flex items-center gap-3">
-          <div className="p-2 bg-green-600/20 rounded-lg">
-            <Scale className="h-5 w-5 text-green-400" />
+          <div className="rounded-2xl bg-primary/10 p-2">
+            <Scale className="h-5 w-5 text-primary" />
           </div>
           <div>
-            <CardTitle className="text-lg text-white">Grow Comparison</CardTitle>
-            <p className="text-sm text-gray-400">
+            <CardTitle className="text-lg text-foreground">Grow Comparison</CardTitle>
+            <p className="text-sm text-muted-foreground">
               Compare two grows side by side
             </p>
           </div>
@@ -190,14 +190,14 @@ const GrowComparison: React.FC<GrowComparisonProps> = ({
         {/* Grow Selectors */}
         <div className="grid grid-cols-1 md:grid-cols-[1fr,auto,1fr] gap-4 items-end">
           <div>
-            <label className="text-sm text-gray-400 block mb-2">Grow 1</label>
+            <label className="text-sm text-muted-foreground block mb-2">Grow 1</label>
             <CustomDropdown
               options={growOptions.filter(g => g.id !== grow2Id)}
               value={grow1Id || ''}
               onChange={handleGrow1Change}
               placeholder="Select first grow"
               width="w-full"
-              buttonClassName="bg-gray-700 border-gray-600"
+              buttonClassName="mt-1"
             />
           </div>
 
@@ -206,29 +206,29 @@ const GrowComparison: React.FC<GrowComparisonProps> = ({
             size="icon"
             onClick={handleSwap}
             disabled={!grow1Id || !grow2Id}
-            className="h-10 w-10 rounded-full bg-gray-700 hover:bg-gray-600"
+            className="h-10 w-10 rounded-full bg-secondary hover:bg-secondary/80"
           >
             <ArrowLeftRight className="h-4 w-4" />
           </Button>
 
           <div>
-            <label className="text-sm text-gray-400 block mb-2">Grow 2</label>
+            <label className="text-sm text-muted-foreground block mb-2">Grow 2</label>
             <CustomDropdown
               options={growOptions.filter(g => g.id !== grow1Id)}
               value={grow2Id || ''}
               onChange={handleGrow2Change}
               placeholder="Select second grow"
               width="w-full"
-              buttonClassName="bg-gray-700 border-gray-600"
+              buttonClassName="mt-1"
             />
           </div>
         </div>
 
         {loadError && (
-          <div className="flex items-start gap-3 rounded-lg border border-red-800 bg-red-900/20 p-4 text-red-200">
-            <AlertCircle className="mt-0.5 h-5 w-5 flex-shrink-0 text-red-400" />
+          <div className="flex items-start gap-3 rounded-3xl border border-destructive/30 bg-destructive/10 p-4 text-destructive">
+            <AlertCircle className="mt-0.5 h-5 w-5 flex-shrink-0 text-destructive" />
             <div>
-              <p className="font-medium text-white">Comparison data could not be loaded</p>
+              <p className="font-medium text-foreground">Comparison data could not be loaded</p>
               <p className="text-sm">{loadError}</p>
             </div>
           </div>
@@ -238,15 +238,15 @@ const GrowComparison: React.FC<GrowComparisonProps> = ({
         {grow1Data && grow2Data && (
           <>
             <div className="grid grid-cols-2 gap-4">
-              <div className="p-4 bg-gray-900/50 rounded-lg text-center">
-                <h3 className="text-lg font-semibold text-green-400">{grow1Data.name}</h3>
-                <p className="text-sm text-gray-400">
+              <div className="rounded-[1rem] border border-white/10 bg-white/[0.045] p-4 text-center">
+                <h3 className="text-lg font-semibold text-primary">{grow1Data.name}</h3>
+                <p className="text-sm text-muted-foreground">
                   {grow1Data.currentPhase} • {grow1Data.plants.length} plants
                 </p>
               </div>
-              <div className="p-4 bg-gray-900/50 rounded-lg text-center">
-                <h3 className="text-lg font-semibold text-blue-400">{grow2Data.name}</h3>
-                <p className="text-sm text-gray-400">
+              <div className="rounded-[1rem] border border-white/10 bg-white/[0.045] p-4 text-center">
+                <h3 className="text-lg font-semibold text-accent">{grow2Data.name}</h3>
+                <p className="text-sm text-muted-foreground">
                   {grow2Data.currentPhase} • {grow2Data.plants.length} plants
                 </p>
               </div>
@@ -341,11 +341,11 @@ const GrowComparison: React.FC<GrowComparisonProps> = ({
         {/* Empty State */}
         {(!grow1Data || !grow2Data) && (
           <div className="text-center py-12">
-            <Scale className="h-12 w-12 mx-auto mb-4 text-gray-600" />
-            <h3 className="text-lg font-medium text-gray-300 mb-2">
+            <Scale className="h-12 w-12 mx-auto mb-4 text-muted-foreground" />
+            <h3 className="text-lg font-medium text-foreground mb-2">
               Select Two Grows to Compare
             </h3>
-            <p className="text-gray-500 text-sm">
+            <p className="text-muted-foreground text-sm">
               Choose grows from the dropdowns above to see a side-by-side comparison.
             </p>
           </div>
@@ -353,7 +353,7 @@ const GrowComparison: React.FC<GrowComparisonProps> = ({
 
         {loadingPlants && (
           <div className="flex items-center justify-center py-8">
-            <Loader2 className="h-6 w-6 animate-spin text-green-500" />
+            <Loader2 className="h-6 w-6 animate-spin text-primary" />
           </div>
         )}
       </CardContent>

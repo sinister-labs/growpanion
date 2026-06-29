@@ -17,15 +17,15 @@ interface StrainCardProps {
 }
 
 const GENETICS_COLORS: Record<string, string> = {
-  Indica: 'bg-purple-600/20 text-purple-400 border-purple-500',
-  Sativa: 'bg-yellow-600/20 text-yellow-400 border-yellow-500',
-  Hybrid: 'bg-green-600/20 text-green-400 border-green-500',
+  Indica: 'bg-primary/10 text-primary border-primary/35',
+  Sativa: 'bg-accent/10 text-accent border-accent/35',
+  Hybrid: 'bg-primary/10 text-primary border-primary/35',
 };
 
 const DIFFICULTY_COLORS: Record<string, string> = {
-  easy: 'bg-green-600/20 text-green-400',
-  medium: 'bg-yellow-600/20 text-yellow-400',
-  hard: 'bg-red-600/20 text-red-400',
+  easy: 'bg-primary/10 text-primary',
+  medium: 'bg-accent/10 text-accent',
+  hard: 'bg-destructive/10 text-destructive',
 };
 
 const StrainCard: React.FC<StrainCardProps> = ({
@@ -37,7 +37,7 @@ const StrainCard: React.FC<StrainCardProps> = ({
 }) => {
   return (
     <Card 
-      className={`bg-gray-800/50 border-gray-700 hover:border-green-500/50 transition-all ${
+      className={`transition-all hover:border-primary/50 ${
         onSelect ? 'cursor-pointer' : ''
       }`}
       onClick={() => onSelect?.(strain)}
@@ -45,11 +45,11 @@ const StrainCard: React.FC<StrainCardProps> = ({
       <CardHeader className="pb-2">
         <div className="flex items-start justify-between">
           <div>
-            <CardTitle className="text-lg text-green-400 flex items-center gap-2">
+            <CardTitle className="text-lg text-foreground flex items-center gap-2">
               <Cannabis className="h-4 w-4" />
               {strain.name}
             </CardTitle>
-            <p className="text-sm text-gray-400">{strain.breeder}</p>
+            <p className="text-sm text-muted-foreground">{strain.breeder}</p>
           </div>
           <Badge 
             className={`border ${GENETICS_COLORS[strain.genetics] || GENETICS_COLORS.Hybrid}`}
@@ -63,12 +63,12 @@ const StrainCard: React.FC<StrainCardProps> = ({
         {(hasStrainNumber(strain.indicaPercent) || hasStrainNumber(strain.sativaPercent)) && (
           <div className="flex gap-4 text-sm">
             {hasStrainNumber(strain.indicaPercent) && (
-              <span className="text-purple-400">
+              <span className="text-primary">
                 {strain.indicaPercent}% Indica
               </span>
             )}
             {hasStrainNumber(strain.sativaPercent) && (
-              <span className="text-yellow-400">
+              <span className="text-accent">
                 {strain.sativaPercent}% Sativa
               </span>
             )}
@@ -78,12 +78,12 @@ const StrainCard: React.FC<StrainCardProps> = ({
         {/* THC/CBD */}
         <div className="flex gap-4 text-sm">
           {hasStrainNumber(strain.thcPercent) && (
-            <span className="text-gray-300">
+            <span className="text-muted-foreground">
               THC: {strain.thcPercent}%
             </span>
           )}
           {hasStrainNumber(strain.cbdPercent) && (
-            <span className="text-gray-300">
+            <span className="text-muted-foreground">
               CBD: {strain.cbdPercent}%
             </span>
           )}
@@ -92,13 +92,13 @@ const StrainCard: React.FC<StrainCardProps> = ({
         {/* Additional info */}
         <div className="flex flex-wrap gap-2">
           {hasStrainNumber(strain.floweringWeeks) && (
-            <span className="flex items-center gap-1 text-xs bg-gray-700/50 px-2 py-1 rounded">
+            <span className="flex items-center gap-1 rounded-full bg-secondary px-2 py-1 text-xs text-secondary-foreground">
               <Clock className="h-3 w-3" />
               {strain.floweringWeeks} weeks
             </span>
           )}
           {strain.difficulty && (
-            <span className={`flex items-center gap-1 text-xs px-2 py-1 rounded ${DIFFICULTY_COLORS[strain.difficulty]}`}>
+            <span className={`flex items-center gap-1 rounded-full px-2 py-1 text-xs ${DIFFICULTY_COLORS[strain.difficulty]}`}>
               <Gauge className="h-3 w-3" />
               {strain.difficulty}
             </span>
@@ -107,14 +107,14 @@ const StrainCard: React.FC<StrainCardProps> = ({
 
         {/* Description */}
         {strain.description && (
-          <p className="text-xs text-gray-400 line-clamp-2">
+          <p className="text-xs text-muted-foreground line-clamp-2">
             {strain.description}
           </p>
         )}
 
         {/* Actions */}
         {showActions && (onEdit || onDelete) && (
-          <div className="flex gap-2 pt-2 border-t border-gray-700">
+          <div className="flex gap-2 border-t border-border/[0.70] pt-2">
             {onEdit && (
               <Button
                 variant="ghost"
@@ -123,7 +123,7 @@ const StrainCard: React.FC<StrainCardProps> = ({
                   e.stopPropagation();
                   onEdit(strain);
                 }}
-                className="text-gray-400 hover:text-white"
+                className="text-muted-foreground hover:text-foreground"
               >
                 <Edit className="h-4 w-4 mr-1" />
                 Edit
@@ -137,7 +137,7 @@ const StrainCard: React.FC<StrainCardProps> = ({
                   e.stopPropagation();
                   onDelete(strain.id);
                 }}
-                className="text-red-400 hover:text-red-300"
+                className="text-destructive hover:text-destructive/80"
               >
                 <Trash2 className="h-4 w-4 mr-1" />
                 Delete

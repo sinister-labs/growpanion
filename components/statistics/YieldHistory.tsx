@@ -29,8 +29,8 @@ export function YieldHistory({ plants }: YieldHistoryProps) {
 
   if (history.length === 0) {
     return (
-      <div className="text-center py-8 text-gray-400">
-        <Calendar className="h-12 w-12 mx-auto mb-4 opacity-50" />
+      <div className="py-8 text-center text-muted-foreground">
+        <Calendar className="mx-auto mb-4 h-12 w-12 opacity-50" />
         <p>No harvest history available</p>
       </div>
     );
@@ -38,8 +38,7 @@ export function YieldHistory({ plants }: YieldHistoryProps) {
 
   return (
     <div className="space-y-4">
-      {/* Timeline Header */}
-      <div className="flex items-center justify-between text-sm text-gray-400 pb-2 border-b border-gray-700">
+      <div className="flex items-center justify-between border-b border-white/10 pb-2 text-sm text-muted-foreground">
         <span>Harvest Timeline</span>
         <span className="flex items-center gap-1">
           <TrendingUp className="h-4 w-4" />
@@ -65,50 +64,45 @@ export function YieldHistory({ plants }: YieldHistoryProps) {
               key={`${entry.date}-${entry.plantName}-${index}`}
               className="relative"
             >
-              {/* Timeline connector */}
               {index < history.length - 1 && (
-                <div className="absolute left-[11px] top-8 w-0.5 h-full bg-gray-700" />
+                <div className="absolute left-[11px] top-8 h-full w-0.5 bg-border" />
               )}
 
               <div className="flex gap-4">
-                {/* Timeline dot */}
-                <div className="flex-shrink-0 w-6 h-6 rounded-full bg-green-600 flex items-center justify-center">
-                  <div className="w-2 h-2 rounded-full bg-white" />
+                <div className="flex h-6 w-6 flex-shrink-0 items-center justify-center rounded-full bg-primary">
+                  <div className="h-2 w-2 rounded-full bg-primary-foreground" />
                 </div>
 
-                {/* Content */}
-                <div className="flex-1 bg-gray-900/50 rounded-lg p-4 relative overflow-hidden">
-                  {/* Yield bar background */}
+                <div className="relative flex-1 overflow-hidden rounded-[1rem] border border-white/10 bg-white/[0.045] p-4">
                   <div
-                    className="absolute inset-y-0 left-0 bg-green-600/10"
+                    className="absolute inset-y-0 left-0 bg-primary/10"
                     style={{ width: `${barWidth}%` }}
                   />
 
-                  {/* Content overlay */}
                   <div className="relative z-10">
-                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                    <div className="flex flex-col justify-between gap-2 sm:flex-row sm:items-center">
                       <div>
-                        <div className="font-medium text-white">
+                        <div className="font-semibold text-foreground">
                           {entry.plantName}
                         </div>
-                        <div className="text-sm text-gray-400">
+                        <div className="text-sm text-muted-foreground">
                           {entry.strainName} • {entry.growName}
                         </div>
-                        <div className="text-xs text-gray-500 mt-1">
+                        <div className="mt-1 text-xs text-muted-foreground">
                           {formattedDate}
                         </div>
                       </div>
 
                       <div className="sm:text-right">
-                        <div className="text-xl font-bold text-green-400">
+                        <div className="text-xl font-semibold text-primary">
                           {entry.yieldDry}g
                         </div>
                         {entry.yieldWet && (
-                          <div className="text-xs text-gray-500">
+                          <div className="text-xs text-muted-foreground">
                             ({entry.yieldWet}g wet)
                           </div>
                         )}
-                        <div className="text-xs text-gray-400 mt-1">
+                        <div className="mt-1 text-xs text-muted-foreground">
                           Avg: {entry.runningAvg}g
                         </div>
                       </div>

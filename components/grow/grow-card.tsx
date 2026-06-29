@@ -2,7 +2,6 @@
 
 import type { KeyboardEvent } from "react"
 import {
-    Card,
     CardContent,
     CardHeader,
     CardTitle,
@@ -37,37 +36,38 @@ export function GrowCard({ grow, onClick, onSetActive, isActive }: GrowCardProps
 
     if (isActive === undefined || isActive) {
         return (
-            <Card
+            <article
                 role="button"
                 tabIndex={0}
                 onClick={onClick}
                 onKeyDown={handleKeyDown}
-                className={`bg-gray-800 bg-opacity-50 backdrop-filter backdrop-blur-lg border-gray-700 hover:border-green-400 transition-all duration-300 transform hover:scale-105 cursor-pointer ${isActive ? 'border-green-500 ring-1 ring-green-500' : ''}`}
+                className={`os-card cursor-pointer transition-[border-color,box-shadow,transform] duration-200 hover:-translate-y-0.5 hover:border-emerald-300/[0.28] hover:shadow-[0_0_28px_rgba(52,255,154,0.12),0_14px_34px_rgba(0,0,0,0.24)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring ${isActive ? 'border-emerald-300/[0.32] bg-emerald-300/10 ring-1 ring-emerald-300/20' : ''}`}
             >
-                <CardHeader>
-                    <CardTitle className="text-base sm:text-lg font-medium text-green-400 flex justify-between">
-                        {grow.name}
+                <CardHeader className="space-y-2 p-4">
+                    <div className="flex items-start justify-between gap-3">
+                        <div className="min-w-0">
+                            <CardTitle className="truncate text-base font-semibold text-foreground sm:text-lg">
+                                {grow.name}
+                            </CardTitle>
+                            <CardDescription className="text-sm text-muted-foreground">
+                                Started {formattedDate}
+                            </CardDescription>
+                        </div>
                         {isActive && (
-                            <Badge className="bg-green-600 text-xs">Active</Badge>
+                            <Badge className="shrink-0 bg-primary/[0.12] text-xs text-primary">Active</Badge>
                         )}
-                    </CardTitle>
-                    <CardDescription className="text-gray-400">
-                        Started on {formattedDate}
-                    </CardDescription>
-                </CardHeader>
-                <CardContent>
-                    <div className="flex justify-between items-center">
-                        <span className="text-gray-400 text-sm">Current Phase:</span>
-                        <PhaseBadge phase={grow.currentPhase} />
                     </div>
-                    <div className="flex justify-between items-center mt-2">
-                        <span className="text-gray-400 text-sm">Duration:</span>
-                        <span className="text-white text-sm">
-                            {daysSinceStart} Days
-                        </span>
+                </CardHeader>
+                <CardContent className="space-y-3 p-4 pt-0">
+                    <div className="grid grid-cols-[1fr_auto] items-center gap-3">
+                        <PhaseBadge phase={grow.currentPhase} />
+                        <div className="text-right">
+                            <div className="text-lg font-semibold tabular-nums text-foreground">{daysSinceStart}</div>
+                            <div className="text-xs text-muted-foreground">days</div>
+                        </div>
                     </div>
 
-                    <div className="mt-4 flex justify-between items-center">
+                    <div className="flex items-center justify-between gap-3 border-t border-white/10 pt-3">
                         {onSetActive && (
                             <Button
                                 variant="ghost"
@@ -78,57 +78,62 @@ export function GrowCard({ grow, onClick, onSetActive, isActive }: GrowCardProps
                                     onSetActive();
                                 }}
                                 className={isActive
-                                    ? "bg-green-900/20 text-green-400 hover:bg-green-900/30"
-                                    : "text-gray-400 hover:text-white"
+                                    ? "bg-primary/10 text-primary hover:bg-primary/15"
+                                    : "text-muted-foreground hover:text-foreground"
                                 }
                             >
-                                {isActive ? "Active Grow" : "Set as active"}
+                                {isActive ? "Active grow" : "Set active"}
                             </Button>
                         )}
-                        <ArrowRight className="h-4 w-4 text-gray-500" />
+                        <span className="ml-auto flex items-center gap-1 text-sm font-medium text-muted-foreground">
+                            Open
+                            <ArrowRight className="h-4 w-4" />
+                        </span>
                     </div>
                 </CardContent>
-            </Card>
+            </article>
         );
     } else {
         return (
-            <Card
+            <article
                 role="button"
                 tabIndex={0}
                 onClick={onClick}
                 onKeyDown={handleKeyDown}
-                className="bg-gray-800/50 backdrop-filter backdrop-blur-lg border-gray-700 hover:border-gray-500 transition-all duration-300 transform hover:scale-105 cursor-pointer opacity-80"
+                className="os-card cursor-pointer opacity-90 transition-[border-color,box-shadow,transform] duration-200 hover:-translate-y-0.5 hover:border-emerald-300/[0.22] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
             >
-                <CardHeader>
-                    <div className="flex justify-between items-center">
-                        <CardTitle className="text-base sm:text-lg font-medium text-gray-300">
-                            {grow.name}
-                        </CardTitle>
-                        <Badge className="bg-gray-600 text-xs">Completed</Badge>
+                <CardHeader className="space-y-2 p-4">
+                    <div className="flex items-start justify-between gap-3">
+                        <div className="min-w-0">
+                            <CardTitle className="truncate text-base font-semibold text-foreground sm:text-lg">
+                                {grow.name}
+                            </CardTitle>
+                            <CardDescription className="text-sm text-muted-foreground">
+                                Started {formattedDate}
+                            </CardDescription>
+                        </div>
+                        <Badge className="shrink-0 bg-muted text-xs text-muted-foreground">Completed</Badge>
                     </div>
-                    <CardDescription className="text-gray-500">
-                        Started on {formattedDate}
-                    </CardDescription>
                 </CardHeader>
-                <CardContent>
-                    <div className="flex justify-between items-center">
-                        <span className="text-gray-500 text-sm">Status:</span>
-                        <span className="bg-gray-600/30 text-gray-400 rounded px-2 py-1 text-xs flex items-center gap-1">
+                <CardContent className="space-y-3 p-4 pt-0">
+                    <div className="grid grid-cols-[1fr_auto] items-center gap-3">
+                        <span className="flex items-center gap-1 rounded-full bg-muted/70 px-2 py-1 text-xs text-muted-foreground">
                             <CheckCircle className="h-3 w-3" /> Completed
                         </span>
-                    </div>
-                    <div className="flex justify-between items-center mt-2">
-                        <span className="text-gray-500 text-sm">Total Duration:</span>
-                        <span className="text-gray-300 text-sm">
-                            {daysSinceStart} Days
-                        </span>
+                        <div className="text-right">
+                            <div className="text-lg font-semibold tabular-nums text-foreground">{daysSinceStart}</div>
+                            <div className="text-xs text-muted-foreground">days</div>
+                        </div>
                     </div>
 
-                    <div className="mt-4 flex justify-end items-center">
-                        <ArrowRight className="h-4 w-4 text-gray-500" />
+                    <div className="flex items-center justify-end border-t border-white/10 pt-3">
+                        <span className="flex items-center gap-1 text-sm font-medium text-muted-foreground">
+                            Open
+                            <ArrowRight className="h-4 w-4" />
+                        </span>
                     </div>
                 </CardContent>
-            </Card>
+            </article>
         );
     }
 }

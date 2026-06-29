@@ -55,6 +55,23 @@ vi.mock('@/lib/db', () => ({
             put: vi.fn().mockResolvedValue('id'),
             clear: vi.fn().mockResolvedValue(undefined),
         },
+        genetics: { toArray: vi.fn().mockResolvedValue([]), get: vi.fn().mockResolvedValue(null), put: vi.fn().mockResolvedValue('id'), clear: vi.fn().mockResolvedValue(undefined) },
+        geneticsOverrides: { toArray: vi.fn().mockResolvedValue([]), get: vi.fn().mockResolvedValue(null), put: vi.fn().mockResolvedValue('id'), clear: vi.fn().mockResolvedValue(undefined) },
+        lineageEdges: { toArray: vi.fn().mockResolvedValue([]), get: vi.fn().mockResolvedValue(null), put: vi.fn().mockResolvedValue('id'), clear: vi.fn().mockResolvedValue(undefined) },
+        phenotypes: { toArray: vi.fn().mockResolvedValue([]), get: vi.fn().mockResolvedValue(null), put: vi.fn().mockResolvedValue('id'), clear: vi.fn().mockResolvedValue(undefined) },
+        growEvents: { toArray: vi.fn().mockResolvedValue([]), get: vi.fn().mockResolvedValue(null), put: vi.fn().mockResolvedValue('id'), clear: vi.fn().mockResolvedValue(undefined) },
+        telemetryReadings: { toArray: vi.fn().mockResolvedValue([]), get: vi.fn().mockResolvedValue(null), put: vi.fn().mockResolvedValue('id'), clear: vi.fn().mockResolvedValue(undefined) },
+        deviceIntegrations: { toArray: vi.fn().mockResolvedValue([]), get: vi.fn().mockResolvedValue(null), put: vi.fn().mockResolvedValue('id'), clear: vi.fn().mockResolvedValue(undefined) },
+        devices: { toArray: vi.fn().mockResolvedValue([]), get: vi.fn().mockResolvedValue(null), put: vi.fn().mockResolvedValue('id'), clear: vi.fn().mockResolvedValue(undefined) },
+        sensorBindings: { toArray: vi.fn().mockResolvedValue([]), get: vi.fn().mockResolvedValue(null), put: vi.fn().mockResolvedValue('id'), clear: vi.fn().mockResolvedValue(undefined) },
+        fertilizerProducts: { toArray: vi.fn().mockResolvedValue([]), get: vi.fn().mockResolvedValue(null), put: vi.fn().mockResolvedValue('id'), clear: vi.fn().mockResolvedValue(undefined) },
+        mixRecipes: { toArray: vi.fn().mockResolvedValue([]), get: vi.fn().mockResolvedValue(null), put: vi.fn().mockResolvedValue('id'), clear: vi.fn().mockResolvedValue(undefined) },
+        preparedBatches: { toArray: vi.fn().mockResolvedValue([]), get: vi.fn().mockResolvedValue(null), put: vi.fn().mockResolvedValue('id'), clear: vi.fn().mockResolvedValue(undefined) },
+        irrigationEvents: { toArray: vi.fn().mockResolvedValue([]), get: vi.fn().mockResolvedValue(null), put: vi.fn().mockResolvedValue('id'), clear: vi.fn().mockResolvedValue(undefined) },
+        photos: { toArray: vi.fn().mockResolvedValue([]), get: vi.fn().mockResolvedValue(null), put: vi.fn().mockResolvedValue('id'), clear: vi.fn().mockResolvedValue(undefined) },
+        recommendations: { toArray: vi.fn().mockResolvedValue([]), get: vi.fn().mockResolvedValue(null), put: vi.fn().mockResolvedValue('id'), clear: vi.fn().mockResolvedValue(undefined) },
+        powerConsumers: { toArray: vi.fn().mockResolvedValue([]), get: vi.fn().mockResolvedValue(null), put: vi.fn().mockResolvedValue('id'), clear: vi.fn().mockResolvedValue(undefined) },
+        powerCostProfiles: { toArray: vi.fn().mockResolvedValue([]), get: vi.fn().mockResolvedValue(null), put: vi.fn().mockResolvedValue('id'), clear: vi.fn().mockResolvedValue(undefined) },
         transaction: vi.fn().mockImplementation(async (_, __, callback) => {
             return callback();
         }),
@@ -216,6 +233,25 @@ describe('export-import', () => {
             expect(result.errors).toContain('Invalid data.strains');
             expect(result.errors).toContain('Invalid data.reminders');
             expect(result.errors).toContain('Invalid data.notificationSettings');
+        });
+
+        it('should reject malformed product entity sections', () => {
+            const invalidData = {
+                metadata: validExportData.metadata,
+                data: {
+                    ...validExportData.data,
+                    genetics: {},
+                    telemetryReadings: [{ id: 'reading-1', growId: 'grow-1', metric: 'temperature', value: Number.NaN, unit: '°C', recordedAt: '2024-01-01', source: 'manual' }],
+                    devices: [{ id: 'device-1', name: 'Missing Integration' }],
+                },
+            };
+
+            const result = validateExportSchema(invalidData);
+
+            expect(result.valid).toBe(false);
+            expect(result.errors).toContain('Invalid data.genetics');
+            expect(result.errors).toContain('Invalid data.telemetryReadings[0] schema');
+            expect(result.errors).toContain('Invalid data.devices[0] schema');
         });
 
         it('should reject malformed records that would break database imports', () => {
@@ -529,6 +565,99 @@ describe('export-import', () => {
                 genetic: 'Test Kush',
                 manufacturer: 'GrowPanion',
             }));
+        });
+
+        it('should import product OS entity sections', async () => {
+            const exportData = {
+                metadata: {
+                    version: '1.0',
+                    appVersion: '0.1.0',
+                    exportedAt: '2024-01-15T10:30:00.000Z',
+                    encrypted: false,
+                },
+                data: {
+                    grows: [
+                        { id: 'grow-1', name: 'Grow 1', startDate: '2024-01-01', currentPhase: 'Seedling', phaseHistory: [] },
+                    ],
+                    plants: [
+                        {
+                            id: 'plant-1',
+                            growId: 'grow-1',
+                            name: 'Plant 1',
+                            genetic: 'Blueberry Pancake',
+                            manufacturer: 'HSC',
+                            type: 'feminized',
+                            propagationMethod: 'seed',
+                        },
+                    ],
+                    fertilizerMixes: [],
+                    settings: null,
+                    genetics: [{
+                        id: 'genetics-1',
+                        name: 'Blueberry Pancake',
+                        type: 'Hybrid',
+                        source: 'user',
+                        createdAt: '2024-01-01T00:00:00.000Z',
+                        updatedAt: '2024-01-01T00:00:00.000Z',
+                    }],
+                    phenotypes: [{
+                        id: 'pheno-1',
+                        geneticsId: 'genetics-1',
+                        plantId: 'plant-1',
+                        growId: 'grow-1',
+                        label: 'Pheno A',
+                        createdAt: '2024-01-01T00:00:00.000Z',
+                        updatedAt: '2024-01-01T00:00:00.000Z',
+                    }],
+                    telemetryReadings: [{
+                        id: 'reading-1',
+                        growId: 'grow-1',
+                        metric: 'temperature',
+                        value: 25,
+                        unit: '°C',
+                        recordedAt: '2024-01-01T12:00:00.000Z',
+                        source: 'manual',
+                    }],
+                    deviceIntegrations: [{
+                        id: 'integration-1',
+                        type: 'manual',
+                        name: 'Manual Sensors',
+                        status: 'active',
+                        createdAt: '2024-01-01T00:00:00.000Z',
+                        updatedAt: '2024-01-01T00:00:00.000Z',
+                    }],
+                    devices: [{
+                        id: 'device-1',
+                        integrationId: 'integration-1',
+                        name: 'Tent Sensor',
+                        type: 'sensor',
+                        status: 'active',
+                        growId: 'grow-1',
+                        createdAt: '2024-01-01T00:00:00.000Z',
+                        updatedAt: '2024-01-01T00:00:00.000Z',
+                    }],
+                    irrigationEvents: [{
+                        id: 'irrigation-1',
+                        growId: 'grow-1',
+                        plantId: 'plant-1',
+                        liters: 1.2,
+                        occurredAt: '2024-01-01T12:00:00.000Z',
+                    }],
+                },
+            } as ExportData;
+
+            const result = await importData(exportData, 'merge');
+
+            expect(result.success).toBe(true);
+            expect(result.imported.genetics).toBe(1);
+            expect(result.imported.phenotypes).toBe(1);
+            expect(result.imported.telemetryReadings).toBe(1);
+            expect(result.imported.deviceIntegrations).toBe(1);
+            expect(result.imported.devices).toBe(1);
+            expect(result.imported.irrigationEvents).toBe(1);
+            expect(db.genetics.put).toHaveBeenCalledWith(expect.objectContaining({ id: 'genetics-1' }));
+            expect(db.telemetryReadings.put).toHaveBeenCalledWith(expect.objectContaining({ metric: 'temperature' }));
+            expect(db.irrigationEvents.put).toHaveBeenCalledWith(expect.objectContaining({ liters: 1.2 }));
         });
     });
 

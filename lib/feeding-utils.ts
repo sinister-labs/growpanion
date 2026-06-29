@@ -40,3 +40,37 @@ export function hasExistingFertilizerMix<T extends { id: string }>(
 ): boolean {
   return Boolean(editingMix && mixes.some(mix => mix.id === editingMix.id));
 }
+
+function slugify(value: string): string {
+  return value
+    .trim()
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-+|-+$/g, '') || 'product';
+}
+
+export function createFertilizerProductId(name: string): string {
+  return `fertilizer-product-${slugify(name)}`;
+}
+
+export function calculateDosePerLiter(fertilizerAmount: string, mixWaterAmount: string): number | null {
+  const fertilizer = parsePositiveNumber(fertilizerAmount);
+  const mixWater = parsePositiveNumber(mixWaterAmount);
+
+  if (fertilizer === null || mixWater === null) {
+    return null;
+  }
+
+  return (fertilizer / mixWater) * 1000;
+}
+
+export function createMixRecipeIdFromLegacyMix(mixId: string): string {
+  return `recipe-${mixId}`;
+}
+
+export function findMixRecipeForLegacyMix<T extends { id: string }>(
+  recipes: T[],
+  mixId: string,
+): T | undefined {
+  return recipes.find(recipe => recipe.id === createMixRecipeIdFromLegacyMix(mixId));
+}

@@ -13,10 +13,14 @@ const SENSITIVE_FIELDS = [
   'auth',
   'clientSecret',
   'tuyaClientSecret',
+  'appPasswordl',
+  'acInfinityPassword',
   'access_token',
   'refresh_token',
+  'appId',
   'clientId',
-  'tuyaClientId'
+  'tuyaClientId',
+  'acInfinityEmail'
 ];
 
 /**

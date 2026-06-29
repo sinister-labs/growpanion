@@ -83,15 +83,15 @@ const CustomTooltip: React.FC<CustomTooltipProps> = ({ active, payload, label })
   if (!active || !payload?.length) return null;
 
   return (
-    <div className="bg-gray-800 border border-gray-700 rounded-lg p-3 shadow-lg">
-      <p className="text-gray-400 text-sm mb-2">{label}</p>
+    <div className="rounded-2xl border border-border/[0.70] bg-popover p-3 shadow-lg">
+      <p className="text-muted-foreground text-sm mb-2">{label}</p>
       {payload.map((entry, index) => (
         <div key={index} className="flex items-center gap-2 text-sm">
           <div 
             className="w-3 h-3 rounded-full" 
             style={{ backgroundColor: entry.color }}
           />
-          <span className="text-gray-300">
+          <span className="text-foreground">
             {entry.name}: {entry.value}
             {entry.dataKey === 'temperature' && '°C'}
             {entry.dataKey === 'humidity' && '%'}
@@ -120,15 +120,15 @@ export function HistoricalChart({
   const isDemo = !data || data.length === 0;
 
   return (
-    <Card className="bg-gray-800/50 border-gray-700">
+    <Card>
       <CardHeader className="pb-4">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
-            <TrendingUp className="h-5 w-5 text-green-400" />
-            <CardTitle className="text-lg text-white">{title}</CardTitle>
+            <TrendingUp className="h-5 w-5 text-primary" />
+            <CardTitle className="text-lg text-foreground">{title}</CardTitle>
           </div>
           {isDemo && (
-            <span className="text-xs bg-yellow-600/20 text-yellow-400 px-2 py-1 rounded">
+            <span className="rounded-full bg-accent/10 px-2 py-1 text-xs text-accent">
               Demo Data
             </span>
           )}
@@ -143,38 +143,38 @@ export function HistoricalChart({
             >
               <CartesianGrid 
                 strokeDasharray="3 3" 
-                stroke="#374151" 
+                stroke="#17876D" 
                 vertical={false}
               />
               <XAxis 
                 dataKey="time" 
-                stroke="#9CA3AF"
+                stroke="#00DF81"
                 fontSize={12}
                 tickLine={false}
-                axisLine={{ stroke: '#374151' }}
+                axisLine={{ stroke: '#17876D' }}
               />
               <YAxis 
                 yAxisId="left"
-                stroke="#9CA3AF"
+                stroke="#00DF81"
                 fontSize={12}
                 tickLine={false}
-                axisLine={{ stroke: '#374151' }}
+                axisLine={{ stroke: '#17876D' }}
                 domain={['auto', 'auto']}
               />
               <YAxis 
                 yAxisId="right"
                 orientation="right"
-                stroke="#9CA3AF"
+                stroke="#00DF81"
                 fontSize={12}
                 tickLine={false}
-                axisLine={{ stroke: '#374151' }}
+                axisLine={{ stroke: '#17876D' }}
                 domain={[0, 100]}
               />
               <Tooltip content={<CustomTooltip />} />
               <Legend 
                 wrapperStyle={{ paddingTop: '20px' }}
                 formatter={(value) => (
-                  <span className="text-gray-300 text-sm">{value}</span>
+                  <span className="text-muted-foreground text-sm">{value}</span>
                 )}
               />
               
@@ -184,10 +184,10 @@ export function HistoricalChart({
                   type="monotone"
                   dataKey="temperature"
                   name="Temperature"
-                  stroke="#f59e0b"
+                  stroke="#00DF81"
                   strokeWidth={2}
                   dot={false}
-                  activeDot={{ r: 4, fill: '#f59e0b' }}
+                  activeDot={{ r: 4, fill: '#00DF81' }}
                 />
               )}
               
@@ -197,10 +197,10 @@ export function HistoricalChart({
                   type="monotone"
                   dataKey="humidity"
                   name="Humidity"
-                  stroke="#3b82f6"
+                  stroke="#2FA98C"
                   strokeWidth={2}
                   dot={false}
-                  activeDot={{ r: 4, fill: '#3b82f6' }}
+                  activeDot={{ r: 4, fill: '#2FA98C' }}
                 />
               )}
               
@@ -210,10 +210,10 @@ export function HistoricalChart({
                   type="monotone"
                   dataKey="vpd"
                   name="VPD"
-                  stroke="#22c55e"
+                  stroke="#00DF81"
                   strokeWidth={2}
                   dot={false}
-                  activeDot={{ r: 4, fill: '#22c55e' }}
+                  activeDot={{ r: 4, fill: '#00DF81' }}
                 />
               )}
             </LineChart>
@@ -221,7 +221,7 @@ export function HistoricalChart({
         </div>
         
         {/* Legend explanation */}
-        <div className="mt-4 pt-4 border-t border-gray-700 grid grid-cols-3 gap-4 text-xs text-gray-400">
+        <div className="mt-4 grid grid-cols-3 gap-4 border-t border-white/10 pt-4 text-xs text-muted-foreground">
           {showTemperature && (
             <div className="flex items-center gap-2">
               <div className="w-3 h-0.5 bg-amber-500 rounded" />
@@ -230,13 +230,13 @@ export function HistoricalChart({
           )}
           {showHumidity && (
             <div className="flex items-center gap-2">
-              <div className="w-3 h-0.5 bg-blue-500 rounded" />
+              <div className="h-0.5 w-3 rounded bg-[#2FA98C]" />
               <span>Humidity (%)</span>
             </div>
           )}
           {showVpd && (
             <div className="flex items-center gap-2">
-              <div className="w-3 h-0.5 bg-green-500 rounded" />
+              <div className="h-0.5 w-3 rounded bg-primary" />
               <span>VPD (kPa)</span>
             </div>
           )}

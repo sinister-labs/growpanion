@@ -44,11 +44,11 @@ export function getReminderDueBadgeClass(dateString: string, now = new Date()): 
   const baseClass = 'inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-semibold';
 
   if (!Number.isFinite(diffMs)) {
-    return `${baseClass} bg-gray-500/20 text-gray-400`;
+    return `${baseClass} bg-muted/65 text-muted-foreground`;
   }
 
   const diffHours = diffMs / (1000 * 60 * 60);
-  if (diffMs < 0) return `${baseClass} bg-red-500/20 text-red-400`;
-  if (diffHours < 24) return `${baseClass} bg-green-500/20 text-green-400`;
-  return `${baseClass} bg-gray-500/20 text-gray-400`;
+  if (diffMs < 0) return `${baseClass} bg-destructive/12 text-destructive`;
+  if (diffHours < 24) return `${baseClass} bg-[#00DF81]/18 text-[#AACBC4]`;
+  return `${baseClass} bg-primary/12 text-primary`;
 }

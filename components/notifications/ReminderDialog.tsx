@@ -26,11 +26,11 @@ import { Reminder, ReminderType, saveReminder, generateId, getNotificationSettin
 import { REMINDER_PRESETS, calculateNextDue } from '@/lib/notification-utils';
 
 const typeOptions: { value: ReminderType; label: string; icon: React.ReactNode }[] = [
-    { value: 'watering', label: 'Watering', icon: <Droplets className="h-4 w-4 text-blue-500" /> },
-    { value: 'feeding', label: 'Feeding', icon: <Leaf className="h-4 w-4 text-green-500" /> },
-    { value: 'photo', label: 'Photo', icon: <Camera className="h-4 w-4 text-purple-500" /> },
-    { value: 'training', label: 'Training', icon: <Scissors className="h-4 w-4 text-orange-500" /> },
-    { value: 'custom', label: 'Custom', icon: <Bell className="h-4 w-4 text-gray-500" /> },
+    { value: 'watering', label: 'Watering', icon: <Droplets className="h-4 w-4 text-[#2FA98C]" /> },
+    { value: 'feeding', label: 'Feeding', icon: <Leaf className="h-4 w-4 text-primary" /> },
+    { value: 'photo', label: 'Photo', icon: <Camera className="h-4 w-4 text-[#17876D]" /> },
+    { value: 'training', label: 'Training', icon: <Scissors className="h-4 w-4 text-[#2CC295]" /> },
+    { value: 'custom', label: 'Custom', icon: <Bell className="h-4 w-4 text-muted-foreground" /> },
 ];
 
 interface ReminderDialogProps {
@@ -164,7 +164,6 @@ export function ReminderDialog({ open, onClose, growId, reminder }: ReminderDial
                 </DialogHeader>
                 
                 <div className="space-y-4 py-4">
-                    {/* Type Selection */}
                     <div className="space-y-2">
                         <Label htmlFor="type">Type</Label>
                         <Select value={type} onValueChange={(v) => setType(v as ReminderType)}>
@@ -184,7 +183,6 @@ export function ReminderDialog({ open, onClose, growId, reminder }: ReminderDial
                         </Select>
                     </div>
 
-                    {/* Title */}
                     <div className="space-y-2">
                         <Label htmlFor="title">Title</Label>
                         <Input
@@ -195,7 +193,6 @@ export function ReminderDialog({ open, onClose, growId, reminder }: ReminderDial
                         />
                     </div>
 
-                    {/* Description */}
                     <div className="space-y-2">
                         <Label htmlFor="description">Description (optional)</Label>
                         <Textarea
@@ -207,7 +204,6 @@ export function ReminderDialog({ open, onClose, growId, reminder }: ReminderDial
                         />
                     </div>
 
-                    {/* Interval */}
                     <div className="space-y-2">
                         <Label htmlFor="interval">Repeat Every (days)</Label>
                         <div className="flex items-center gap-2">
@@ -228,7 +224,6 @@ export function ReminderDialog({ open, onClose, growId, reminder }: ReminderDial
                         </p>
                     </div>
 
-                    {/* Quick Presets */}
                     {!isEditing && (
                         <div className="space-y-2">
                             <Label>Quick Presets</Label>

@@ -1,65 +1,26 @@
 "use client"
 
 import { useEffect } from "react"
-import GrowEnvironment from "@/components/grow-environment"
-import { PlantList } from "@/components/plant-list"
-import { GrowInfo } from "@/components/grow-info"
+import ProductOSDashboard from "@/components/product-os-dashboard"
 import { useGrows } from "@/hooks/useGrows"
 import { usePlants } from "@/hooks/usePlants"
-import { Loader2, ArrowRight, TreesIcon as Plant, Home } from "lucide-react"
+import { Loader2, ArrowRight, Sprout } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { DropdownMenuItem } from "@/components/ui/dropdown-menu"
 import { CustomDropdown } from "@/components/ui/custom-dropdown"
 import { useToast } from "@/hooks/use-toast"
 import { useRouting } from "@/hooks/useRouting"
 import { calculateDuration } from "@/lib/utils"
-import { createPhaseHistoryEntry, getDashboardActiveGrow } from "@/lib/growth-utils"
+import { getDashboardActiveGrow } from "@/lib/growth-utils"
 
 export default function DashboardContent() {
-    const { grows, activeGrowId, getActiveGrows, isLoading, error, updateGrow, setActiveGrow } = useGrows();
+    const { grows, activeGrowId, getActiveGrows, isLoading, error, setActiveGrow } = useGrows();
     const activeGrows = getActiveGrows();
     const activeGrow = getDashboardActiveGrow(grows, activeGrowId);
     const dashboardGrowId = activeGrow?.id ?? null;
     const { plants } = usePlants(dashboardGrowId);
     const { toast } = useToast();
     const { navigateTo } = useRouting();
-
-    // Callback für Phasenänderungen im aktiven Grow
-    const handlePhaseChange = (newPhase: string) => {
-        if (!activeGrow) return;
-        if (activeGrow.currentPhase === newPhase) return;
-
-        const updatedGrow = {
-            ...activeGrow,
-            currentPhase: newPhase,
-            phaseHistory: [...activeGrow.phaseHistory, createPhaseHistoryEntry(newPhase, new Date().toISOString())],
-        };
-
-        updateGrow(updatedGrow)
-            .then(() => {
-                toast({
-                    variant: "success",
-                    title: "Phase changed",
-                    description: `The phase was successfully changed to "${newPhase}".`,
-                });
-
-                // Wenn die Phase auf "Done" gesetzt wurde, informiere den Benutzer
-                if (newPhase === "Done") {
-                    toast({
-                        variant: "default",
-                        title: "Grow completed",
-                        description: `The Grow "${updatedGrow.name}" was marked as completed and will no longer appear in the dashboard.`,
-                    });
-                }
-            })
-            .catch((error) => {
-                toast({
-                    variant: "destructive",
-                    title: "Error",
-                    description: "The phase could not be changed: " + error.message,
-                });
-            });
-    };
 
     useEffect(() => {
         if (error) {
@@ -74,7 +35,7 @@ export default function DashboardContent() {
     if (isLoading) {
         return (
             <div className="flex min-h-[50vh] items-center justify-center">
-                <Loader2 className="w-8 h-8 animate-spin text-green-500" />
+                <Loader2 className="h-8 w-8 animate-spin text-primary" />
             </div>
         );
     }
@@ -82,8 +43,8 @@ export default function DashboardContent() {
     if (error) {
         return (
             <div className="flex min-h-[50vh] items-center justify-center">
-                <div className="bg-red-900/30 text-red-300 p-8 rounded-lg max-w-md">
-                    <h2 className="text-xl font-semibold mb-4">Error</h2>
+                <div className="max-w-md rounded-3xl border border-destructive/35 bg-destructive/10 p-8 text-destructive">
+                    <h2 className="mb-4 text-xl font-semibold">Error</h2>
                     <p>{error.message}</p>
                 </div>
             </div>
@@ -91,23 +52,15 @@ export default function DashboardContent() {
     }
 
     return (
-        <div className="space-y-8 mt-6">
-            <div className="flex justify-between items-center">
-                <div className="flex flex-col">
-                    <div>
-                        <div className="flex items-center gap-2 mb-1">
-                            <Button
-                                variant="link"
-                                className="text-gray-400 hover:text-white p-0 h-auto flex items-center gap-1"
-                                onClick={() => navigateTo('dashboard')}
-                            >
-                                <Home className="h-4 w-4" />
-                                <span>Dashboard</span>
-                            </Button>
+        <div className="mt-2 space-y-3">
+            {activeGrows.length > 1 && (
+                <div className="infotainment-panel flex flex-col gap-3 p-3 sm:p-4 lg:flex-row lg:items-center lg:justify-between">
+                    <div className="flex min-w-0 flex-col">
+                        <div className="flex items-center gap-2 text-sm font-semibold text-muted-foreground">
+                            <Sprout className="h-4 w-4 text-primary" />
+                            Active grow selector
                         </div>
-                    </div>
-                    {activeGrows.length > 0 ? (
-                        <div className="mt-2">
+                        <div className="mt-2 max-w-md">
                             <CustomDropdown
                                 options={activeGrows.map((grow) => ({
                                     id: grow.id,
@@ -125,60 +78,33 @@ export default function DashboardContent() {
                                 placeholder="Grow select"
                                 renderFooter={() => (
                                     <div onClick={() => navigateTo('grows')}>
-                                        <DropdownMenuItem className="py-2 cursor-pointer text-gray-300 hover:text-white">
+                                        <DropdownMenuItem className="cursor-pointer rounded-2xl py-2 text-foreground">
                                             Manage all Grows
-                                            <ArrowRight className="h-3.5 w-3.5 ml-auto" />
+                                            <ArrowRight className="ml-auto h-3.5 w-3.5" />
                                         </DropdownMenuItem>
                                     </div>
                                 )}
                             />
                         </div>
-                    ) : (
-                        <div className="mt-2 text-sm text-gray-400">
-                            No active grows available. Create a new grow or check completed grows.
-                        </div>
-                    )}
-                </div>
-                <Button
-                    className="bg-green-600 hover:bg-green-700"
-                    onClick={() => navigateTo('grows')}
-                >
-                    Manage Grows
-                    <ArrowRight className="ml-2 h-4 w-4" />
-                </Button>
-            </div>
-
-            <GrowEnvironment grow={activeGrow || undefined} onPhaseChange={handlePhaseChange} />
-
-            {activeGrow ? (
-                <>
-                    <GrowInfo
-                        grow={{
-                            ...activeGrow,
-                            plants: plants
-                        }}
-                        onPhaseChange={handlePhaseChange}
-                    />
-
-                    <PlantList growId={dashboardGrowId} />
-                </>
-            ) : (
-                <div className="bg-gray-800 p-8 rounded-2xl border border-gray-700 text-center">
-                    <Plant className="w-12 h-12 mx-auto mb-4 text-gray-500" />
-                    <h3 className="text-xl font-semibold mb-2 text-white">No plants yet</h3>
-                    <p className="text-gray-400 mb-4">
-                        {grows.length === 0
-                            ? "Create a grow first to add plants."
-                            : "All your grows are completed. Create a new grow to get started."}
-                    </p>
+                    </div>
                     <Button
+                        className="w-full gap-2 sm:w-auto"
                         onClick={() => navigateTo('grows')}
-                        className="bg-green-600 hover:bg-green-700"
                     >
-                        {grows.length > 0 ? "Create new grow" : "Select grow"}
+                        Manage Grows
+                        <ArrowRight className="h-4 w-4" />
                     </Button>
                 </div>
             )}
+
+            <ProductOSDashboard
+                grow={activeGrow}
+                plants={plants}
+                onOpenGrows={() => navigateTo('grows')}
+                onOpenGrow={() => activeGrow ? navigateTo('growDetail', { id: activeGrow.id }) : navigateTo('grows')}
+                onOpenTools={() => navigateTo('tools')}
+                showHeader={false}
+            />
         </div>
     );
 }

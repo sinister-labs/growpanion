@@ -39,11 +39,11 @@ import { calculateNextDue } from '@/lib/notification-utils';
 import { formatReminderDueStatus, getReminderDueBadgeClass, sortRemindersByDueDate } from '@/lib/reminder-utils';
 
 const typeIcons: Record<ReminderType, React.ReactNode> = {
-    watering: <Droplets className="h-4 w-4 text-blue-500" />,
-    feeding: <Leaf className="h-4 w-4 text-green-500" />,
-    photo: <Camera className="h-4 w-4 text-purple-500" />,
-    training: <Scissors className="h-4 w-4 text-orange-500" />,
-    custom: <Bell className="h-4 w-4 text-gray-500" />
+    watering: <Droplets className="h-4 w-4 text-[#2FA98C]" />,
+    feeding: <Leaf className="h-4 w-4 text-primary" />,
+    photo: <Camera className="h-4 w-4 text-[#17876D]" />,
+    training: <Scissors className="h-4 w-4 text-[#2CC295]" />,
+    custom: <Bell className="h-4 w-4 text-muted-foreground" />
 };
 
 const typeLabels: Record<ReminderType, string> = {
@@ -191,10 +191,10 @@ export function ReminderList({ growId, growName }: ReminderListProps) {
         <>
             <Card>
                 <CardHeader>
-                    <div className="flex items-center justify-between">
+                    <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
                         <div>
                             <CardTitle className="flex items-center gap-2">
-                                <Bell className="h-5 w-5" />
+                                <Bell className="h-5 w-5 text-primary" />
                                 Reminders
                             </CardTitle>
                             <CardDescription>
@@ -202,15 +202,15 @@ export function ReminderList({ growId, growName }: ReminderListProps) {
                             </CardDescription>
                         </div>
                         <Button size="sm" onClick={handleAddNew}>
-                            <Plus className="h-4 w-4 mr-1" />
+                            <Plus className="mr-1 h-4 w-4" />
                             Add Reminder
                         </Button>
                     </div>
                 </CardHeader>
                 <CardContent>
                     {reminders.length === 0 ? (
-                        <div className="text-center py-8 text-muted-foreground">
-                            <Bell className="h-12 w-12 mx-auto mb-4 opacity-20" />
+                        <div className="py-8 text-center text-muted-foreground">
+                            <Bell className="mx-auto mb-4 h-12 w-12 opacity-30" />
                             <p>No reminders yet</p>
                             <p className="text-sm">Create reminders to stay on top of your grow</p>
                         </div>
@@ -219,16 +219,18 @@ export function ReminderList({ growId, growName }: ReminderListProps) {
                             {reminders.map((reminder) => (
                                 <div
                                     key={reminder.id}
-                                    className={`flex items-center justify-between p-3 rounded-lg border ${
-                                        reminder.enabled ? 'bg-card' : 'bg-muted/50 opacity-60'
+                                    className={`flex flex-col gap-3 rounded-[1rem] border border-white/10 p-3 sm:flex-row sm:items-center sm:justify-between ${
+                                        reminder.enabled ? 'bg-white/[0.045]' : 'bg-white/[0.035] opacity-70'
                                     }`}
                                 >
                                     <div className="flex items-center gap-3">
-                                        {typeIcons[reminder.type]}
+                                        <div className="rounded-[0.95rem] border border-white/10 bg-white/[0.045] p-2">
+                                            {typeIcons[reminder.type]}
+                                        </div>
                                         <div>
-                                            <div className="font-medium">{reminder.title}</div>
-                                            <div className="text-sm text-muted-foreground flex items-center gap-2">
-                                                <span className="inline-flex items-center rounded-full border border-gray-600 px-2 py-0.5 text-xs">
+                                            <div className="font-semibold text-foreground">{reminder.title}</div>
+                                            <div className="flex flex-wrap items-center gap-2 text-sm text-muted-foreground">
+                                                <span className="inline-flex items-center rounded-full border border-white/10 bg-white/[0.045] px-2 py-0.5 text-xs">
                                                     {typeLabels[reminder.type]}
                                                 </span>
                                                 {reminder.intervalDays > 0 && (
@@ -240,7 +242,7 @@ export function ReminderList({ growId, growName }: ReminderListProps) {
                                             </div>
                                         </div>
                                     </div>
-                                    <div className="flex items-center gap-2">
+                                    <div className="flex items-center gap-2 self-end sm:self-auto">
                                         {reminder.enabled && (
                                             <span className={getReminderDueBadgeClass(reminder.nextDue)}>
                                                 {formatReminderDueStatus(reminder.nextDue)}
@@ -253,9 +255,9 @@ export function ReminderList({ growId, growName }: ReminderListProps) {
                                             title={reminder.enabled ? 'Disable' : 'Enable'}
                                         >
                                             {reminder.enabled ? (
-                                                <ToggleRight className="h-4 w-4 text-green-500" />
+                                                <ToggleRight className="h-4 w-4 text-primary" />
                                             ) : (
-                                                <ToggleLeft className="h-4 w-4" />
+                                                <ToggleLeft className="h-4 w-4 text-muted-foreground" />
                                             )}
                                         </Button>
                                         <Button
@@ -300,7 +302,7 @@ export function ReminderList({ growId, growName }: ReminderListProps) {
                     </AlertDialogHeader>
                     <AlertDialogFooter>
                         <AlertDialogCancel>Cancel</AlertDialogCancel>
-                        <AlertDialogAction onClick={handleDelete}>Delete</AlertDialogAction>
+                        <AlertDialogAction onClick={handleDelete} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">Delete</AlertDialogAction>
                     </AlertDialogFooter>
                 </AlertDialogContent>
             </AlertDialog>

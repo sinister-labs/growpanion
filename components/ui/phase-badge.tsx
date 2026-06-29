@@ -10,19 +10,19 @@ interface PhaseBadgeProps {
 export function PhaseBadge({ phase, className = "" }: PhaseBadgeProps) {
     const getPhaseColor = (phase: PhaseType) => {
         switch (phase) {
-            case "Seedling": return "bg-blue-600/30 text-blue-400";
-            case "Vegetative": return "bg-green-600/30 text-green-400";
-            case "Flowering": return "bg-purple-600/30 text-purple-400";
-            case "Flushing": return "bg-yellow-600/30 text-yellow-400";
-            case "Drying": return "bg-orange-600/30 text-orange-400";
-            case "Curing": return "bg-amber-600/30 text-amber-400";
-            case "Done": return "bg-gray-600/30 text-gray-400";
-            default: return "bg-green-600/30 text-green-400";
+            case "Seedling": return "border border-emerald-300/[0.18] bg-emerald-300/10 text-emerald-100";
+            case "Vegetative": return "border border-emerald-300/[0.22] bg-emerald-300/[0.12] text-emerald-100";
+            case "Flowering": return "border border-sky-300/25 bg-sky-300/12 text-sky-100";
+            case "Flushing": return "border border-cyan-300/25 bg-cyan-300/12 text-cyan-100";
+            case "Drying": return "border border-amber-300/30 bg-amber-300/12 text-amber-100";
+            case "Curing": return "border border-violet-300/25 bg-violet-300/12 text-violet-100";
+            case "Done": return "border border-white/[0.12] bg-white/[0.045] text-slate-200";
+            default: return "border border-emerald-300/[0.18] bg-emerald-300/10 text-emerald-100";
         }
     };
 
     return (
-        <span className={`rounded-full px-2 py-1 text-xs ${getPhaseColor(phase)} ${className}`}>
+        <span className={`rounded-full px-2 py-1 text-xs font-semibold ${getPhaseColor(phase)} ${className}`}>
             {phase}
         </span>
     );

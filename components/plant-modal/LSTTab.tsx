@@ -69,10 +69,10 @@ const LSTTab: React.FC<TrainingTabProps> = ({
         <div className="flex flex-col h-full">
             {/* Fixed input section */}
             <div className="flex-none mb-6">
-                <h3 className="text-xl font-semibold text-green-400 mb-4">Add LST</h3>
+                <h3 className="text-xl font-semibold text-primary mb-4">Add LST</h3>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-4">
                     <div>
-                        <Label className="text-white">Date</Label>
+                        <Label className="text-foreground">Date</Label>
                         <Input
                             type="date"
                             name="date"
@@ -81,32 +81,32 @@ const LSTTab: React.FC<TrainingTabProps> = ({
                         />
                     </div>
                     <div>
-                        <Label className="text-white">Method</Label>
+                        <Label className="text-foreground">Method</Label>
                         <CustomDropdown
                             options={methodOptions}
                             value={newLST.method}
                             onChange={handleMethodChange}
-                            placeholder="Methode auswählen"
+                            placeholder="Select method…"
                             width="w-full"
-                            buttonClassName="bg-gray-800 border-gray-700 text-white focus:ring-green-500 focus:border-green-500"
+                            buttonClassName="border-white/10 bg-white/[0.045] text-foreground focus:ring-ring focus:border-ring"
                         />
                     </div>
                 </div>
 
                 <div className="mb-4">
-                    <Label className="text-white">Notes (optional)</Label>
+                    <Label className="text-foreground">Notes (optional)</Label>
                     <Input
                         type="text"
                         name="notes"
                         value={newLST.notes || ''}
                         onChange={handleLSTChange}
-                        placeholder="Additional details about training"
+                        placeholder="Additional details about training…"
                     />
                 </div>
 
                 <Button
                     onClick={handleLSTAdd}
-                    className="bg-green-600 hover:bg-green-700 w-full"
+                    className="bg-primary hover:bg-primary/90 w-full"
                 >
                     Add LST Record
                 </Button>
@@ -114,25 +114,26 @@ const LSTTab: React.FC<TrainingTabProps> = ({
 
             {/* Scrollable history section */}
             <div className="flex-grow overflow-y-auto">
-                <h3 className="text-xl font-semibold text-green-400 mb-4">LST History</h3>
+                <h3 className="text-xl font-semibold text-primary mb-4">LST History</h3>
 
                 {localPlant.lstRecords && localPlant.lstRecords.length > 0 ? (
                     <ul className="space-y-2 w-full">
                         {localPlant.lstRecords.map((record, index) => (
                             <li
                                 key={index}
-                                className="flex flex-col bg-gray-800 p-3 rounded-lg border border-gray-700 w-full"
+                                className="flex w-full flex-col rounded-[1rem] border border-white/10 bg-white/[0.045] p-3 shadow-sm"
                             >
                                 <div className="flex justify-between items-center">
-                                    <span className="text-white">{formatRecordDate(record.date)}</span>
+                                    <span className="text-foreground">{formatRecordDate(record.date)}</span>
                                     <div className="flex items-center gap-2">
-                                        <div className="bg-green-600 text-white px-2 py-1 rounded-md text-sm">
+                                        <div className="rounded-full bg-primary px-2 py-1 text-sm text-primary-foreground">
                                             {record.method}
                                         </div>
                                         <Button
                                             variant="ghost"
                                             size="icon"
-                                            className="h-8 w-8 text-red-500 hover:text-red-300 hover:bg-red-950/30"
+                                            aria-label="Delete LST record"
+                                            className="h-9 w-9 rounded-[0.85rem] text-destructive hover:bg-red-500/10 hover:text-red-200"
                                             onClick={() => handleLSTDelete(index)}
                                         >
                                             <Trash2 className="h-4 w-4" />
@@ -140,9 +141,9 @@ const LSTTab: React.FC<TrainingTabProps> = ({
                                     </div>
                                 </div>
                                 {record.notes && (
-                                    <div className="mt-2 pl-2 border-l-2 border-gray-700">
-                                        <div className="mt-1 text-sm text-gray-400">
-                                            <span className="block text-gray-500">Notes:</span>
+                                    <div className="mt-2 border-l border-white/10 pl-2">
+                                        <div className="mt-1 text-sm text-muted-foreground">
+                                            <span className="block text-muted-foreground">Notes:</span>
                                             {record.notes}
                                         </div>
                                     </div>

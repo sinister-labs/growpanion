@@ -1,7 +1,7 @@
 "use client"
 
 import { Button } from "@/components/ui/button"
-import { Settings, Menu } from "lucide-react"
+import { BarChart3, Beaker, Database, Home, Leaf, Menu, Router, Settings, Sprout } from "lucide-react"
 import { useRouting } from "@/hooks/useRouting"
 import Image from "next/image"
 import { useState } from "react"
@@ -17,90 +17,103 @@ export default function Header() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
 
   const navItems = [
-    { view: 'dashboard' as const, label: 'Dashboard' },
-    { view: 'grows' as const, label: 'Grows' },
-    { view: 'statistics' as const, label: 'Stats' },
-    { view: 'tools' as const, label: 'Tools' },
+    { view: 'dashboard' as const, label: 'Dashboard', icon: Home },
+    { view: 'grows' as const, label: 'Grows', icon: Sprout },
+    { view: 'devices' as const, label: 'Devices', icon: Router },
+    { view: 'genetics' as const, label: 'Genetics', icon: Database },
+    { view: 'statistics' as const, label: 'Stats', icon: BarChart3 },
+    { view: 'tools' as const, label: 'Tools', icon: Beaker },
   ]
 
   return (
-    <header className="border-b border-white/10 backdrop-blur-md z-50 w-full">
-      <div className="container max-w-screen-xl mx-auto px-4 py-4 sm:py-6 flex justify-between items-center">
-        <div className="flex items-center gap-2 sm:gap-8">
-          {/* Logo */}
+    <header className="z-50 w-full border-b border-border/[0.55] bg-background/[0.68] backdrop-blur-xl">
+      <div className="container mx-auto flex max-w-screen-xl items-center justify-between px-4 py-3 sm:py-4">
+        <div className="flex items-center gap-2 sm:gap-6">
           <Button
             variant="link"
-            className="text-xl font-bold text-white p-0 h-auto min-w-[40px] sm:min-w-[48px]"
+            className="h-auto min-w-[40px] p-0 text-foreground no-underline hover:no-underline sm:min-w-[48px]"
             onClick={() => navigateTo('dashboard')}
           >
-            <div className="flex items-center">
+            <div className="flex items-center gap-2">
               <Image
                 src="/logo-light.svg"
                 alt="GrowPanion Logo"
                 width={48}
                 height={48}
-                className="h-8 sm:h-10 w-auto"
+                className="h-8 w-auto rounded-full bg-primary p-1 sm:h-10"
               />
+              <span className="hidden text-lg font-semibold leading-none sm:block">GrowPanion</span>
             </div>
           </Button>
 
-          {/* Desktop Navigation */}
-          <nav className="hidden sm:flex items-center gap-1">
-            {navItems.map((item) => (
+          <nav className="hidden items-center gap-1 rounded-full border border-border/[0.60] bg-muted/35 p-1 sm:flex">
+            {navItems.map((item) => {
+              const Icon = item.icon
+              return (
               <Button
                 key={item.view}
                 variant="ghost"
                 className={`${
                   currentView === item.view 
-                    ? 'text-white bg-gray-800' 
-                    : 'text-gray-400 hover:text-white'
-                } px-3`}
+                    ? 'bg-primary text-primary-foreground hover:bg-primary/90 hover:text-primary-foreground' 
+                    : 'text-muted-foreground hover:bg-background/[0.65] hover:text-foreground'
+                } h-9 gap-2 px-3`}
                 onClick={() => navigateTo(item.view)}
               >
-{item.label}
+                <Icon className="h-4 w-4" />
+                {item.label}
               </Button>
-            ))}
+            )})}
           </nav>
 
-          {/* Mobile Navigation */}
           <div className="sm:hidden">
             <DropdownMenu open={mobileMenuOpen} onOpenChange={setMobileMenuOpen}>
               <DropdownMenuTrigger asChild>
-                <Button variant="ghost" size="icon" className="text-gray-400 hover:text-white">
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="text-muted-foreground hover:text-foreground"
+                  aria-label="Open navigation"
+                  title="Navigation"
+                >
                   <Menu className="h-5 w-5" />
                 </Button>
               </DropdownMenuTrigger>
-              <DropdownMenuContent align="start" className="bg-gray-800 border-gray-700">
-                {navItems.map((item) => (
+              <DropdownMenuContent align="start" className="rounded-3xl border-border/[0.70] bg-popover/[0.95] p-2 text-popover-foreground">
+                {navItems.map((item) => {
+                  const Icon = item.icon
+                  return (
                   <DropdownMenuItem
                     key={item.view}
                     className={`${
                       currentView === item.view 
-                        ? 'text-white bg-gray-700' 
-                        : 'text-gray-300'
-                    } cursor-pointer`}
+                        ? 'bg-primary text-primary-foreground' 
+                        : 'text-foreground'
+                    } cursor-pointer rounded-2xl gap-2`}
                     onClick={() => {
                       navigateTo(item.view)
                       setMobileMenuOpen(false)
                     }}
                   >
-{item.label}
+                    <Icon className="h-4 w-4" />
+                    {item.label}
                   </DropdownMenuItem>
-                ))}
+                )})}
               </DropdownMenuContent>
             </DropdownMenu>
           </div>
         </div>
 
-        {/* Settings Button */}
         <div className="flex items-center">
           <Button
             variant="ghost"
             size="icon"
-            className="text-gray-400 hover:text-white w-10 h-10 flex items-center justify-center"
+            className="flex h-10 w-10 items-center justify-center text-muted-foreground hover:text-foreground"
             onClick={() => navigateTo('settings')}
+            aria-label="Settings"
+            title="Settings"
           >
-            <Settings className="h-5 w-5" />
+            {currentView === 'settings' ? <Leaf className="h-5 w-5" /> : <Settings className="h-5 w-5" />}
           </Button>
         </div>
       </div>

@@ -48,26 +48,26 @@ export class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundarySt
             }
 
             return (
-                <div className="min-h-[200px] flex flex-col items-center justify-center p-8 bg-red-900/20 border border-red-800 rounded-lg text-white">
+                <div className="min-h-[200px] flex flex-col items-center justify-center rounded-3xl border border-destructive/30 bg-destructive/10 p-8 text-foreground">
                     <div className="flex items-center gap-2 mb-4">
-                        <AlertTriangle className="h-6 w-6 text-red-400" />
+                        <AlertTriangle className="h-6 w-6 text-destructive" />
                         <h2 className="text-xl font-semibold">Ein Fehler ist aufgetreten</h2>
                     </div>
 
-                    <p className="mb-6 text-gray-300 text-center max-w-lg">
+                    <p className="mb-6 text-muted-foreground text-center max-w-lg">
                         In dieser Komponente ist ein unerwarteter Fehler aufgetreten.
                         Die Anwendung kann weiterhin funktionieren, aber diese Komponente wird
                         möglicherweise nicht korrekt angezeigt.
                     </p>
 
                     {this.state.error && (
-                        <div className="mb-6 p-4 bg-black/50 rounded text-red-300 w-full max-w-lg overflow-auto text-sm font-mono">
+                        <div className="mb-6 w-full max-w-lg overflow-auto rounded-[1rem] border border-red-400/20 bg-red-500/10 p-4 text-sm text-red-200">
                             <p className="font-bold mb-1">Fehler:</p>
                             <p>{this.state.error.message}</p>
                         </div>
                     )}
 
-                    <Button onClick={this.resetError} variant="outline" className="border-red-700 hover:bg-red-900/30">
+                    <Button onClick={this.resetError} variant="outline" className="border-destructive/40 hover:bg-destructive/10">
                         Zurücksetzen und erneut versuchen
                     </Button>
                 </div>

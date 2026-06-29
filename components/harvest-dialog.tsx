@@ -86,13 +86,13 @@ export function HarvestDialog({ open, onOpenChange, plant, onSave }: HarvestDial
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="bg-gray-800 border-gray-700 text-white max-w-md">
+      <DialogContent className="max-w-md">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2 text-xl">
-            <Scale className="h-5 w-5 text-green-400" />
+            <Scale className="h-5 w-5 text-primary" />
             Harvest: {plant.name}
           </DialogTitle>
-          <DialogDescription className="text-gray-400">
+          <DialogDescription>
             Record the yield for this plant. Dry weight is required for statistics.
           </DialogDescription>
         </DialogHeader>
@@ -101,21 +101,20 @@ export function HarvestDialog({ open, onOpenChange, plant, onSave }: HarvestDial
           {/* Harvest Date */}
           <div className="space-y-2">
             <Label className="flex items-center gap-2">
-              <Calendar className="h-4 w-4 text-gray-400" />
+              <Calendar className="h-4 w-4 text-muted-foreground" />
               Harvest Date
             </Label>
             <Input
               type="date"
               value={harvestDate}
               onChange={(e) => setHarvestDate(e.target.value)}
-              className="bg-gray-700 border-gray-600"
             />
           </div>
 
           {/* Wet Weight */}
           <div className="space-y-2">
             <Label className="flex items-center gap-2">
-              <Droplets className="h-4 w-4 text-blue-400" />
+              <Droplets className="h-4 w-4 text-[#2FA98C]" />
               Wet Weight (g) - Optional
             </Label>
             <Input
@@ -125,15 +124,14 @@ export function HarvestDialog({ open, onOpenChange, plant, onSave }: HarvestDial
               placeholder="e.g., 250"
               value={yieldWetGrams}
               onChange={(e) => setYieldWetGrams(e.target.value)}
-              className="bg-gray-700 border-gray-600"
             />
-            <p className="text-xs text-gray-500">Fresh weight immediately after harvest</p>
+            <p className="text-xs text-muted-foreground">Fresh weight immediately after harvest</p>
           </div>
 
           {/* Dry Weight */}
           <div className="space-y-2">
             <Label className="flex items-center gap-2">
-              <Leaf className="h-4 w-4 text-green-400" />
+              <Leaf className="h-4 w-4 text-primary" />
               Dry Weight (g) *
             </Label>
             <Input
@@ -143,17 +141,16 @@ export function HarvestDialog({ open, onOpenChange, plant, onSave }: HarvestDial
               placeholder="e.g., 60"
               value={yieldDryGrams}
               onChange={(e) => setYieldDryGrams(e.target.value)}
-              className="bg-gray-700 border-gray-600"
             />
-            <p className="text-xs text-gray-500">Final cured weight (required for statistics)</p>
+            <p className="text-xs text-muted-foreground">Final cured weight (required for statistics)</p>
           </div>
 
           {/* Drying Loss Indicator */}
           {dryingLoss !== null && (
-            <div className="bg-gray-900/50 rounded-lg p-3 flex items-center justify-between">
-              <span className="text-sm text-gray-400">Drying Loss</span>
+            <div className="flex items-center justify-between rounded-[1rem] border border-white/10 bg-white/[0.045] p-3">
+              <span className="text-sm text-muted-foreground">Drying Loss</span>
               <span className={`text-sm font-medium ${
-                dryingLoss >= 70 && dryingLoss <= 80 ? 'text-green-400' : 'text-yellow-400'
+                dryingLoss >= 70 && dryingLoss <= 80 ? 'text-primary' : 'text-[#00DF81]'
               }`}>
                 {dryingLoss}%
                 {dryingLoss >= 70 && dryingLoss <= 80 && ' (typical)'}
@@ -162,25 +159,25 @@ export function HarvestDialog({ open, onOpenChange, plant, onSave }: HarvestDial
           )}
 
           {hasImpossibleDryingLoss && (
-            <p className="text-xs text-red-400">
+            <p className="text-xs text-destructive">
               Dry weight cannot be greater than wet weight.
             </p>
           )}
 
           {hasInvalidWetWeight && (
-            <p className="text-xs text-red-400">
+            <p className="text-xs text-destructive">
               Wet weight must be a positive number when provided.
             </p>
           )}
 
           {hasInvalidDryWeight && (
-            <p className="text-xs text-red-400">
+            <p className="text-xs text-destructive">
               Dry weight must be a positive number.
             </p>
           )}
 
           {saveError && (
-            <p className="text-xs text-red-400">
+            <p className="text-xs text-destructive">
               {saveError}
             </p>
           )}
@@ -192,7 +189,7 @@ export function HarvestDialog({ open, onOpenChange, plant, onSave }: HarvestDial
               placeholder="Quality notes, trichome maturity, smell/taste..."
               value={notes}
               onChange={(e) => setNotes(e.target.value)}
-              className="bg-gray-700 border-gray-600 min-h-[80px]"
+              className="min-h-[80px]"
             />
           </div>
         </div>
@@ -201,7 +198,6 @@ export function HarvestDialog({ open, onOpenChange, plant, onSave }: HarvestDial
           <Button
             variant="outline"
             onClick={() => onOpenChange(false)}
-            className="border-gray-600 text-gray-300"
             disabled={isSaving}
           >
             Cancel
@@ -209,7 +205,6 @@ export function HarvestDialog({ open, onOpenChange, plant, onSave }: HarvestDial
           <Button
             onClick={handleSave}
             disabled={!canSave || isSaving}
-            className="bg-green-600 hover:bg-green-700"
           >
             <Scale className="h-4 w-4 mr-2" />
             {isSaving ? 'Saving...' : 'Save Harvest'}

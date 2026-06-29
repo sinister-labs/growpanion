@@ -20,7 +20,7 @@ const nextConfig = {
   env: {
     NEXT_PUBLIC_DEPLOYMENT_MODE: process.env.NEXT_PUBLIC_DEPLOYMENT_MODE || 'web'
   },
-  assetPrefix: isProd ? undefined : `http://${internalHost}:${internalPort}`,
+  assetPrefix: !isProd && isTauri ? `http://${internalHost}:${internalPort}` : undefined,
   devIndicators: {
     buildActivity: false,
   },

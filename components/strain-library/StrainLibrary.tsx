@@ -159,22 +159,22 @@ const StrainLibrary: React.FC<StrainLibraryProps> = ({
   if (isLoading) {
     return (
       <div className="flex items-center justify-center py-12">
-        <Loader2 className="h-8 w-8 animate-spin text-green-500" />
+        <Loader2 className="h-8 w-8 animate-spin text-primary" />
       </div>
     );
   }
 
   return (
-    <Card className="bg-gray-800/50 border-gray-700">
+    <Card>
       <CardHeader className="pb-4">
         <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
           <div className="flex items-center gap-3">
-            <div className="p-2 bg-green-600/20 rounded-lg">
-              <Cannabis className="h-5 w-5 text-green-400" />
+            <div className="rounded-2xl bg-primary/10 p-2">
+              <Cannabis className="h-5 w-5 text-primary" />
             </div>
             <div>
-              <CardTitle className="text-lg text-white">Strain Library</CardTitle>
-              <p className="text-sm text-gray-400">
+              <CardTitle className="text-lg text-foreground">Strain Library</CardTitle>
+              <p className="text-sm text-muted-foreground">
                 {strains.length} strain{strains.length !== 1 ? 's' : ''} in your collection
               </p>
             </div>
@@ -186,7 +186,7 @@ const StrainLibrary: React.FC<StrainLibraryProps> = ({
                 setEditingStrain(undefined);
                 setIsFormOpen(true);
               }}
-              className="bg-green-600 hover:bg-green-700"
+              className=""
             >
               <Plus className="h-4 w-4 mr-2" />
               Add Strain
@@ -198,7 +198,7 @@ const StrainLibrary: React.FC<StrainLibraryProps> = ({
       <CardContent className="space-y-4">
         {/* Search */}
         <div className="relative">
-          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
+          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
           <Input
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
@@ -210,11 +210,11 @@ const StrainLibrary: React.FC<StrainLibraryProps> = ({
         {/* Strains Grid */}
         {filteredStrains.length === 0 ? (
           <div className="text-center py-12">
-            <Cannabis className="h-12 w-12 mx-auto mb-4 text-gray-600" />
-            <h3 className="text-lg font-medium text-gray-300 mb-2">
+            <Cannabis className="h-12 w-12 mx-auto mb-4 text-muted-foreground" />
+            <h3 className="text-lg font-medium text-foreground mb-2">
               {searchQuery ? 'No strains found' : 'No strains in your library'}
             </h3>
-            <p className="text-gray-500 text-sm mb-4">
+            <p className="text-muted-foreground text-sm mb-4">
               {searchQuery 
                 ? 'Try a different search term'
                 : 'Add your first strain to get started'}
@@ -222,7 +222,7 @@ const StrainLibrary: React.FC<StrainLibraryProps> = ({
             {!searchQuery && !selectionMode && (
               <Button
                 onClick={() => setIsFormOpen(true)}
-                className="bg-green-600 hover:bg-green-700"
+                className=""
               >
                 <Plus className="h-4 w-4 mr-2" />
                 Add First Strain
@@ -247,9 +247,9 @@ const StrainLibrary: React.FC<StrainLibraryProps> = ({
 
       {/* Strain Form Dialog */}
       <Dialog open={isFormOpen} onOpenChange={setIsFormOpen}>
-        <DialogContent className="bg-gray-800 border-gray-700 text-white max-w-2xl">
+        <DialogContent className="max-w-2xl">
           <DialogHeader>
-            <DialogTitle className="text-green-400">
+            <DialogTitle>
               {editingStrain ? 'Edit Strain' : 'Add New Strain'}
             </DialogTitle>
           </DialogHeader>
@@ -273,16 +273,16 @@ const StrainLibrary: React.FC<StrainLibraryProps> = ({
           }
         }}
       >
-        <AlertDialogContent className="bg-gray-800 text-white border-gray-700">
+        <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>Delete Strain</AlertDialogTitle>
-            <AlertDialogDescription className="text-gray-300">
+            <AlertDialogDescription>
               Are you sure you want to delete this strain from your library?
               This action cannot be undone.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel className="bg-gray-700 text-white hover:bg-gray-600 border-none">
+            <AlertDialogCancel>
               Cancel
             </AlertDialogCancel>
             <AlertDialogAction
@@ -291,7 +291,7 @@ const StrainLibrary: React.FC<StrainLibraryProps> = ({
                 event.preventDefault();
                 void handleDelete();
               }}
-              className="bg-red-600 text-white hover:bg-red-700"
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
             >
               {isDeleting ? 'Deleting...' : 'Delete'}
             </AlertDialogAction>

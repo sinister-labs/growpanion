@@ -3,7 +3,7 @@
 import { useState } from "react"
 import { useGrows } from "@/hooks/useGrows"
 import { Button } from "@/components/ui/button"
-import { Home, Plus } from "lucide-react"
+import { CalendarDays, CheckCircle2, ChevronRight, Layers3, Plus, Sprout } from "lucide-react"
 import {
     Tabs,
     TabsContent,
@@ -37,17 +37,17 @@ export default function GrowOverview() {
 
     if (isLoading) {
         return (
-            <div className="flex min-h-screen items-center justify-center bg-black bg-opacity-90">
-                <Loader2 className="w-8 h-8 animate-spin text-green-500" />
+            <div className="flex min-h-screen items-center justify-center">
+                <Loader2 className="h-8 w-8 animate-spin text-primary" />
             </div>
         );
     }
 
     if (error) {
         return (
-            <div className="flex min-h-screen items-center justify-center bg-black bg-opacity-90">
-                <div className="bg-red-900/30 text-red-300 p-8 rounded-lg max-w-md">
-                    <h2 className="text-xl font-semibold mb-4">Error</h2>
+            <div className="flex min-h-screen items-center justify-center">
+                <div className="max-w-md rounded-3xl border border-destructive/35 bg-destructive/10 p-8 text-destructive">
+                    <h2 className="mb-4 text-xl font-semibold">Error</h2>
                     <p>{error.message}</p>
                 </div>
             </div>
@@ -55,29 +55,19 @@ export default function GrowOverview() {
     }
 
     return (
-        <div className="flex min-h-screen flex-col items-center space-y-8">
+        <div className="flex flex-col items-center">
             <div className="w-full">
-                <div className="space-y-8 mt-6">
-                    <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-                        <div>
-                            <div className="flex items-center gap-2 mb-1">
-                                <Button
-                                    variant="link"
-                                    className="text-gray-400 hover:text-white p-0 h-auto flex items-center gap-1"
-                                    onClick={() => navigateTo('dashboard')}
-                                >
-                                    <Home className="h-4 w-4" />
-                                    <span>Dashboard</span>
-                                </Button>
-                                <span className="text-gray-600">/</span>
-                                <h1 className="font-semibold text-white">Grows</h1>
-                            </div>
-                            <p className="text-gray-400">Manage your growing cycles</p>
+                <div className="mt-2 space-y-5">
+                    <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                        <div className="min-w-0">
+                            <h2 className="text-lg font-semibold text-foreground">Grow workspaces</h2>
+                            <p className="text-sm text-muted-foreground">
+                                {activeGrows.length} active, {completedGrows.length} completed
+                            </p>
                         </div>
-
                         <Button
                             onClick={() => setIsNewGrowDialogOpen(true)}
-                            className="bg-green-600 hover:bg-green-700"
+                            className="self-start sm:self-auto"
                         >
                             <Plus className="mr-2 h-4 w-4" />
                             New Grow
@@ -91,56 +81,81 @@ export default function GrowOverview() {
                     />
 
                     {grows.length === 0 ? (
-                        <div className="bg-gray-800/30 border border-gray-700 rounded-lg p-8 text-center">
-                            <p className="text-lg text-gray-400 mb-4">
-                                You have no grows yet.
-                            </p>
-                            <Button
-                                onClick={() => setIsNewGrowDialogOpen(true)}
-                                className="bg-green-600 hover:bg-green-700"
-                            >
-                                <Plus className="mr-2 h-4 w-4" />
-                                Create your first Grow
-                            </Button>
-                        </div>
+                        <section className="grid gap-4 xl:grid-cols-[minmax(0,1fr)_20rem]">
+                            <div className="infotainment-panel overflow-hidden p-0">
+                                <div className="border-b border-white/10 p-4 sm:p-5">
+                                    <div className="flex items-start gap-3">
+                                        <div className="rounded-xl border border-emerald-300/[0.20] bg-emerald-300/[0.12] p-3 text-emerald-200 shadow-[0_0_24px_rgba(52,255,154,0.12)]">
+                                            <Layers3 className="h-5 w-5" />
+                                        </div>
+                                        <div className="min-w-0">
+                                            <h2 className="text-2xl font-semibold text-foreground">No grow workspace yet</h2>
+                                            <p className="mt-1 max-w-xl text-sm text-muted-foreground">
+                                                Start one grow first. Plants, diary events, lab telemetry and recommendations attach to that workspace.
+                                            </p>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div className="grid gap-3 p-4 sm:grid-cols-3 sm:p-5">
+                                    <GrowPrepCard icon={Sprout} label="Create grow" text="Name, date and starting phase." />
+                                    <GrowPrepCard icon={CalendarDays} label="Track phase" text="Age and phase stay visible." />
+                                    <GrowPrepCard icon={CheckCircle2} label="Add plants" text="Plants feed Home and Stats." />
+                                </div>
+                            </div>
+
+                            <aside className="infotainment-panel p-4 sm:p-5">
+                                <div className="flex items-center gap-2 text-sm font-semibold text-primary">
+                                    <Sprout className="h-4 w-4" />
+                                    Next action
+                                </div>
+                                <h3 className="mt-2 text-xl font-semibold text-foreground">Start a grow</h3>
+                                <p className="mt-1 text-sm text-muted-foreground">
+                                    This unlocks the dashboard and plant list.
+                                </p>
+                                <Button
+                                    onClick={() => setIsNewGrowDialogOpen(true)}
+                                    className="mt-4 h-11 w-full rounded-2xl"
+                                >
+                                    Create your first grow
+                                    <ChevronRight className="ml-2 h-4 w-4" />
+                                </Button>
+                            </aside>
+                        </section>
                     ) : (
                         <div className="relative">
                             <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-                                <TabsList className="grid grid-cols-2 bg-gray-800 rounded-full">
-                                    <TabsTrigger
-                                        value="active"
-                                        className="data-[state=active]:bg-green-500 rounded-full data-[state=active]:text-white"
-                                    >
-                                        Active Grows ({activeGrows.length})
+                                <TabsList className="grid w-full max-w-md grid-cols-2">
+                                    <TabsTrigger value="active">
+                                        Active ({activeGrows.length})
                                     </TabsTrigger>
-                                    <TabsTrigger
-                                        value="completed"
-                                        className="data-[state=active]:bg-gray-600 rounded-full data-[state=active]:text-white"
-                                    >
+                                    <TabsTrigger value="completed">
                                         Completed ({completedGrows.length})
                                     </TabsTrigger>
                                 </TabsList>
 
-                                <div className="relative min-h-[400px] mt-4">
+                                <div className="mt-4">
                                     <TabsContent
                                         value="active"
-                                        className="absolute top-0 left-0 w-full transition-opacity duration-300 opacity-100"
+                                        className="w-full"
                                     >
                                         {activeGrows.length === 0 ? (
-                                            <div className="bg-gray-800/30 border border-gray-700 rounded-lg p-8 text-center">
-                                                <p className="text-lg text-gray-400 mb-4">
-                                                    You have no active grows.
+                                            <div className="infotainment-panel p-6 text-center">
+                                                <p className="mb-4 text-lg font-semibold text-foreground">
+                                                    No active grows
+                                                </p>
+                                                <p className="mx-auto mb-5 max-w-md text-sm text-muted-foreground">
+                                                    Create a grow workspace to activate the dashboard, plant list and recommendations.
                                                 </p>
                                                 <Button
                                                     onClick={() => setIsNewGrowDialogOpen(true)}
-                                                    className="bg-green-600 hover:bg-green-700"
+                                                    className="rounded-2xl"
                                                 >
                                                     <Plus className="mr-2 h-4 w-4" />
-                                                    Create new Grow
+                                                    Create grow
                                                 </Button>
                                             </div>
                                         ) : (
-                                            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                                            <div className="grid grid-cols-1 gap-3 md:grid-cols-2 lg:grid-cols-3">
                                                 {activeGrows.map(grow => (
                                                     <GrowCard
                                                         key={grow.id}
@@ -156,19 +171,19 @@ export default function GrowOverview() {
 
                                     <TabsContent
                                         value="completed"
-                                        className="absolute top-0 left-0 w-full transition-opacity duration-300 opacity-100"
+                                        className="w-full"
                                     >
                                         {completedGrows.length === 0 ? (
-                                            <div className="bg-gray-800/30 border border-gray-700 rounded-lg p-8 text-center">
-                                                <p className="text-lg text-gray-400 mb-4">
-                                                    You have no completed grows.
+                                            <div className="infotainment-panel p-6 text-center">
+                                                <p className="mb-2 text-lg font-semibold text-foreground">
+                                                    No completed grows
                                                 </p>
-                                                <p className="text-sm text-gray-500 mb-4">
+                                                <p className="mb-4 text-sm text-muted-foreground">
                                                     Grows are marked as completed when they reach the &quot;Done&quot; phase.
                                                 </p>
                                             </div>
                                         ) : (
-                                            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                                            <div className="grid grid-cols-1 gap-3 md:grid-cols-2 lg:grid-cols-3">
                                                 {completedGrows.map(grow => (
                                                     <GrowCard
                                                         key={grow.id}
@@ -186,6 +201,16 @@ export default function GrowOverview() {
                     )}
                 </div>
             </div>
+        </div>
+    );
+}
+
+function GrowPrepCard({ icon: Icon, label, text }: { icon: typeof Sprout; label: string; text: string }) {
+    return (
+        <div className="os-card p-4">
+            <Icon className="h-5 w-5 text-primary" />
+            <div className="mt-3 text-sm font-semibold text-foreground">{label}</div>
+            <p className="mt-1 text-xs leading-relaxed text-muted-foreground">{text}</p>
         </div>
     );
 }

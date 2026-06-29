@@ -52,10 +52,10 @@ const NotesTab: React.FC<TabComponentProps> = ({ localPlant, setLocalPlant }) =>
             className="flex flex-col h-full w-full"
         >
             <div className="flex-shrink-0">
-                <h3 className="text-xl font-semibold text-green-400 mb-4">Notes</h3>
+                <h3 className="text-xl font-semibold text-primary mb-4">Notes</h3>
             </div>
 
-            <div className="flex-grow bg-gray-800 rounded-lg border border-gray-700 overflow-hidden relative flex flex-col h-full">
+            <div className="relative flex h-full flex-grow flex-col overflow-hidden rounded-[1rem] border border-white/10 bg-white/[0.045] shadow-sm">
                 <EditorRoot>
                     <div className="h-full flex flex-col">
                         <EditorContent

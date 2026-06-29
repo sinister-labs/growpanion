@@ -47,9 +47,18 @@ export function DatabaseInitializer({ children }: DatabaseInitializerProps) {
     useEffect(() => {
         let isMounted = true;
         let completeTimeout: ReturnType<typeof setTimeout> | null = null;
+        let fallbackTimeout: ReturnType<typeof setTimeout> | null = null;
 
         const initDatabase = async () => {
             try {
+                fallbackTimeout = setTimeout(() => {
+                    if (isMounted) {
+                        console.warn('Database initialization timed out; continuing with available local data.');
+                        markDatabaseInitialized();
+                        setDbInitComplete(true);
+                    }
+                }, 9000);
+
                 if (!isDatabaseMarkedInitialized()) {
                     await populateDBWithDemoDataIfEmpty();
                     markDatabaseInitialized();
@@ -61,6 +70,10 @@ export function DatabaseInitializer({ children }: DatabaseInitializerProps) {
 
                 completeTimeout = setTimeout(() => {
                     if (isMounted) {
+                        if (fallbackTimeout) {
+                            clearTimeout(fallbackTimeout);
+                            fallbackTimeout = null;
+                        }
                         setDbInitComplete(true);
                     }
                 }, 1200);
@@ -78,6 +91,9 @@ export function DatabaseInitializer({ children }: DatabaseInitializerProps) {
             isMounted = false;
             if (completeTimeout) {
                 clearTimeout(completeTimeout);
+            }
+            if (fallbackTimeout) {
+                clearTimeout(fallbackTimeout);
             }
         };
     }, []);
@@ -100,7 +116,7 @@ export function DatabaseInitializer({ children }: DatabaseInitializerProps) {
 
     if (error) {
         return (
-            <div className="bg-red-900/30 text-red-300 p-4 rounded-lg shadow-lg">
+            <div className="rounded-3xl border border-destructive/30 bg-destructive/10 p-4 text-destructive shadow-lg">
                 <h2 className="text-xl font-semibold mb-2">Database Error</h2>
                 <p>{error}</p>
             </div>
@@ -111,7 +127,7 @@ export function DatabaseInitializer({ children }: DatabaseInitializerProps) {
         return (
             <AnimatePresence>
                 <motion.div
-                    className="flex min-h-screen items-center justify-center bg-black bg-opacity-95"
+                    className="flex min-h-screen items-center justify-center bg-background/95"
                     initial={{ opacity: 0 }}
                     animate={{ opacity: 1 }}
                     exit={{ opacity: 0 }}
@@ -141,7 +157,7 @@ export function DatabaseInitializer({ children }: DatabaseInitializerProps) {
                             </motion.div>
 
                             <motion.div
-                                className="absolute inset-0 rounded-full bg-green-500/20 blur-xl z-0"
+                                className="absolute inset-0 rounded-full bg-primary/20 blur-xl z-0"
                                 animate={{
                                     scale: [1, 1.2, 1],
                                     opacity: [0.4, 0.7, 0.4]
@@ -154,9 +170,9 @@ export function DatabaseInitializer({ children }: DatabaseInitializerProps) {
                             />
                         </div>
 
-                        <div className="w-48 sm:w-64 h-1.5 bg-gray-800 rounded-full mb-4 overflow-hidden">
+                        <div className="w-48 sm:w-64 h-1.5 bg-secondary rounded-full mb-4 overflow-hidden">
                             <motion.div
-                                className="h-full bg-green-500 rounded-full"
+                                className="h-full bg-primary rounded-full"
                                 initial={{ width: "5%" }}
                                 animate={{ width: `${loadingProgress}%` }}
                                 transition={{ type: "spring", damping: 10 }}
@@ -164,7 +180,7 @@ export function DatabaseInitializer({ children }: DatabaseInitializerProps) {
                         </div>
 
                         <motion.p
-                            className="text-white text-lg"
+                            className="text-foreground text-lg"
                             initial={{ opacity: 0, y: 10 }}
                             animate={{ opacity: 1, y: 0 }}
                             transition={{ delay: 0.3 }}

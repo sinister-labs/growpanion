@@ -205,7 +205,7 @@ const DiaryPdfExport: React.FC<DiaryPdfExportProps> = ({ grow, events }) => {
         variant="outline"
         size="sm"
         onClick={handlePrint}
-        className="bg-gray-800 border-gray-700 hover:bg-gray-700 text-white"
+        className="border-white/10 bg-white/[0.045] text-foreground hover:border-emerald-300/[0.22] hover:bg-emerald-300/10"
       >
         <Printer className="h-4 w-4 mr-2" />
         Print
@@ -214,7 +214,7 @@ const DiaryPdfExport: React.FC<DiaryPdfExportProps> = ({ grow, events }) => {
         variant="outline"
         size="sm"
         onClick={handleExportText}
-        className="bg-gray-800 border-gray-700 hover:bg-gray-700 text-white"
+        className="border-white/10 bg-white/[0.045] text-foreground hover:border-emerald-300/[0.22] hover:bg-emerald-300/10"
       >
         <FileDown className="h-4 w-4 mr-2" />
         Export

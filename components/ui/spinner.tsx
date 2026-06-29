@@ -28,7 +28,7 @@ export function Spinner({ className, size = "md" }: SpinnerProps) {
 
     return (
         <Loader2
-            className={cn("animate-spin text-green-500", className)}
+            className={cn("animate-spin text-primary", className)}
             size={sizeInPixels}
         />
     );

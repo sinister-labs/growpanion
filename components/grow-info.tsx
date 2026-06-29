@@ -71,12 +71,15 @@ export function GrowInfo({ grow, onPhaseChange }: GrowInfoProps) {
   const phaseOptions = getPhaseOptions()
 
   return (
-    <Card className="bg-gradient-to-br from-gray-900 to-gray-800 border-gray-700 shadow-lg">
-      <CardContent className="p-4 sm:p-6">
-        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between mb-4 sm:mb-6">
-          <h2 className="text-2xl sm:text-3xl font-bold text-green-400 mb-2 sm:mb-0">{grow.name}</h2>
-          <div className="flex items-center bg-gray-800 rounded-full px-3 py-1 sm:px-4 sm:py-2 mt-2 sm:mt-0">
-            <CurrentPhaseIcon className="w-4 h-4 sm:w-6 sm:h-6 text-green-400 mr-2" />
+    <Card>
+      <CardContent className="p-3 sm:p-4">
+        <div className="mb-3 flex flex-col items-start justify-between gap-3 sm:flex-row sm:items-center">
+          <div>
+            <h2 className="text-xl font-semibold text-foreground sm:text-2xl">{grow.name}</h2>
+            <p className="mt-1 text-sm text-muted-foreground">Started {formatDate(grow.startDate)}</p>
+          </div>
+          <div className="flex items-center rounded-full border border-primary/25 bg-primary/10 px-3 py-1">
+            <CurrentPhaseIcon className="mr-2 h-4 w-4 text-primary" />
             <CustomDropdown
               options={phaseOptions}
               value={grow.currentPhase}
@@ -88,7 +91,7 @@ export function GrowInfo({ grow, onPhaseChange }: GrowInfoProps) {
               renderItem={(option, isSelected) => (
                 <div className="flex items-center">
                   {option.icon}
-                  <span className={isSelected ? "text-green-400" : "text-white"}>
+                  <span className={isSelected ? "text-primary" : "text-foreground"}>
                     {option.label}
                   </span>
                 </div>
@@ -96,29 +99,29 @@ export function GrowInfo({ grow, onPhaseChange }: GrowInfoProps) {
             />
           </div>
         </div>
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6">
+        <div className="grid grid-cols-1 gap-2 sm:grid-cols-2 lg:grid-cols-4">
           <InfoCard
-            icon={<CalendarDays className="w-5 h-5 sm:w-6 sm:h-6 text-green-400" />}
+            icon={<CalendarDays className="h-5 w-5 text-primary sm:h-6 sm:w-6" />}
             title="Total Days"
             value={currentDay}
             subtitle={`Week ${currentWeek}`}
           />
           <InfoCard
-            icon={<CurrentPhaseIcon className="w-5 h-5 sm:w-6 sm:h-6 text-green-400" />}
+            icon={<CurrentPhaseIcon className="h-5 w-5 text-primary sm:h-6 sm:w-6" />}
             title="Current Phase"
             value={daysInCurrentPhase}
             subtitle="Days"
           />
           {lastCompletedPhase && (
             <InfoCard
-              icon={<CalendarDays className="w-5 h-5 sm:w-6 sm:h-6 text-green-400" />}
+              icon={<CalendarDays className="h-5 w-5 text-primary sm:h-6 sm:w-6" />}
               title="Last Completed"
               value={lastCompletedPhase.phase}
               subtitle={formatDate(lastCompletedPhase.startDate)}
             />
           )}
           <InfoCard
-            icon={<Plant className="w-5 h-5 sm:w-6 sm:h-6 text-green-400" />}
+            icon={<Plant className="h-5 w-5 text-primary sm:h-6 sm:w-6" />}
             title="Plants"
             value={grow.plants?.length || 0}
             subtitle="Total"
@@ -127,16 +130,16 @@ export function GrowInfo({ grow, onPhaseChange }: GrowInfoProps) {
       </CardContent>
 
       <AlertDialog open={showConfirmDialog} onOpenChange={setShowConfirmDialog}>
-        <AlertDialogContent className="bg-gray-800 text-white">
+        <AlertDialogContent className="infotainment-overlay border-white/10 text-foreground">
           <AlertDialogHeader>
             <AlertDialogTitle>Confirm Phase Change</AlertDialogTitle>
-            <AlertDialogDescription className="text-gray-300">
+            <AlertDialogDescription className="text-muted-foreground">
               Are you sure you want to change the phase to {selectedPhase}? This action cannot be undone.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel className="bg-gray-700 text-white hover:bg-gray-600">Cancel</AlertDialogCancel>
-            <AlertDialogAction onClick={confirmPhaseChange} className="bg-green-500 text-white hover:bg-green-600">
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={confirmPhaseChange} className="bg-primary text-primary-foreground hover:bg-primary/90">
               Confirm
             </AlertDialogAction>
           </AlertDialogFooter>
@@ -148,12 +151,12 @@ export function GrowInfo({ grow, onPhaseChange }: GrowInfoProps) {
 
 function InfoCard({ icon, title, value, subtitle }: InfoCardProps) {
   return (
-    <div className="bg-gray-800 rounded-xl border border-gray-700 p-3 sm:p-4 flex items-center">
-      <div className="mr-3 sm:mr-4">{icon}</div>
+    <div className="flex items-center rounded-[1rem] border border-white/10 bg-white/[0.045] p-3">
+      <div className="mr-3 rounded-2xl bg-primary/10 p-2">{icon}</div>
       <div>
-        <div className="text-xs sm:text-sm font-medium text-gray-400">{title}</div>
-        <div className="text-lg sm:text-2xl font-bold text-white">{value}</div>
-        <div className="text-xs sm:text-sm text-gray-400">{subtitle}</div>
+        <div className="text-xs font-semibold text-muted-foreground">{title}</div>
+        <div className="text-lg font-semibold text-foreground sm:text-xl">{value}</div>
+        <div className="text-xs text-muted-foreground">{subtitle}</div>
       </div>
     </div>
   )

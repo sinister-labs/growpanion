@@ -4,11 +4,16 @@ use reqwest::{Client, Method, Url};
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::time::Duration;
+use tauri::menu::{Menu, MenuItem};
+use tauri::tray::TrayIconBuilder;
 use tauri::{command, LogicalSize, Manager, Size};
 
 const WINDOW_ASPECT_RATIO: f64 = 16.0 / 9.0;
 const MIN_WIDTH: f64 = 800.0;
 const MAX_WIDTH_PERCENTAGE: f64 = 0.8;
+const TRAY_SHOW_ID: &str = "tray-show";
+const TRAY_QUIT_ID: &str = "tray-quit";
+
 const ALLOWED_DOMAINS: [&str; 4] = [
     "openapi.tuyaeu.com",
     "openapi.tuyacn.com",
@@ -141,6 +146,28 @@ async fn http_proxy(args: HttpProxyArgs) -> Result<String, String> {
 fn main() {
     tauri::Builder::default()
         .setup(|app| {
+            let show_item = MenuItem::with_id(app, TRAY_SHOW_ID, "Show GrowPanion", true, None::<&str>)?;
+            let quit_item = MenuItem::with_id(app, TRAY_QUIT_ID, "Quit", true, None::<&str>)?;
+            let tray_menu = Menu::with_items(app, &[&show_item, &quit_item])?;
+
+            let _tray = TrayIconBuilder::with_id("growpanion-tray")
+                .icon(app.default_window_icon().unwrap().clone())
+                .menu(&tray_menu)
+                .tooltip("GrowPanion")
+                .on_menu_event(|app, event| match event.id.as_ref() {
+                    TRAY_SHOW_ID => {
+                        if let Some(window) = app.get_webview_window("main") {
+                            let _ = window.show();
+                            let _ = window.set_focus();
+                        }
+                    }
+                    TRAY_QUIT_ID => {
+                        app.exit(0);
+                    }
+                    _ => {}
+                })
+                .build(app)?;
+
             let Some(window) = app.get_webview_window("main") else {
                 return Ok(());
             };
@@ -160,6 +187,12 @@ fn main() {
             }
 
             Ok(())
+        })
+        .on_window_event(|window, event| {
+            if let tauri::WindowEvent::CloseRequested { api, .. } = event {
+                let _ = window.hide();
+                api.prevent_close();
+            }
         })
         .invoke_handler(tauri::generate_handler![http_proxy])
         .run(tauri::generate_context!())

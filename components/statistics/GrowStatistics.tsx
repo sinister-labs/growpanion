@@ -17,8 +17,8 @@ export function GrowStatistics({ plants, grows }: GrowStatisticsProps) {
 
   if (growStats.length === 0) {
     return (
-      <div className="text-center py-8 text-gray-400">
-        <Scale className="h-12 w-12 mx-auto mb-4 opacity-50" />
+      <div className="py-8 text-center text-muted-foreground">
+        <Scale className="mx-auto mb-4 h-12 w-12 opacity-50" />
         <p>No grow data available</p>
       </div>
     );
@@ -26,7 +26,6 @@ export function GrowStatistics({ plants, grows }: GrowStatisticsProps) {
 
   return (
     <div className="space-y-4">
-      {/* Grow Cards */}
       {growStats.map((grow) => {
         const startDate = new Date(grow.startDate);
         const formattedDate = Number.isFinite(startDate.getTime())
@@ -39,12 +38,12 @@ export function GrowStatistics({ plants, grows }: GrowStatisticsProps) {
         return (
           <div
             key={grow.id}
-            className="bg-gray-900/50 rounded-lg p-4 border border-gray-700/50"
+            className="rounded-[1rem] border border-white/10 bg-white/[0.045] p-4"
           >
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+            <div className="flex flex-col justify-between gap-4 sm:flex-row sm:items-center">
               <div className="space-y-1">
-                <h3 className="font-semibold text-white text-lg">{grow.name}</h3>
-                <div className="flex flex-wrap items-center gap-3 text-sm text-gray-400">
+                <h3 className="text-lg font-semibold text-foreground">{grow.name}</h3>
+                <div className="flex flex-wrap items-center gap-3 text-sm text-muted-foreground">
                   <span className="flex items-center gap-1">
                     <Calendar className="h-4 w-4" />
                     {formattedDate}
@@ -54,11 +53,11 @@ export function GrowStatistics({ plants, grows }: GrowStatisticsProps) {
                     {grow.plantCount} plant{grow.plantCount !== 1 ? 's' : ''}
                   </span>
                 </div>
-                <div className="flex flex-wrap gap-2 mt-2">
+                <div className="mt-2 flex flex-wrap gap-2">
                   {grow.strains.map(strain => (
                     <span
                       key={strain}
-                      className="text-xs px-2 py-1 bg-gray-700 rounded-full text-gray-300"
+                      className="rounded-full bg-muted/[0.65] px-2 py-1 text-xs text-muted-foreground"
                     >
                       {strain}
                     </span>
@@ -68,16 +67,16 @@ export function GrowStatistics({ plants, grows }: GrowStatisticsProps) {
 
               <div className="flex gap-6 sm:text-right">
                 <div>
-                  <div className="text-2xl font-bold text-green-400">
+                  <div className="text-2xl font-semibold text-primary">
                     {grow.totalYield}g
                   </div>
-                  <div className="text-xs text-gray-400">Total Yield</div>
+                  <div className="text-xs text-muted-foreground">Total Yield</div>
                 </div>
                 <div>
-                  <div className="text-2xl font-bold text-white">
+                  <div className="text-2xl font-semibold text-foreground">
                     {grow.avgYieldPerPlant}g
                   </div>
-                  <div className="text-xs text-gray-400">Per Plant</div>
+                  <div className="text-xs text-muted-foreground">Per Plant</div>
                 </div>
               </div>
             </div>
@@ -85,18 +84,17 @@ export function GrowStatistics({ plants, grows }: GrowStatisticsProps) {
         );
       })}
 
-      {/* Summary Row */}
       {growStats.length > 1 && (
-        <div className="bg-green-600/10 border border-green-600/30 rounded-lg p-4 mt-6">
+        <div className="mt-6 rounded-3xl border border-primary/35 bg-primary/10 p-4">
           <div className="flex items-center justify-between">
-            <div className="text-sm text-gray-300">
+            <div className="text-sm text-foreground">
               <strong>{growStats.length}</strong> grows with harvest data
             </div>
             <div className="text-right">
-              <span className="text-lg font-bold text-green-400">
+              <span className="text-lg font-semibold text-primary">
                 {growStats.reduce((sum, g) => sum + g.totalYield, 0)}g
               </span>
-              <span className="text-sm text-gray-400 ml-2">total yield</span>
+              <span className="ml-2 text-sm text-muted-foreground">total yield</span>
             </div>
           </div>
         </div>

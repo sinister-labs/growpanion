@@ -14,6 +14,14 @@ export interface Plant {
     id: string;
     name: string;
     genetic: string;
+    geneticsId?: string;
+    phenotypeId?: string;
+    label?: string;
+    location?: string;
+    tent?: string;
+    sensorBindingIds?: string[];
+    lifecycleStatus?: string;
+    currentPhase?: string;
     manufacturer: string;
     type: "regular" | "autoflowering" | "feminized";
     propagationMethod: "clone" | "seed";
@@ -70,6 +78,7 @@ export interface PlantModalProps {
     deletePlant: (plantId: string, plantName: string) => void | Promise<unknown>;
     growId: string;
     onManageFertilizerMixes?: () => void;
+    initialTab?: TabType;
 }
 
 export interface TabComponentProps {

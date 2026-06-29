@@ -1,4 +1,4 @@
-import { useState } from "react"
+import { useEffect, useState } from "react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
@@ -8,10 +8,18 @@ import { ScrollArea } from "@/components/ui/scroll-area"
 import { Droplet, Plus, Save, Trash, X, Beaker, Loader2 } from "lucide-react"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
+import { CustomDropdown, type DropdownOption } from "@/components/ui/custom-dropdown"
 import { useFertilizerMixes } from "@/hooks/useFertilizerMixes"
 import { Fertilizer } from "@/components/plant-modal/types"
-import { FertilizerMixDB } from "@/lib/db"
-import { formatDosePerLiter, hasExistingFertilizerMix } from "@/lib/feeding-utils"
+import { FertilizerMixDB, getMixRecipesForGrow, saveFertilizerProduct, saveMixRecipe, type FertilizerProduct, type MixRecipe } from "@/lib/db"
+import {
+    calculateDosePerLiter,
+    createFertilizerProductId,
+    createMixRecipeIdFromLegacyMix,
+    findMixRecipeForLegacyMix,
+    formatDosePerLiter,
+    hasExistingFertilizerMix
+} from "@/lib/feeding-utils"
 
 interface FertilizerMixesManagerProps {
     growId: string | null;
@@ -31,6 +39,12 @@ export const FertilizerMixesManager = ({ growId }: FertilizerMixesManagerProps) 
     const [editingMix, setEditingMix] = useState<FertilizerMixDB | null>(null)
     const [isSaving, setIsSaving] = useState(false)
     const [formError, setFormError] = useState<string | null>(null)
+    const [fertilizerType, setFertilizerType] = useState<MixRecipe['fertilizerType']>('mineral')
+    const [substrateType, setSubstrateType] = useState<MixRecipe['substrateType']>('soil')
+    const [targetEc, setTargetEc] = useState('')
+    const [targetPh, setTargetPh] = useState('')
+    const [phase, setPhase] = useState('')
+    const [mixRecipes, setMixRecipes] = useState<MixRecipe[]>([])
 
     const [tempFertilizer, setTempFertilizer] = useState<Fertilizer>({
         name: "",
@@ -38,6 +52,42 @@ export const FertilizerMixesManager = ({ growId }: FertilizerMixesManagerProps) 
     });
 
     const editingMixExists = hasExistingFertilizerMix(mixes, editingMix);
+    const fertilizerTypeOptions: DropdownOption[] = [
+        { id: 'mineral', label: 'Mineralisch' },
+        { id: 'organic', label: 'Biologisch' },
+        { id: 'hybrid', label: 'Hybrid' },
+    ];
+    const substrateTypeOptions: DropdownOption[] = [
+        { id: 'soil', label: 'Erde' },
+        { id: 'coco', label: 'Coco' },
+        { id: 'hydro', label: 'Hydro' },
+        { id: 'living_soil', label: 'Living Soil' },
+        { id: 'other', label: 'Anderes' },
+    ];
+
+    useEffect(() => {
+        let cancelled = false;
+
+        async function loadMixRecipes() {
+            if (!growId) {
+                setMixRecipes([]);
+                return;
+            }
+
+            const recipes = await getMixRecipesForGrow(growId);
+            if (!cancelled) {
+                setMixRecipes(recipes);
+            }
+        }
+
+        loadMixRecipes().catch(() => {
+            if (!cancelled) setMixRecipes([]);
+        });
+
+        return () => {
+            cancelled = true;
+        };
+    }, [growId]);
 
     const handleEditMix = (mix: FertilizerMixDB | null) => {
         setFormError(null)
@@ -49,6 +99,20 @@ export const FertilizerMixesManager = ({ growId }: FertilizerMixesManagerProps) 
             fertilizers: [],
             growId: growId || ""
         })
+        const recipe = mix ? findMixRecipeForLegacyMix(mixRecipes, mix.id) : undefined;
+        if (recipe) {
+            setFertilizerType(recipe.fertilizerType)
+            setSubstrateType(recipe.substrateType)
+            setTargetEc(recipe.targetEc?.toString() || '')
+            setTargetPh(recipe.targetPh?.toString() || '')
+            setPhase(recipe.phase || '')
+        } else {
+            setFertilizerType('mineral')
+            setSubstrateType('soil')
+            setTargetEc('')
+            setTargetPh('')
+            setPhase('')
+        }
         setIsDialogOpen(true)
     }
 
@@ -89,6 +153,16 @@ export const FertilizerMixesManager = ({ growId }: FertilizerMixesManagerProps) 
             return;
         }
 
+        const parsedTargetEc = targetEc.trim() ? Number(targetEc) : undefined;
+        const parsedTargetPh = targetPh.trim() ? Number(targetPh) : undefined;
+        if (
+            (parsedTargetEc !== undefined && (!Number.isFinite(parsedTargetEc) || parsedTargetEc < 0)) ||
+            (parsedTargetPh !== undefined && (!Number.isFinite(parsedTargetPh) || parsedTargetPh < 0 || parsedTargetPh > 14))
+        ) {
+            setFormError("Target EC must be non-negative and target pH must be between 0 and 14.");
+            return;
+        }
+
         const mixToSave = {
             ...editingMix,
             name: editingMix.name.trim(),
@@ -105,6 +179,56 @@ export const FertilizerMixesManager = ({ growId }: FertilizerMixesManagerProps) 
             } else {
                 await addMix(mixToSave);
             }
+
+            const timestamp = new Date().toISOString();
+            const recipeProducts: MixRecipe['products'] = [];
+            for (const fertilizer of mixToSave.fertilizers) {
+                const dosePerLiter = calculateDosePerLiter(fertilizer.amount, mixToSave.waterAmount);
+                if (dosePerLiter === null) continue;
+
+                const productId = createFertilizerProductId(fertilizer.name);
+                const product: FertilizerProduct = {
+                    id: productId,
+                    name: fertilizer.name,
+                    fertilizerType,
+                    createdAt: timestamp,
+                    updatedAt: timestamp,
+                };
+                await saveFertilizerProduct(product);
+                recipeProducts.push({ productId, dosePerLiter });
+            }
+
+            await saveMixRecipe({
+                id: createMixRecipeIdFromLegacyMix(mixToSave.id),
+                growId,
+                name: mixToSave.name,
+                fertilizerType,
+                substrateType,
+                products: recipeProducts,
+                targetEc: parsedTargetEc,
+                targetPh: parsedTargetPh,
+                phase: phase.trim() || undefined,
+                notes: mixToSave.description,
+                createdAt: timestamp,
+                updatedAt: timestamp,
+            });
+            setMixRecipes(current => [
+                ...current.filter(recipe => recipe.id !== createMixRecipeIdFromLegacyMix(mixToSave.id)),
+                {
+                    id: createMixRecipeIdFromLegacyMix(mixToSave.id),
+                    growId,
+                    name: mixToSave.name,
+                    fertilizerType,
+                    substrateType,
+                    products: recipeProducts,
+                    targetEc: parsedTargetEc,
+                    targetPh: parsedTargetPh,
+                    phase: phase.trim() || undefined,
+                    notes: mixToSave.description,
+                    createdAt: timestamp,
+                    updatedAt: timestamp,
+                },
+            ]);
 
             setIsDialogOpen(false)
             setEditingMix(null)
@@ -139,8 +263,8 @@ export const FertilizerMixesManager = ({ growId }: FertilizerMixesManagerProps) 
 
     if (!growId) {
         return (
-            <div className="bg-gray-800/30 border border-gray-700 rounded-lg p-8 text-center">
-                <p className="text-gray-400 mb-4">
+            <div className="rounded-[1rem] border border-white/10 bg-white/[0.045] p-8 text-center">
+                <p className="mb-4 text-muted-foreground">
                     Please select a grow to manage fertilizer mixes.
                 </p>
             </div>
@@ -149,12 +273,14 @@ export const FertilizerMixesManager = ({ growId }: FertilizerMixesManagerProps) 
 
     return (
         <div className="space-y-6">
-            <div className="flex justify-between items-center">
-                <h2 className="text-2xl font-semibold text-white">Fertilizer Mixes</h2>
+            <div className="flex items-center justify-between gap-4">
+                <div>
+                    <h2 className="text-2xl font-semibold text-foreground">Fertilizer Mixes</h2>
+                    <p className="text-sm text-muted-foreground">{mixes.length} saved recipe{mixes.length === 1 ? '' : 's'}</p>
+                </div>
                 {mixes.length > 0 && (
                     <Button
                         onClick={() => handleEditMix(null)}
-                        className="bg-green-500 hover:bg-green-700"
                     >
                         <Plus className="mr-2 h-4 w-4" /> New Mix
                     </Button>
@@ -162,47 +288,46 @@ export const FertilizerMixesManager = ({ growId }: FertilizerMixesManagerProps) 
             </div>
 
             {isLoading ? (
-                <div className="flex justify-center items-center">
-                    <Loader2 className="w-8 h-8 animate-spin text-gray-500" />
+                <div className="flex items-center justify-center">
+                    <Loader2 className="h-8 w-8 animate-spin text-primary" />
                 </div>
             ) : error ? (
-                <div className="bg-red-800 p-8 rounded-lg border border-red-700 text-center">
-                    <p className="text-red-400">{error.message}</p>
+                <div className="rounded-3xl border border-destructive/35 bg-destructive/10 p-8 text-center">
+                    <p className="text-destructive">{error.message}</p>
                 </div>
             ) : mixes.length === 0 ? (
-                <div className=" p-8 rounded-2xl border-2 border-gray-700 text-center">
-                    <Beaker className="w-12 h-12 mx-auto mb-4 text-gray-500" />
-                    <h3 className="text-xl font-semibold mb-2 text-white">No Fertilizer Mixes</h3>
-                    <p className="text-gray-400 mb-4">Create your first fertilizer mix to use it later when watering your plants.</p>
+                <div className="infotainment-surface p-8 text-center">
+                    <Beaker className="mx-auto mb-4 h-12 w-12 text-muted-foreground" />
+                    <h3 className="mb-2 text-xl font-semibold text-foreground">No Fertilizer Mixes</h3>
+                    <p className="mb-4 text-muted-foreground">Create your first fertilizer mix to use it later when watering your plants.</p>
                     <Button
                         onClick={() => handleEditMix(null)}
-                        className="bg-green-600 hover:bg-green-700"
                     >
                         <Plus className="mr-2 h-4 w-4" /> Create Mix
                     </Button>
                 </div>
             ) : (
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
                     {mixes.map((mix) => (
                         <Card
                             key={mix.id}
-                            className="bg-gray-800 bg-opacity-50 backdrop-filter backdrop-blur-lg border-gray-700 hover:border-green-400 transition-all duration-300 transform hover:scale-105 cursor-pointer text-left"
+                            className="cursor-pointer text-left transition-all duration-300 hover:-translate-y-0.5 hover:border-primary/60"
                             onClick={() => handleMixCardClick(mix)}
                         >
                             <CardHeader className="pb-2">
-                                <CardTitle className="text-base sm:text-lg font-medium text-green-400">{mix.name}</CardTitle>
+                                <CardTitle className="text-base font-semibold text-foreground sm:text-lg">{mix.name}</CardTitle>
                                 {mix.description && (
-                                    <p className="text-sm text-gray-400">{mix.description}</p>
+                                    <p className="text-sm text-muted-foreground">{mix.description}</p>
                                 )}
                             </CardHeader>
                             <CardContent>
                                 <div className="space-y-2">
                                     {mix.fertilizers.map((fert: Fertilizer, idx: number) => (
-                                        <div key={idx} className="flex justify-between items-center bg-gray-700/30 p-2 rounded-lg">
-                                            <div className="border border-blue-600 text-blue-400 px-2 py-1 rounded-full text-sm">
+                                        <div key={idx} className="flex items-center justify-between rounded-[0.95rem] border border-white/10 bg-white/[0.045] p-2">
+                                            <div className="rounded-full border border-[#2FA98C]/50 px-2 py-1 text-sm text-[#00DF81]">
                                                 {fert.name}
                                             </div>
-                                            <div className="bg-green-600/80 text-white px-2 py-1 rounded-full text-sm">
+                                            <div className="rounded-full bg-primary/[0.12] px-2 py-1 text-sm font-semibold text-primary">
                                                 {formatDosePerLiter(fert.amount, mix.waterAmount)}
                                             </div>
                                         </div>
@@ -215,25 +340,25 @@ export const FertilizerMixesManager = ({ growId }: FertilizerMixesManagerProps) 
             )}
 
             <Dialog open={isDialogOpen} onOpenChange={(open) => setIsDialogOpen(open)}>
-                <DialogContent className="bg-gray-800/95 backdrop-blur-md border-gray-700 text-white max-w-3xl rounded-xl p-6">
+                <DialogContent className="max-w-3xl">
                     <DialogHeader>
-                        <div className="flex justify-between items-center">
-                            <DialogTitle className="text-green-400 text-xl">{editingMixExists ? 'Edit Fertilizer Mix' : 'New Fertilizer Mix'}</DialogTitle>
+                        <div className="flex items-center justify-between">
+                            <DialogTitle className="text-xl text-primary">{editingMixExists ? 'Edit Fertilizer Mix' : 'New Fertilizer Mix'}</DialogTitle>
                         </div>
                     </DialogHeader>
 
-                    <div className="relative mt-4 min-h-[320px]">
+                    <div className="mt-4">
                         <Tabs defaultValue="details" className="mt-4">
-                            <TabsList className="grid grid-cols-2 bg-gray-800 rounded-full">
-                                <TabsTrigger value="details" className="rounded-full data-[state=active]:bg-green-500 data-[state=active]:text-gray-800">Details</TabsTrigger>
-                                <TabsTrigger value="fertilizers" className="rounded-full data-[state=active]:bg-green-500 data-[state=active]:text-gray-800">Fertilizers</TabsTrigger>
+                            <TabsList className="grid w-full grid-cols-2">
+                                <TabsTrigger value="details">Details</TabsTrigger>
+                                <TabsTrigger value="fertilizers">Fertilizers</TabsTrigger>
                             </TabsList>
 
-                            <div className="relative mt-4 min-h-[320px]">
-                                <TabsContent value="details" className="p-4 bg-gray-800/80 bg-gray-900 absolute inset-0 rounded-xl transition-all duration-300 ease-in-out">
+                            <div className="mt-4">
+                                <TabsContent value="details" className="rounded-[1rem] border border-white/10 bg-white/[0.045] p-4">
                                     <div className="space-y-4">
                                         <div>
-                                            <Label htmlFor="mix-name" className="text-white">Name</Label>
+                                            <Label htmlFor="mix-name">Name</Label>
                                             <Input
                                                 id="mix-name"
                                                 value={editingMix?.name || ''}
@@ -242,17 +367,17 @@ export const FertilizerMixesManager = ({ growId }: FertilizerMixesManagerProps) 
                                             />
                                         </div>
                                         <div>
-                                            <Label htmlFor="mix-desc" className="text-white">Description (optional)</Label>
+                                            <Label htmlFor="mix-desc">Description (optional)</Label>
                                             <Textarea
                                                 id="mix-desc"
                                                 value={editingMix?.description || ''}
                                                 onChange={e => setEditingMix(prev => prev ? { ...prev, description: e.target.value } : null)}
-                                                className="bg-gray-800/80 border-gray-700 text-white rounded-2xl px-4 py-2"
+                                                className="rounded-2xl px-4 py-2"
                                                 disabled={isSaving}
                                             />
                                         </div>
                                         <div>
-                                            <Label htmlFor="water-amount" className="text-white">Water per batch (ml)</Label>
+                                            <Label htmlFor="water-amount">Water per batch (ml)</Label>
                                             <Input
                                                 id="water-amount"
                                                 type="number"
@@ -263,25 +388,82 @@ export const FertilizerMixesManager = ({ growId }: FertilizerMixesManagerProps) 
                                                 disabled={isSaving}
                                             />
                                         </div>
+                                        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                                            <div>
+                                                <Label>Düngertyp</Label>
+                                                <CustomDropdown
+                                                    options={fertilizerTypeOptions}
+                                                    value={fertilizerType}
+                                                    onChange={(value) => setFertilizerType(value as MixRecipe['fertilizerType'])}
+                                                    width="w-full"
+                                                    disabled={isSaving}
+                                                />
+                                            </div>
+                                            <div>
+                                                <Label>Substrat</Label>
+                                                <CustomDropdown
+                                                    options={substrateTypeOptions}
+                                                    value={substrateType}
+                                                    onChange={(value) => setSubstrateType(value as MixRecipe['substrateType'])}
+                                                    width="w-full"
+                                                    disabled={isSaving}
+                                                />
+                                            </div>
+                                        </div>
+                                        <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
+                                            <div>
+                                                <Label htmlFor="target-ec">Ziel-EC</Label>
+                                                <Input
+                                                    id="target-ec"
+                                                    type="number"
+                                                    min="0"
+                                                    step="0.01"
+                                                    value={targetEc}
+                                                    onChange={e => setTargetEc(e.target.value)}
+                                                    disabled={isSaving}
+                                                />
+                                            </div>
+                                            <div>
+                                                <Label htmlFor="target-ph">Ziel-pH</Label>
+                                                <Input
+                                                    id="target-ph"
+                                                    type="number"
+                                                    min="0"
+                                                    max="14"
+                                                    step="0.01"
+                                                    value={targetPh}
+                                                    onChange={e => setTargetPh(e.target.value)}
+                                                    disabled={isSaving}
+                                                />
+                                            </div>
+                                            <div>
+                                                <Label htmlFor="recipe-phase">Phase</Label>
+                                                <Input
+                                                    id="recipe-phase"
+                                                    value={phase}
+                                                    onChange={e => setPhase(e.target.value)}
+                                                    disabled={isSaving}
+                                                />
+                                            </div>
+                                        </div>
                                     </div>
                                 </TabsContent>
 
-                                <TabsContent value="fertilizers" className="p-4 bg-gray-800/80 bg-gray-900 absolute inset-0 rounded-xl transition-all duration-300 ease-in-out">
+                                <TabsContent value="fertilizers" className="rounded-[1rem] border border-white/10 bg-white/[0.045] p-4">
                                     <div className="space-y-4">
-                                        <div className="flex flex-col sm:flex-row gap-2">
+                                        <div className="flex flex-col gap-2 sm:flex-row">
                                             <div className="flex-1">
-                                                <Label htmlFor="fert-name" className="text-white">Fertilizer</Label>
+                                                <Label htmlFor="fert-name">Fertilizer</Label>
                                                 <Input
                                                     id="fert-name"
                                                     value={tempFertilizer.name}
                                                     onChange={e => setTempFertilizer(prev => ({ ...prev, name: e.target.value }))}
                                                     placeholder="Enter fertilizer name"
-                                                    className="bg-gray-800/80 backdrop-blur-sm border border-gray-700 text-white"
                                                     disabled={isSaving}
                                                 />
                                             </div>
                                             <div className="sm:w-48">
-                                                <Label htmlFor="fert-amount" className="text-white">Amount / {editingMix?.waterAmount} ml</Label>
+                                                <Label htmlFor="fert-amount">Amount / {editingMix?.waterAmount} ml</Label>
                                                 <div className="relative">
                                                     <Input
                                                         id="fert-amount"
@@ -292,7 +474,7 @@ export const FertilizerMixesManager = ({ growId }: FertilizerMixesManagerProps) 
                                                         onChange={e => setTempFertilizer(prev => ({ ...prev, amount: e.target.value }))}
                                                         disabled={isSaving}
                                                     />
-                                                    <span className="absolute inset-y-0 right-0 flex items-center pr-4 text-gray-400 pointer-events-none border-l-2 pl-2 border-gray-700 bg-gray-700 rounded-r-full">
+                                                    <span className="pointer-events-none absolute inset-y-0 right-0 flex items-center rounded-r-full border-l border-white/10 bg-white/[0.045] pl-2 pr-4 text-muted-foreground">
                                                         ml
                                                     </span>
                                                 </div>
@@ -300,7 +482,7 @@ export const FertilizerMixesManager = ({ growId }: FertilizerMixesManagerProps) 
                                             <div className="sm:self-end">
                                                 <Button
                                                     onClick={handleAddFertilizer}
-                                                    className="bg-green-600 hover:bg-green-700 rounded-full w-full sm:w-auto mt-4 sm:mt-0"
+                                                    className="mt-4 w-full sm:mt-0 sm:w-auto"
                                                     disabled={isSaving}
                                                 >
                                                     <Plus className="mr-2 h-4 w-4" /> Add
@@ -308,23 +490,23 @@ export const FertilizerMixesManager = ({ growId }: FertilizerMixesManagerProps) 
                                             </div>
                                         </div>
 
-                                        <ScrollArea className="flex-1 min-h-48 h-full bg-gray-800/50 rounded-xl p-2 border border-gray-700/50">
+                                        <ScrollArea className="h-full min-h-48 flex-1 rounded-[1rem] border border-white/10 bg-white/[0.045] p-2">
                                             {editingMix && editingMix.fertilizers.length > 0 ? (
                                                 <ul className="space-y-2">
                                                     {editingMix.fertilizers.map((fertilizer, idx) => (
-                                                        <li key={idx} className="flex justify-between items-center bg-gray-700/30 p-2 rounded-lg">
+                                                        <li key={idx} className="flex items-center justify-between rounded-[0.95rem] border border-white/10 bg-white/[0.045] p-2">
                                                             <div className="flex items-center gap-2">
-                                                                <div className="border border-blue-600 text-blue-400 px-2 py-1 rounded-full text-sm">
+                                                                <div className="rounded-full border border-[#2FA98C]/50 px-2 py-1 text-sm text-[#00DF81]">
                                                                     {fertilizer.name}
                                                                 </div>
-                                                                <div className="bg-green-600/80 text-white px-2 py-1 rounded-full text-sm">
+                                                                <div className="rounded-full bg-primary/[0.12] px-2 py-1 text-sm font-semibold text-primary">
                                                                     {fertilizer.amount} ml / {editingMix.waterAmount} ml
                                                                 </div>
                                                             </div>
                                                             <Button
                                                                 variant="ghost"
                                                                 size="icon"
-                                                                className="h-8 w-8 text-gray-400 hover:text-white hover:bg-gray-700/50 rounded-full"
+                                                                className="h-8 w-8 text-muted-foreground hover:text-foreground"
                                                                 onClick={() => handleRemoveFertilizer(idx)}
                                                                 disabled={isSaving}
                                                             >
@@ -334,7 +516,7 @@ export const FertilizerMixesManager = ({ growId }: FertilizerMixesManagerProps) 
                                                     ))}
                                                 </ul>
                                             ) : (
-                                                <div className="flex flex-col items-center justify-center h-full text-gray-500">
+                                                <div className="flex h-full flex-col items-center justify-center text-muted-foreground">
                                                     <Droplet className="h-8 w-8 mb-2" />
                                                     <p>No fertilizers added yet</p>
                                                 </div>
@@ -348,11 +530,11 @@ export const FertilizerMixesManager = ({ growId }: FertilizerMixesManagerProps) 
 
                     <div className="mt-6 flex flex-col gap-4">
                         {formError && (
-                            <p className="text-sm text-red-400">{formError}</p>
+                            <p className="text-sm text-destructive">{formError}</p>
                         )}
                         <Button
                             onClick={handleSaveMix}
-                            className="bg-green-600 hover:bg-green-700 rounded-full w-full"
+                            className="w-full"
                             disabled={!editingMix || !editingMix.name.trim() || !editingMix.waterAmount || !editingMix.fertilizers.length || isSaving}
                         >
                             <Save className="mr-2 h-4 w-4" />
@@ -362,7 +544,7 @@ export const FertilizerMixesManager = ({ growId }: FertilizerMixesManagerProps) 
                             <Button
                                 variant="ghost"
                                 size="sm"
-                                className="text-red-400 hover:text-red-300 hover:bg-red-950/30 rounded-full w-full"
+                                className="w-full text-destructive hover:bg-destructive/10 hover:text-destructive"
                                 disabled={isSaving}
                                 onClick={() => {
                                     if (editingMix) {
